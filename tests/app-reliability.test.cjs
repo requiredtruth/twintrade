@@ -8,6 +8,7 @@ const env={console,document:{getElementById:node,querySelector:()=>node('dismiss
 env.window=env;vm.createContext(env);const run=code=>vm.runInContext(code,env);
 const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
 (async()=>{
+ await new Promise(resolve=>setImmediate(resolve));
  // A second close of the same paper order must never credit the balance twice.
  run('setPrice(0,100,Date.now());');await run('sendOrder(true)');
  const p=run('book.positions[0]');run('closePaper(book.positions[0])');const balance=run('book.cash');
@@ -15,8 +16,8 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  // Delayed BTC history cannot get assigned to ETH after selection changes.
  let resolveBtc,resolveEth;env.fetchHistoryChain=async(chain,sym)=>new Promise(resolve=>{if(sym==='BTC-USD')resolveBtc=resolve;else resolveEth=resolve});
  const btc=run('loadHistory(0)');run('pair=1');const ether=run('loadHistory(1)');
- resolveEth({rows:[{t:60000,o:20,h:20,l:20,c:20}],chain:'polygon'});await ether;
- resolveBtc({rows:[{t:60000,o:10,h:10,l:10,c:10}],chain:'polygon'});await btc;
+ resolveEth({rows:[{t:Math.floor(Date.now()/60000)*60000-60000,o:20,h:20,l:20,c:20}],chain:'polygon'});await ether;
+ resolveBtc({rows:[{t:Math.floor(Date.now()/60000)*60000-60000,o:10,h:10,l:10,c:10}],chain:'polygon'});await btc;
  assert.equal(run('candles[0][0].c'),10);assert.equal(run('candles[1][0].c'),20);
  // Review rejected: no token approval or trading transaction.
  const state={approvals:0,opens:0,signerConnected:false};

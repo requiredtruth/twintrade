@@ -19,3 +19,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - v0.24.0: all-leverage average liquidation lines, labeled missing-price estimates, shared chart/stats coverage.
 
 - v0.25.0: fixed chart geometry during sync, transient text above borrowing rates, bounded history retries, overlapping refresh prevention, preserved spreads, deferred snapshot reloads and less DOM/candle processing. Same update certificate as v0.24.0.
+
+- v0.26.0: compact trade labels, expanded zoom submenu and OHLC intervals, BTCDEGEN overlays on BTC, per-position estimated LIQs, and app-switch state continuity. Same update certificate as v0.25.0.

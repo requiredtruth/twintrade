@@ -1,0 +1,13 @@
+{
+  "tag": "v0.26.0",
+  "title": "TwinTrade 0.26.0 \u2014 Zoom, BTCDEGEN overlays and app continuity",
+  "sequence": 10,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "1c52cd23c39af5cffbe09a4c797ea24b2a757ec0908b4f5b3c3e968d7b9eb51f",
+    "TwinTrade.html": "6df3ea66c89ab8c7538400f6b6685a1b52cb79ec818201c96b280f7f7404f4a1",
+    "TwinTrade-source.zip": "ecb79594182e8cf287052e109202ee2e300a3ed8df1413389ab2bcf50361fcac",
+    "spec.md": "6586db1ea8194a4675ed0c7a517cd43c3b62d0dfa1b2a9e0f7c7802e57509bca",
+    "SHA256SUMS": "ed696ee535da3df8edbddf313a87da23ae7a6fecdcf0335a271b5be6a977e56e"
+  }
+}

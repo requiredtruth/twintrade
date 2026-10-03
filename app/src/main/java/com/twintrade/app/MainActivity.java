@@ -24,6 +24,11 @@ public class MainActivity extends Activity {
  if(getSharedPreferences("market",0).getBoolean("keepAlive",true))startForegroundService(new Intent(this,PriceMonitorService.class));
  if(Build.VERSION.SDK_INT>=33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},8);
 }
+ // Keep the existing WebView when returning from another app. Never navigate/reload on resume.
+ @Override protected void onResume(){super.onResume();if(web!=null){web.onResume();web.evaluateJavascript("if(typeof onAppResume==='function')onAppResume();",null);}}
+ @Override protected void onPause(){if(web!=null){web.evaluateJavascript("if(typeof checkpointSession==='function')checkpointSession();",null);web.onPause();}super.onPause();}
+ @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);}
+ @Override protected void onDestroy(){if(web!=null){web.removeJavascriptInterface("Vault");web.removeJavascriptInterface("Feed");web.destroy();web=null;}super.onDestroy();}
  @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
 
  public class Feed {
