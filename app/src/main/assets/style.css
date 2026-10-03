@@ -18,3 +18,26 @@ header,.strip,.summary,.tabs,footer{flex-shrink:0}
 #exitApp{display:block;width:100%;padding:14px;color:#ff8b9a;border-color:#5a2b34}
 .net{font-size:9px;color:#0a1420;background:#8bc4ff;border-radius:5px;padding:1px 5px}#globalMine{width:auto;display:inline}
 #loadbar{position:relative;height:18px;background:#101722;border-bottom:1px solid #283242;overflow:hidden;flex-shrink:0}#loadfill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#0e5a44,#16d3a2);transition:width .3s ease}#loadmsg{position:absolute;inset:0;display:flex;align-items:center;padding:0 12px;font:10px monospace;color:#cfe3d8}
+
+/* Keep every toolbar action reachable on small phone widths. */
+header{display:grid;grid-template-columns:40px minmax(0,1fr) auto 40px;gap:2px 8px;padding:5px 8px}
+#menu{grid-column:1;grid-row:1}#market{grid-column:2;grid-row:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+#price{grid-column:3;grid-row:1;margin-left:0;font-size:16px}
+#settings{grid-column:4;grid-row:1}#traders{grid-column:2;grid-row:2;justify-self:start}#global{grid-column:2;grid-row:2;justify-self:end}#mute{grid-column:3;grid-row:2;justify-self:center}
+.strip{gap:8px}.strip #connection{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.strip #mode,.strip #datarate{flex-shrink:0}
+@media(min-width:640px){header{display:flex;gap:8px}#price{margin-left:auto}}
+/* A compact landscape terminal docks order controls beside the chart. */
+@media(min-width:640px) and (max-height:500px){
+ body{display:grid;grid-template-columns:minmax(0,1fr) 210px;grid-template-rows:48px 24px 26px 30px 18px minmax(0,1fr) 32px minmax(24px,48px);overflow:hidden}
+ header{grid-column:1 / -1;grid-row:1;min-height:0;padding:2px 8px}
+ .strip{grid-column:1;grid-row:2;padding:4px 10px}.summary{grid-column:1;grid-row:3;padding:4px 10px}
+ .chartbar{grid-column:1;grid-row:4;padding:2px 8px;min-width:0}.chartbar #historyStatus{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}.chartbar button{flex-shrink:0}
+ #feesbar,#loadbar{grid-column:1;grid-row:5}#chartwrap{grid-column:1;grid-row:6;min-height:0;min-width:0}
+ .tabs{grid-column:1;grid-row:7;min-width:0}.tabs button{padding:6px 10px}
+ #positions{grid-column:1;grid-row:8;min-height:0;max-height:none}
+ footer{grid-column:2;grid-row:2 / -1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:8px;border-left:1px solid #2b3444}
+ .inputs{flex-direction:column;gap:7px}.inputs label{flex:none}.inputs select{font-size:15px;padding:6px;margin-top:3px}
+ #quote{padding:7px 0;font-size:10px}.actions{flex-direction:column;gap:8px;margin-top:auto}.actions button{width:100%;font-size:18px;padding:14px 4px}
+}
+/* Let the chart yield space before order buttons leave a short viewport. */
+#chartwrap{min-height:0}

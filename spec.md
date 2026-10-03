@@ -10,6 +10,7 @@ The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the 
 - Gains v4 mark/index parsing, timestamp checks, reconnect watchdogs, chart snapshots and one-minute history. Cached/history candles do not make an order quote fresh. A quote must be positive, finite, at most five seconds old and not future-dated. Older native ticks do not overwrite newer quotes.
 - History requests capture their market before awaiting the network. Concurrent BTC/ETH requests merge only into their originating market. Singleton candles and impossible OHLC values are rejected.
 - Public open-trader snapshots and streams, global Polygon/Arbitrum/Base views, same-entry/leverage grouping, yellow/purple entries, liquidation overlays, chart drag/pinch/zoom, sounds, data-rate and freshness indicators. Public P&L and fees are estimates, not authoritative accounting.
+- Portrait header actions remain reachable; compact landscape docks the order controls beside the chart.
 - Safe-area handling for system bars, display cutouts and keyboard, compact-height layout, settings drawer, native battery settings and full monitor exit.
 
 ## Live order execution
