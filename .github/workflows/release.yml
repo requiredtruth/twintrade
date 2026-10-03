@@ -22,6 +22,8 @@ jobs:
           java-version: '17'
       - name: Source regression tests
         run: bash test.sh
+      - name: Read-only live Gains price socket probe
+        run: java -cp 'build/native-tests:libs/*' LivePriceSocketProbe
       - name: Browser dependencies
         run: |
           npm ci --ignore-scripts --no-audit --no-fund

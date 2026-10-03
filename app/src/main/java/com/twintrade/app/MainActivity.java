@@ -33,6 +33,8 @@ public class MainActivity extends Activity {
    stopService(new Intent(MainActivity.this,PriceMonitorService.class));
    runOnUiThread(()->{finishAndRemoveTask();new Handler().postDelayed(()->android.os.Process.killProcess(android.os.Process.myPid()),500);});
   }
+  @JavascriptInterface public int acceptPriceFrame(String raw){return PriceFeed.ingest(raw,System.currentTimeMillis());}
+  @JavascriptInterface public void reconnect(){startForegroundService(new Intent(MainActivity.this,PriceMonitorService.class).setAction("RECONNECT"));}
   @JavascriptInterface public String snapshot(){return MarketStore.snapshot();}
   @JavascriptInterface public void seed(String raw){MarketStore.seed(raw);}
   @JavascriptInterface public String paper(){return MarketStore.book();}

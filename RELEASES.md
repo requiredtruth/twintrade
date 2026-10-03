@@ -13,3 +13,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - v0.21.0: candle gap repair, consistent net chart P&L and signed holding gains/losses; verified update certificate.
 
 - v0.22.0: no repeating near-LIQ notifications, 30-second desync warnings, current-market Stats popup, live LIQ and connection fixes, cached averages. Same update certificate as v0.21.0.
+
+- v0.23.0: native/foreground price recovery, shared ingestion, saved Keep Alive preference, reconnect and transport diagnostics, Android bridge + live socket regression checks.
