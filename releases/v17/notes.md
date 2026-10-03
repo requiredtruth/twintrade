@@ -1,0 +1,1 @@
+Original v17 APK preserved byte for byte, with exact embedded browser assets, source/audit ZIP, dissection spec and checksums. Native decompilation is audit material; the improved rebuilt version follows separately. Original certificate differs from the new rebuilt release identity. No funded trades performed.

@@ -1,0 +1,13 @@
+{
+  "tag": "v0.17.0-supplied",
+  "title": "TwinTrade v17 supplied version and dissection",
+  "sequence": 1,
+  "prerelease": true,
+  "sha256": {
+    "TwinTrade-source.zip": "64ca4ea935272f40101a18c7474d6e2a35da9977e3b930c770cae2cdc41b9f9c",
+    "TwinTrade.apk": "e0e9788c198f718e3078857f020d97f82e80c80a3e81cc079647e2379a19e802",
+    "TwinTrade.html": "e4a2a2d4aa425b9ce0a6992ebcfdf4cebebd97229bc3a958123ad3f8f75d31ef",
+    "spec.md": "672664d61e97d3f927b09f68ef61f04a3efbbc102712a184d6f26f2ae025f31b",
+    "SHA256SUMS": "1ab89e157e5ae4b91b58cc4c2b936076ab3f2d1fe6700d4439b5a62a8c082054"
+  }
+}
