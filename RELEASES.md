@@ -7,3 +7,5 @@
 The supplied v17 APK has its original certificate. Locally rebuilt beta and final APKs have a new local signing identity. A certificate change requires uninstalling the original APK; export or preserve your wallet backup before uninstalling. No private signing key or wallet key is published.
 
 No live-money transaction is submitted as part of verification. A successful build and tests do not establish end-to-end live exchange reliability.
+
+- v0.20.0: stable public overlays, weighted leverage averages, reset chart, real desync status, all-market account pages. Signed with the v0.19.0 certificate.

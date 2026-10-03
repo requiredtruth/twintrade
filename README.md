@@ -1,4 +1,4 @@
-# TwinTrade 0.19.0
+# TwinTrade 0.20.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -6,7 +6,7 @@ Android and standalone browser trading terminal reconstructed from the supplied 
 
 - [Original source beta](https://github.com/requiredtruth/twintrade/releases/tag/v0.3.0-beta): supplied source ZIP preserved unchanged.
 - [Supplied v17](https://github.com/requiredtruth/twintrade/releases/tag/v0.17.0-supplied): original APK preserved unchanged, exact extracted web assets and native dissection.
-- v0.19.0: reconstructed native source, corrected live approval, explicit order review, fresh index quotes, bounded receipt waits, reconnect watchdog, market-specific history loading, validated candles/costs and dynamic market limits.
+- v0.20.0: reconstructed native source, corrected live approval, explicit order review, fresh index quotes, bounded receipt waits, reconnect watchdog, market-specific history loading, validated candles/costs and dynamic market limits.
 
 Each release has APK, self-contained HTML, source ZIP, spec.md and SHA256SUMS. See spec.md and V17-AUDIT.md for provenance and validation limits. No funded trade or physical Android-device test was performed. This is a client of Gains/Polygon services; outages can pause trading.
 
@@ -28,3 +28,5 @@ The browser version supports paper trading and public data. Private-key persiste
 ## APK installation
 
 The supplied v17 APK uses its original certificate. This rebuilt release uses a different certificate. Installing over the original will fail; preserve your wallet recovery material and paper records before uninstalling it. No wallet or signing private keys are included in the repository or public release. Source builds generate a local build/signing.jks; preserve it privately for future updates.
+
+0.20.0 adds stable public trade tracking, reset chart, bold high-leverage averages, five-second desync warnings and all-market Portfolio / Past trades menu pages. Confirmed live history import covers the backend's past-24h window; missing settlements remain unavailable.

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Refresh v19 artifact bytes and integrity metadata after a verified build."""
+"""Refresh versioned artifact bytes and integrity metadata after a verified build."""
 from pathlib import Path
-import hashlib,json,shutil,zipfile
+import hashlib,json,shutil,zipfile,sys
 root=Path(__file__).resolve().parents[1]
-out=root/'releases/v19'
+out=root/'releases'/(sys.argv[1] if len(sys.argv)>1 else 'v20')
 for name,source in [('TwinTrade.apk',root/'dist/TwinTrade.apk'),('TwinTrade.html',root/'dist/TwinTrade.html'),('spec.md',root/'spec.md')]:
     shutil.copyfile(source,out/name)
 with zipfile.ZipFile(out/'TwinTrade-source.zip','w',zipfile.ZIP_DEFLATED) as archive:

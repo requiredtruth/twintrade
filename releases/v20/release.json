@@ -1,0 +1,13 @@
+{
+  "tag": "v0.20.0",
+  "title": "TwinTrade 0.20.0 \u2014 stable trade lines, chart averages and portfolio",
+  "sequence": 4,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "d3cefe7541190fe55027a7ab64a18acbd51ebd47cf95a8e4f8ffc8a8521f6736",
+    "TwinTrade.html": "8a446ef9d606151e9f3557e5b7838cba87d727a4a1901646a7b72651c07226af",
+    "TwinTrade-source.zip": "5a0d0418b77cdb12c0eadba41a8de5a352595da4750ddc1bfcb9dd69408c18c6",
+    "spec.md": "dcc20a83b06508316b013f732beceb4fd0a367f4e0d67692ad2db575d8ea51da",
+    "SHA256SUMS": "cd17b69f490d2ab5b0eafeffeade9aa164ad03b8fa5a0e38e1ab27d7f00b24ab"
+  }
+}
