@@ -17,3 +17,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - v0.23.0: native/foreground price recovery, shared ingestion, saved Keep Alive preference, reconnect and transport diagnostics, Android bridge + live socket regression checks.
 
 - v0.24.0: all-leverage average liquidation lines, labeled missing-price estimates, shared chart/stats coverage.
+
+- v0.25.0: fixed chart geometry during sync, transient text above borrowing rates, bounded history retries, overlapping refresh prevention, preserved spreads, deferred snapshot reloads and less DOM/candle processing. Same update certificate as v0.24.0.
