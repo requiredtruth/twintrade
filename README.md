@@ -1,4 +1,4 @@
-# TwinTrade 0.20.0
+# TwinTrade 0.22.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -29,6 +29,8 @@ The browser version supports paper trading and public data. Private-key persiste
 
 The supplied v17 APK uses its original certificate. This rebuilt release uses a different certificate. Installing over the original will fail; preserve your wallet recovery material and paper records before uninstalling it. No wallet or signing private keys are included in the repository or public release. Source builds generate a local build/signing.jks; preserve it privately for future updates.
 
-0.20.0 adds stable public trade tracking, reset chart, bold high-leverage averages, five-second desync warnings and all-market Portfolio / Past trades menu pages. Confirmed live history import covers the backend's past-24h window; missing settlements remain unavailable.
+0.20.0 adds stable public trade tracking, reset chart, bold high-leverage averages, 30-second desync warnings and all-market Portfolio / Past trades menu pages. Confirmed live history import covers the backend's past-24h window; missing settlements remain unavailable.
 
 0.21.0 repairs candle gaps with history reconciliation and marked placeholders, aligns own chart labels with net P&L, separates opening/closing fees, and labels holding gains/losses. Paper estimates preserve their entry assumptions; live closing costs remain estimates until settlement.
+
+0.22.0 removes repeating near-LIQ alerts, adds a live Stats popup, fixes own live liquidation lines and stale connection callbacks, and caches unchanged chart averages.

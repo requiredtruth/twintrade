@@ -11,3 +11,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - v0.20.0: stable public overlays, weighted leverage averages, reset chart, real desync status, all-market account pages. Signed with the v0.19.0 certificate.
 
 - v0.21.0: candle gap repair, consistent net chart P&L and signed holding gains/losses; verified update certificate.
+
+- v0.22.0: no repeating near-LIQ notifications, 30-second desync warnings, current-market Stats popup, live LIQ and connection fixes, cached averages. Same update certificate as v0.21.0.

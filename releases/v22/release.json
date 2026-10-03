@@ -1,0 +1,13 @@
+{
+  "tag": "v0.22.0",
+  "title": "TwinTrade 0.22.0 \u2014 quiet alerts, 30-second desync and current stats",
+  "sequence": 6,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "b2f6cd52e77ee315fe8e4f82d20c8a7ec3876564de33cc045b7dd26f316e902e",
+    "TwinTrade.html": "01c8ae140476447d51de5dc62f6d8b27e026efccc33a89c9a665db527d356697",
+    "TwinTrade-source.zip": "c71617540b3c3ed5c136014568d58fafa9b28a494c22c6a01d1c6a10684bac7b",
+    "spec.md": "aac645ee865b837a9b112b8bfabb443df55bceadb151045582fb4e6d299cfa57",
+    "SHA256SUMS": "76b7afbfb72ce33113a7aef493f27987a3d34091e62004a7c34b2eac8e38d575"
+  }
+}
