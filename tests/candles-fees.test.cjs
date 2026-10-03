@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),E=require('../app/src/main/assets/engine');
+const t=1700000040000,bar=(t,c,source='gains-live')=>({t,o:c,h:c,l:c,c,source});
+let bars=E.continuousCandles([bar(t,100),bar(t+180000,110)]);
+assert.equal(bars.length,4);assert.deepEqual(bars.map(b=>b.t),[t,t+60000,t+120000,t+180000]);assert.equal(bars[1].source,'gap-fill');assert.equal(bars[1].c,100);
+bars=E.mergeCandles(bars,[{t:t+60000,o:102,h:107,l:99,c:105,source:'gains-history'}],t+240000);
+assert.equal(bars[1].h,107);assert.equal(bars[2].c,105);assert.equal(bars[2].source,'gap-fill');
+bars=E.mergeCandles(bars,[bar(t+60000,999)],t+240000);assert.equal(bars[1].c,105,'completed history beats stale partial live');
+assert.equal(E.continuousCandles([bar(t,100),bar(t+10000*60000,200)]).length,600,'large outages bounded');
+const cost={fee:.035,slip:.005,borrow:.0003,funding:0,liq:90};const p=E.open(0,true,100,200,84631.5684,cost,t);const v=E.value(p,84670.18,t+60000);
+assert(Math.abs(v.openFee-7)<1e-9);assert(Math.abs(v.closeFee-7)<1e-9);assert(v.gross>0&&v.net<0,'screen mismatch reproduces gross profit vs net loss');
+const short=E.open(0,false,100,200,100,{...cost,slip:0,borrow:.001,fundingSide:-.004},t);const sv=E.value(short,100,t+3600000);assert(Math.abs(sv.hold+.6)<1e-9);assert(Math.abs(sv.net+13.4)<1e-9);assert.equal(E.holdingLabel(sv.hold).className,'positive');assert.match(E.holdingLabel(sv.hold).text,/gain/);assert.match(E.holdingLabel(.6).text,/loss/);
+assert.throws(()=>E.validateCosts({...cost,fundingSide:NaN}));
+console.log('PASS: gap continuity, authentic backfill/replacement, history authority, bounded outages, $7+$7 BTC fees, signed holding gain and side-specific rates.');

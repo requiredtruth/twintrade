@@ -9,3 +9,5 @@ The supplied v17 APK has its original certificate. Locally rebuilt beta and fina
 No live-money transaction is submitted as part of verification. A successful build and tests do not establish end-to-end live exchange reliability.
 
 - v0.20.0: stable public overlays, weighted leverage averages, reset chart, real desync status, all-market account pages. Signed with the v0.19.0 certificate.
+
+- v0.21.0: candle gap repair, consistent net chart P&L and signed holding gains/losses; verified update certificate.

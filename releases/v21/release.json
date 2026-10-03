@@ -1,0 +1,13 @@
+{
+  "tag": "v0.21.0",
+  "title": "TwinTrade 0.21.0 \u2014 candle continuity and consistent fee/P&L displays",
+  "sequence": 5,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "e2cbe1b299762c9ea214d76c0166c1a2ad228ec40b92a30a27f609cdcec417d3",
+    "TwinTrade.html": "5ba0065eeebbfb056074c9f0193aeb35c8d32b85f37267e0bfe9ab5a53fa64be",
+    "TwinTrade-source.zip": "e6319ce4af068b8a7ecae2a2144c233e63b67d7e2e09127d18a1aa1558d317ae",
+    "spec.md": "0c418a807ccd93b41e612ae648df875ef08dac42a87ceb2c58efeab88baa47e3",
+    "SHA256SUMS": "5ad169cee4871a16e2d4ebfe41de7195e3938921d659dbc138c57c46e176d8b8"
+  }
+}
