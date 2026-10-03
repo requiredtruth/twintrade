@@ -1,0 +1,13 @@
+{
+  "tag": "v0.24.0",
+  "title": "TwinTrade 0.24.0 \u2014 Average liquidation chart lines",
+  "sequence": 8,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "20f7eab8bc03db635b36fa023271486fcac6c3202d281f130ffa01f7fd5113ed",
+    "TwinTrade.html": "d2174c6f1b312f7bb6ea1af25a24b5df027a0f7bda24c7f57626d819d2c96e58",
+    "TwinTrade-source.zip": "4f4c747c983187ddc8be963d4c64caf726be6d4b225f68510cb5ad1a628e2c2b",
+    "spec.md": "fd091e69bb35bb1696c7f80f01f15d13eedfefb13e3a0d9a02ac76ed8b501f12",
+    "SHA256SUMS": "1f4762712c292bb458c4f31c0e932722a03134a764fbe216f57ded177d14f8ec"
+  }
+}
