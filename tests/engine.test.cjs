@@ -1,0 +1,9 @@
+const assert=require('node:assert/strict');const E=require('../app/src/main/assets/engine.js');let c={fee:.03,slip:.005,borrow:.001,funding:.002,liq:90};
+assert.deepEqual(E.parsePrices('[1724244390036]'),[]);assert.deepEqual(E.parsePrices('[0,76000,1,2400,3,5]'),[[0,76000],[1,2400]]);assert.deepEqual(E.parsePrices('[0,76000,1]'),[]);assert.deepEqual(E.parsePrices([0,-1,1,null]),[]);
+const p=E.open(1,true,10,500,76000,c,0),s=E.open(1,false,10,500,76000,c,0);assert(p.entry>76000);assert(s.entry<76000);assert(E.value(p,76000,0).net<0);assert.equal(E.value(p,76000,3600000).hold,.15);assert.equal(E.value(s,76000,3600000).hold,-.05);
+for(const t of [p,s]){let liq=E.liquidation(t,3600000);assert(Math.abs(E.value(t,liq,3600000).net+9)<1e-8)}assert(E.liquidation(p,0)<p.entry);assert(E.liquidation(s,0)>s.entry);assert.throws(()=>E.open(2,true,10,500,76000,c));assert.throws(()=>E.open(0,true,-1,500,76000,c));assert.throws(()=>E.open(0,true,10,501,76000,c));let z=E.open(0,true,10,10,100,{fee:0,slip:0,borrow:0,funding:0,liq:100},0);assert.equal(E.value(z,110,0).net.toFixed(2),'10.00');console.log('PASS: parser, malformed/stale-price inputs, leverage constraints, adverse fills, both fee sides, signed funding, liquidation identities, P&L.');
+
+assert.equal(E.collateral(100,10),10);assert.equal(E.collateral(90,10),9);assert.equal(E.collateral(100,100),100);assert.throws(()=>E.collateral(100,101));assert.throws(()=>E.collateral(100,0));
+let history=E.history([{time:120000,open:'20',high:'22',low:'19',close:'21'},{time:60000,open:'10',high:'12',low:'9',close:'11'},{time:180000,open:'NaN',high:'2',low:'1',close:'2'}]);assert.equal(history.length,2);assert.equal(history[0].t,60000);assert.equal(history[1].c,21);console.log('PASS: percentage allocation, 100% sizing, bounds, Gains candle parsing and chronological sorting.');
+
+assert.throws(()=>E.open(0,true,10,201,76000,c));assert.equal(E.open(0,true,10,200,76000,c).lev,200);

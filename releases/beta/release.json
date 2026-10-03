@@ -1,0 +1,12 @@
+{
+  "tag": "v0.3.0-beta",
+  "title": "TwinTrade supplied-source beta",
+  "prerelease": true,
+  "sha256": {
+    "TwinTrade-source.zip": "85d61c2ffd8cb2530b3346545dfb77a6fe42a6fa87c3767d003b0a37fd914237",
+    "TwinTrade.apk": "a7024142f6747a0e288f2524397cd28a491294dafea36129ecd1ae17249863d6",
+    "TwinTrade.html": "6e704ae6077033976e2732e3453ab1af832103407f18b873ae5c8ee111f72d09",
+    "spec.md": "37b04ad8e44e93e615eff4e103706c04df6988303346ff1f6581075598129b01",
+    "SHA256SUMS": "cf0150e162d46003924c94a10c9c9a8ba65aeb53e951cea7f295604a1a9e1e6a"
+  }
+}

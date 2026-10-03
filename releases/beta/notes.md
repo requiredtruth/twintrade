@@ -1,0 +1,1 @@
+Preserved supplied source ZIP, matching rebuilt APK, standalone HTML, spec and checksums. Beta retains original limitations; v17 follows separately. New release certificate differs from the original v17 APK; installing across identities requires backup/export and reinstall. No funded trades performed.
