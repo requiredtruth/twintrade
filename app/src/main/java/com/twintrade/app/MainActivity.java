@@ -27,6 +27,12 @@ public class MainActivity extends Activity {
  @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
 
  public class Feed {
+  @JavascriptInterface public void updateCaps(String raw){MarketStore.updateCaps(raw);}
+  @JavascriptInterface public void exitApp(){
+   getSharedPreferences("market",0).edit().putBoolean("keepAlive",false).apply();
+   stopService(new Intent(MainActivity.this,PriceMonitorService.class));
+   runOnUiThread(()->{finishAndRemoveTask();new Handler().postDelayed(()->android.os.Process.killProcess(android.os.Process.myPid()),500);});
+  }
   @JavascriptInterface public String snapshot(){return MarketStore.snapshot();}
   @JavascriptInterface public void seed(String raw){MarketStore.seed(raw);}
   @JavascriptInterface public String paper(){return MarketStore.book();}

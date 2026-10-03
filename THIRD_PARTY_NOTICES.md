@@ -16,3 +16,5 @@ Java-WebSocket 1.5.7 (MIT), Copyright (c) 2010-2020 Nathan Rajlich and contribut
 SLF4J API 2.0.6 (MIT), Copyright (c) 2004-2022 QOS.ch. https://www.slf4j.org/license.html
 
 The MIT permission and warranty text above applies to these bundled MIT libraries as well. Their JAR files also contain upstream metadata/license notices.
+
+JSON-java 20240303 (org.json) is included for native ledger tests under its public-domain dedication. Source: https://github.com/stleary/JSON-java/tree/20240303.

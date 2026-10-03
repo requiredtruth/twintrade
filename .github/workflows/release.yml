@@ -21,10 +21,18 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Source regression tests
+        run: bash test.sh
+      - name: Browser dependencies
         run: |
-          for test in tests/*.test.cjs; do node "$test"; done
-          for script in app/src/main/assets/*.js; do node --check "$script"; done
-          if [ -f test.sh ]; then bash test.sh; fi
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Mobile browser controls and rotation
+        run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-qa
+          path: build/mobile-qa.png
       - name: Release integrity
         run: python3 tools/verify-release.py
       - name: Verify compiled APK signatures and alignment

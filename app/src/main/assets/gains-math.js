@@ -9,7 +9,8 @@ Object.assign(exports,require("./pricing"));
 Object.assign(exports,require("./contracts/types"));
 Object.assign(exports,require("./contracts/utils/pairs"));
 Object.assign(exports,require("./backend/tradingVariables/converter"));
-},{"./trade": "trade/index.js", "./constants": "constants.js", "./utils": "utils/index.js", "./backend": "backend/index.js", "./pricing": "pricing/index.js", "./contracts/types": "contracts/types/index.js", "./contracts/utils/pairs": "contracts/utils/pairs.js", "./backend/tradingVariables/converter": "backend/tradingVariables/converter.js"}],
+Object.assign(exports,require("./markets/oi/converter"));
+},{"./trade": "trade/index.js", "./constants": "constants.js", "./utils": "utils/index.js", "./backend": "backend/index.js", "./pricing": "pricing/index.js", "./contracts/types": "contracts/types/index.js", "./contracts/utils/pairs": "contracts/utils/pairs.js", "./backend/tradingVariables/converter": "backend/tradingVariables/converter.js", "./markets/oi/converter": "markets/oi/converter.js"}],
 "trade/index.js":[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {

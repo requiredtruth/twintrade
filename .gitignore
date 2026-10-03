@@ -1,5 +1,8 @@
-.android-sdk/
 build/
 dist/
+.android-sdk/
 *.jks
 *.keystore
+*.pem
+__pycache__/
+node_modules/

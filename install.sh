@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
-command -v java >/dev/null || { echo 'Install JDK 17 or newer first.'; exit 1; }
+command -v javac >/dev/null || { echo 'Install a full JDK 17 or newer (including javac) first.'; exit 1; }
 SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$PWD/.android-sdk}}"
 if [ ! -x "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
  mkdir -p "$SDK/cmdline-tools"

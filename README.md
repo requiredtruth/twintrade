@@ -1,44 +1,30 @@
-# TwinTrade 0.3.0
-Android BTC/ETH paper terminal with combined high-leverage views and a Polygon USDC live-order implementation.
+# TwinTrade 0.19.0
 
-**Read spec.md for the implemented behavior and remaining limitations. Live execution has not been end-to-end validated.**
+Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
-Install the supplied APK as an update over the previous build (same certificate). No uninstall is needed. Android 8+ with a current System WebView is required. Paper mode is the default. A live oracle connection is required to trade. The sidebar preloads open BTC/ETH traders and subscribes to Gains trade events. Entries are yellow/purple, liquidations pink. Tap a trader to focus its lines. The chart preloads Gains one-minute history. Settings contains RPC endpoints, encrypted Android wallet storage, mode selection, and explicitly estimated paper costs.
+## Releases
 
-## This update
-- User-supplied Polygon nodes, diamond, native USDC, vault, Pyth address and complete BTC feed ID are registered in config.js.
-- BTC orders are capped at 200×. Settings exposes Node HTTPS RPC / Node WSS RPC, defaults restoration, and read-only connection diagnostics.
-- Header and Long/Short controls fit between Android status/cutout and navigation bars.
-- Screenshots work.
-- Collateral uses 1–100% of available balance; the order preview shows dollars.
-- Paper begins at $100; Respawn $100 is on the main screen and sidebar.
-- A foreground service records candles and checks paper liquidations while other apps are open. Allow notifications; Battery settings is available for unrestricted monitoring. Stop monitoring from its notification or Settings.
-- Existing paper state is migrated on upgrade.
+- [Original source beta](https://github.com/requiredtruth/twintrade/releases/tag/v0.3.0-beta): supplied source ZIP preserved unchanged.
+- [Supplied v17](https://github.com/requiredtruth/twintrade/releases/tag/v0.17.0-supplied): original APK preserved unchanged, exact extracted web assets and native dissection.
+- v0.19.0: reconstructed native source, corrected live approval, explicit order review, fresh index quotes, bounded receipt waits, reconnect watchdog, market-specific history loading, validated candles/costs and dynamic market limits.
 
-## Build on Linux
+Each release has APK, self-contained HTML, source ZIP, spec.md and SHA256SUMS. See spec.md and V17-AUDIT.md for provenance and validation limits. No funded trade or physical Android-device test was performed. This is a client of Gains/Polygon services; outages can pause trading.
+
+## Build and test
+
+JDK 17+, Node and Python 3 are required.
+
 ```sh
 ./install.sh
+./test.sh
 ./build.sh
-```
-Use `ANDROID_SDK_ROOT` if you already have an SDK. JDK 17+ is required. Output: `dist/TwinTrade.apk`. The build creates `build/signing.jks`; preserve it for your future updates and do not publish it. A source rebuild does not share the delivered APK's signing certificate.
-
-## Tests
-```sh
-node tests/engine.test.cjs
-node tests/app-smoke.test.cjs
-node tests/sdk-liq.test.cjs
-node tests/config.test.cjs
-node --check app/src/main/assets/app.js
+./run.sh
 ```
 
-## Structure
-- `app/src/main/java/.../MainActivity.java`: secure local WebView and Android Keystore vault.
-- `app/src/main/assets/engine.js`: paper accounting and pricing parser.
-- `app/src/main/assets/app.js`: chart/UI, WebSocket, Polygon events and signed orders.
-- `app/src/main/assets/abi.js`: official SDK contract ABI.
-- `app/src/main/assets/ethers.js`: bundled Ethers library.
-- `spec.md`: requirements, status, protocol details and limitations.
+Set ANDROID_SDK_ROOT for an existing SDK with Android 35 and build-tools 35.0.0. APK: dist/TwinTrade.apk. Browser file: dist/TwinTrade.html. `./cli.sh test`, `./cli.sh build` and `./cli.sh web` expose the same workflows. CI also runs real Chromium layout and rotation checks.
 
-No account credentials are included. No trades were sent while building this app.
+The browser version supports paper trading and public data. Private-key persistence/live signing requires the Android Keystore bridge. It does not silently store keys in browser localStorage.
 
-Native ledger regression test: compile `tests/java/android/content/*.java`, `MarketStore.java`, and `tests/java/MarketStoreTest.java` with a JDK and org.json 20240303 on the classpath, then run MarketStoreTest. These Android context doubles test the ledger without an emulator.
+## APK installation
+
+The supplied v17 APK uses its original certificate. This rebuilt release uses a different certificate. Installing over the original will fail; preserve your wallet recovery material and paper records before uninstalling it. No wallet or signing private keys are included in the repository or public release. Source builds generate a local build/signing.jks; preserve it privately for future updates.
