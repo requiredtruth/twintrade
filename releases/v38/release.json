@@ -1,0 +1,13 @@
+{
+  "tag": "v0.38.0",
+  "title": "TwinTrade 0.38.0 \u2014 Selected-market trade alerts",
+  "sequence": 22,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "dc85db0ab634a81cafa302a31c4ce1ff6bc45d3fa909df392e62138be3bd8bd5",
+    "TwinTrade.html": "b9385c054e52b190e4500ab170c5922afdd47770634da14744cf042dca944e0f",
+    "TwinTrade-source.zip": "1034374cb59f81098ffc85c6e2c2e6d14b915ca24e80bd363856d6b7a71b9356",
+    "spec.md": "287e7f089f091c5809ffa03023a408b56024fa192b49b76888a9e95c0ac2ed7d",
+    "SHA256SUMS": "f2cc21c5db9745c3861ecb8111d91c54b907da73ab504f948dba601d4cbe1f12"
+  }
+}

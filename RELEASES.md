@@ -37,3 +37,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.36.0**: Persistent latest trade box, session restoration, verified socket entry/LIQ additions/removals and reopened-trade sounds.
 
 - **0.37.0**: All-market execution text/sounds, startup last confirmed trade, readiness-independent live alerts and history/live race fixes.
+
+- **0.38.0**: Selected-chart text/sounds, matching startup history and per-market persistent messages; BTC excludes other coins.

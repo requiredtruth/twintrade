@@ -1,0 +1,1 @@
+Trade messages and sounds now follow the selected chart. BTC shows BTC and BTCDEGEN only. Startup history and restored messages use the same filter; switching charts restores the matching last trade silently. Live OPEN/CLOSE/LIQ delivery remains active before initial data loading completes. Signed with the existing update certificate.
