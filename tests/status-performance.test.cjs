@@ -34,6 +34,12 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  run("loadingTasks.clear();loadingProgress('history',20,'History pages');loadingProgress('traders',40,'POLYGON 60/120');loadingProgress('history',100,'History ready',true)");
  assert.equal(node('loadingProgress').hidden,false);assert.equal(node('loadingBar').value,40);assert.equal(node('loadingDetails').textContent,'POLYGON 60/120');assert(!timeouts.has(run('progressHideT')));
  run("loadingProgress('traders',100,'Traders ready',true)");assert(timeouts.has(run('progressHideT')));timeouts.get(run('progressHideT')).f();assert.equal(node('loadingProgress').hidden,true);
+ // Actual routine refresh handlers stay quiet, including failed history retries.
+ const realProgress=env.loadingProgress;let progressCalls=0;env.loadingProgress=(...args)=>{progressCalls++;realProgress(...args)};
+ run('snapshotBusy=false;loadAttempts=5;publicVarsAttemptAt=Date.now();loadingTasks.clear();');env.getChainJson=async()=>[];env.fetchHistoryChain=async()=>{throw Error('offline fixture')};
+ await run('loadHistory(0)');await run('loadHistory(0)');await run('loadPublicSnapshot()');await run('loadPublicSnapshot()');assert.equal(progressCalls,0,'automatic refreshes must not resurrect overlay');
+ await run('loadHistory(0,300,true)');assert(progressCalls>=2,'explicit history load still reports progress');progressCalls=0;
+ await run('loadPublicSnapshot(true)');assert(progressCalls>=3,'manual trader reload still reports progress');env.loadingProgress=realProgress;
  // Cached chart aggregation is reused and invalidated by live OHLC / zoom.
  run("pair=0;candles[0]=[{t:60000,o:100,h:101,l:99,c:100}];view={span:75,off:0,yOff:0};chartInterval=1;barsCache={};");
  assert.equal(run('chartBars()===chartBars()'),true);run('globalThis.firstBars=chartBars();candles[0][0].h=102');assert.equal(run('firstBars===chartBars()'),false);

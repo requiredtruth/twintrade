@@ -1,4 +1,4 @@
-# TwinTrade 0.31.0
+# TwinTrade 0.32.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -50,3 +50,5 @@ Startup regression: `bash tests/android-startup.sh releases/v27/TwinTrade.apk` w
 0.30.0 locks wallet, node and mode changes for the entire close batch and requires successful wallet reconciliation between live closes. Builds refuse to rotate a missing private release key.
 
 0.31.0 reduces repeated Android bridge/history/chart work, yields large sync calculations, bounds failed variable refreshes and adds a detailed loading progress overlay at the top of the chart.
+
+0.32.0 keeps background refreshes and retries quiet; progress is shown for startup and explicit user loads only.

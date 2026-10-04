@@ -25,3 +25,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.27.0**: Saved-session startup recovery, page-ready Android resume and guarded background-monitor startup; Android 15 APK launch regression required before publishing.
 
 - **0.31.0**: Incremental native candle bridge, retained history refresh, cached OHLC/cluster/DOM work, responsive snapshot/liquidation batches and detailed chart-top progress.
+
+- **0.32.0**: Show progress only for initial/explicit loads; silence automatic syncs and retries; repair Reload handler.

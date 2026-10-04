@@ -1,0 +1,13 @@
+{
+  "tag": "v0.32.0",
+  "title": "TwinTrade 0.32.0 \u2014 Stop recurring loading progress",
+  "sequence": 16,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "b005d32a2fdb99cdcc5716067c1f76499407c064e1fb4d0a1d06e1c09a5bf3f0",
+    "TwinTrade.html": "d30d1c39370daa62b40e0729046793aab9e49ad6affb3a57e23122b32dd473e7",
+    "TwinTrade-source.zip": "ff307c8c606ad6af438721835ffc412b45c1477ea11ad90dcb16012eda779705",
+    "spec.md": "5feab9c281cdbc3eb422e539b08f9d43d160065925e5aad6b1ca3f5a0999a8db",
+    "SHA256SUMS": "4f6d4c924eec13f95c5f6e095c3faa3abd3f542805dbf7f46bbdf52390ff2ff5"
+  }
+}
