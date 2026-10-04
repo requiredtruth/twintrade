@@ -15,6 +15,10 @@ public class NativeReliabilityTest {
   MarketStore.merge(33,new JSONArray("[{\"t\":60000,\"o\":5,\"h\":2,\"l\":1,\"c\":4}]"));
   JSONArray candles=new JSONObject(MarketStore.snapshot()).getJSONObject("candlesByPair").getJSONArray("33");
   for(int i=0;i<candles.length();i++)check(candles.getJSONObject(i).getLong("t")!=60000,"Invalid candle rejected");
+  MarketStore.reset();MarketStore.updateCaps("[{\"pairIndex\":33,\"minLeverage\":1.1,\"maxLeverage\":150},{\"pairIndex\":21,\"minLeverage\":10,\"maxLeverage\":1000}]");
+  MarketStore.tick(33,100,System.currentTimeMillis());for(double lev:new double[]{1.1,1.101,149.999,150})check("OK".equals(MarketStore.open(33,true,1,lev,good)),"Allowed exact leverage "+lev);
+  for(double lev:new double[]{1,1.099,150.001,1.1001})check(!"OK".equals(MarketStore.open(33,true,1,lev,good)),"Invalid leverage "+lev);
+  MarketStore.tick(21,100,System.currentTimeMillis());check(!"OK".equals(MarketStore.open(21,true,1,1.1,good)),"Forex minimum enforced");check("OK".equals(MarketStore.open(21,true,1,1000,good)),"Forex max allowed");
   System.out.println("PASS: native DEGEN open/close, duplicate settlement, dynamic leverage, cost validation, delayed/future quotes and invalid candles.");
  }
 }

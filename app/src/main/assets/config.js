@@ -6,7 +6,7 @@
  * Pair 99 is intentionally unlisted (reserved, keeps registry sparse). */
 (function(root){
 const config=Object.freeze({chainId:137,name:'Polygon PoS',httpsRpc:'https://polygon-bor-rpc.publicnode.com',httpsFallback:'https://polygon-rpc.com',wssRpc:'wss://polygon-bor-rpc.publicnode.com',diamond:'0x209A9A01980377916851af2cA075C2b170452018',pyth:'0xff1a0f4744e8582DF1aE09D5611b887B6a12925C',usdc:'0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',usdcDecimals:6,usdcVault:'0x29019Fe2e72E8d4D2118E8D0318BeF389ffe2C81',collateralIndex:3});
-const M=(symbol,base,pairIndex,maxLeverage,group,degen)=>Object.freeze({symbol,base,quote:'USD',pairIndex,collateralIndex:3,feedId:pairIndex===0?'0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43':null,maxLeverage,group:group||'crypto',degen:!!degen});
+const M=(symbol,base,pairIndex,maxLeverage,group,degen)=>Object.freeze({symbol,base,quote:'USD',pairIndex,collateralIndex:3,feedId:pairIndex===0?'0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43':null,maxLeverage,minLeverage:group==='forex'?10:1.1,group:group||'crypto',degen:!!degen});
 const markets=Object.freeze([
 M('BTC/USD','BTC',0,200,'crypto'),
 M('ETH/USD','ETH',1,500,'crypto'),
@@ -55,17 +55,19 @@ M('BTCDEGEN/USD','BTCDEGEN',300,500,'crypto',true),
 M('ETHDEGEN/USD','ETHDEGEN',313,500,'crypto',true),
 M('BNBDEGEN/USD','BNBDEGEN',327,500,'crypto',true),
 ]);
-function market(index){const m=marketOrNull(index);if(!m)throw Error('Unsupported market');if(m.maxLeverage<2)throw Error('Market trading is unavailable');return m;}
-function leverageCap(index){const ids=index===0?[0,300]:[index];return Math.max(0,...ids.map(i=>marketOrNull(i)?.maxLeverage||0));}
-function orderMarket(index,leverage){const primary=marketOrNull(index);if(index===0&&(!primary||primary.maxLeverage<2||leverage>primary.maxLeverage)){const degen=market(300);if(!Number.isFinite(leverage)||leverage<1||leverage>degen.maxLeverage)throw Error("BTC leverage unavailable for this market");return degen;}return market(index);}
+function market(index){const m=marketOrNull(index);if(!m)throw Error('Unsupported market');if(m.maxLeverage<m.minLeverage)throw Error('Market trading is unavailable');return m;}
+function leverageBounds(index){const ms=(index===0?[0,300]:[index]).map(marketOrNull).filter(m=>m&&m.maxLeverage>=m.minLeverage);return {min:ms.length?Math.min(...ms.map(m=>m.minLeverage)):0,max:ms.length?Math.max(...ms.map(m=>m.maxLeverage)):0};}
+function leverageCap(index){return leverageBounds(index).max;}
+function orderMarket(index,leverage){const ids=index===0?[0,300]:[index];if(!Number.isFinite(leverage)||Math.abs(leverage*1000-Math.round(leverage*1000))>1e-7)throw Error('Leverage supports up to 3 decimals');for(const i of ids){const m=marketOrNull(i);if(m&&leverage>=m.minLeverage&&leverage<=m.maxLeverage)return m;}const b=leverageBounds(index);throw Error(b.max?'Choose leverage from '+b.min+'× to '+b.max+'×':'Market trading is unavailable');}
 function marketOrNull(index){return discovered.find(m=>m.pairIndex===index)||markets.find(m=>m.pairIndex===index)||null;}
 /* Runtime-merged Polygon assets from
  * backend-polygon.gains.trade/trading-variables/pairs,groups,pairInfos.
- * Entries: {pairIndex,symbol,base,maxLeverage,group,degen}. Bundled list wins. */
+ * Entries: {pairIndex,symbol,base,maxLeverage,group,degen}. Runtime limits override bundled defaults, including disabled markets. */
 let discovered=[];
-function discover(list){if(!Array.isArray(list))return 0;let n=0;for(const e of list){try{const pi=+e.pairIndex;if(!Number.isInteger(pi)||pi<0||pi>1000)continue;const lev=+e.maxLeverage;if(!Number.isFinite(lev)||lev<0)continue;const sym=String(e.symbol||'').toUpperCase();if(!/^[A-Z0-9]+\/[A-Z0-9]+$/.test(sym))continue;const base=sym.split('/')[0];const grp=String(e.group||'crypto');discovered=discovered.filter(m=>m.pairIndex!==pi);discovered.push(Object.freeze({symbol:sym,base,quote:sym.split('/')[1],pairIndex:pi,collateralIndex:3,feedId:null,maxLeverage:lev,group:grp,degen:/DEGEN/.test(base)}));n++;}catch{}}return n;}
-function allMarkets(){return markets.map(m=>marketOrNull(m.pairIndex)).concat(discovered.filter(d=>!markets.some(m=>m.pairIndex===d.pairIndex))).sort((a,b)=>a.pairIndex-b.pairIndex);}
+function discover(list){if(!Array.isArray(list))return 0;let n=0;for(const e of list){try{const pi=+e.pairIndex;if(!Number.isInteger(pi)||pi<0||pi>1000)continue;const lev=+e.maxLeverage;if(!Number.isFinite(lev)||lev<0)continue;const min=+(e.minLeverage??e._min??1.1);if(!Number.isFinite(min)||min<=0)continue;const sym=String(e.symbol||'').toUpperCase();if(!/^[A-Z0-9]+\/[A-Z0-9]+$/.test(sym))continue;const base=sym.split('/')[0];const grp=String(e.group||'crypto');discovered=discovered.filter(m=>m.pairIndex!==pi);discovered.push(Object.freeze({symbol:sym,base,quote:sym.split('/')[1],pairIndex:pi,collateralIndex:3,feedId:null,maxLeverage:lev,minLeverage:min,group:grp,degen:/DEGEN/.test(base)}));n++;}catch{}}return n;}
+function leverageMarkets(){return markets.map(m=>marketOrNull(m.pairIndex)).concat(discovered.filter(d=>!markets.some(m=>m.pairIndex===d.pairIndex))).sort((a,b)=>a.pairIndex-b.pairIndex);}
+function allMarkets(){return leverageMarkets().filter(m=>m.maxLeverage>=m.minLeverage);}
 function apiSymbol(m){return m.base+'-'+m.quote;}
-const api={network:config,markets,market,leverageCap,orderMarket,marketOrNull,allMarkets,discover,apiSymbol};
+const api={network:config,markets,market,leverageBounds,leverageCap,orderMarket,marketOrNull,leverageMarkets,allMarkets,discover,apiSymbol};
 root.TradeConfig=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

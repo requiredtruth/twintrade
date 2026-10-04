@@ -5,16 +5,23 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
  await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);
  assert.equal(await page.locator('#price').textContent(),'$84610.00');await page.click('#long');await page.waitForTimeout(300);assert((await page.locator('#positions').textContent()).includes('L'));
+ // Exact leverage entry and quick limits across crypto, commodities, stocks and forex.
+ for(const [pi,max,min] of [[2,150,1.1],[90,250,1.1],[58,4,1.1],[21,1000,10],[0,500,1.1]]){await page.evaluate(pi=>{pair=pi;render()},pi);assert.equal(await page.locator('#lev').getAttribute('max'),String(max));assert.equal(await page.locator('#lev').getAttribute('min'),String(min));const choices=await page.locator('#levPresets option').evaluateAll(os=>os.map(o=>o.value));assert(choices.includes(String(max)));assert(choices.includes(String(min)));await page.selectOption('#levPresets',String(max));assert.equal(await page.inputValue('#lev'),String(max));}
+ await page.fill('#lev','1.1');await page.evaluate(()=>{prices[0]=84610;last[0]=Date.now();render()});await page.click('#long');assert.equal(await page.evaluate(()=>book.positions.at(-1).lev),1.1);assert((await page.locator('#positions').textContent()).includes('1.1×'));
+ await page.evaluate(()=>{pair=2;prices[2]=10;last[2]=Date.now();marketFees[2]={feePct:0,spreadPct:0,borrowHourly:0,fundLongHourly:0,fundShortHourly:0,at:Date.now()};render()});
+ for(const lev of ['150','149.999']){await page.fill('#lev',lev);await page.click('#long');assert.equal(await page.evaluate(()=>book.positions.at(-1).lev),+lev);}
+ const count=await page.evaluate(()=>book.positions.length);await page.fill('#lev','150.001');await page.click('#long');assert.equal(await page.evaluate(()=>book.positions.length),count,'above cap rejected');
+ await page.evaluate(()=>{TradeConfig.discover([{pairIndex:2,symbol:'LINK/USD',minLeverage:1.1,maxLeverage:125}]);render()});assert.equal(await page.inputValue('#lev'),'125');assert.equal(await page.locator('#lev').getAttribute('max'),'125');await page.evaluate(()=>{pair=0;render()});await page.fill('#lev','200');
  // Combined BTC restores 500× through the actual DEGEN market, and owns
  // entry / LIQ tags remain on the BTC chart even without public overlays.
  await page.evaluate(()=>{window.ownLabels=[];const proto=CanvasRenderingContext2D.prototype,original=proto.fillText;proto.fillText=function(text,x,y,...rest){ownLabels.push({text,y});return original.call(this,text,x,y,...rest)};});
- await page.selectOption('#lev','500');
+ await page.fill('#lev','500');
  // Real browser quote and position use DEGEN rates, including leveraged credit.
  await page.evaluate(()=>{marketFees[300]={feePct:.02,spreadPct:0,borrowHourly:.001,fundLongHourly:.002,fundShortHourly:-.004,at:Date.now()};render()});
  assert((await page.locator('#quote').textContent()).includes('1.5000% collateral/h'));assert((await page.locator('#quote').textContent()).includes('/h credit'));
  await page.click('#long');await page.waitForTimeout(300);
  assert.equal(await page.evaluate(()=>book.positions.at(-1).pair),300);assert.equal(await page.evaluate(()=>book.positions.at(-1).lev),500);assert.equal(await page.evaluate(()=>book.positions.at(-1).cost.fundingSide),.002);assert((await page.locator('#positions').textContent()).includes('BTCDEGEN'));assert((await page.locator('#quote').textContent()).includes('Order BTCDEGEN'));
- await page.evaluate(()=>{$('overlay').checked=false;draw();});assert(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L LIQ D')&&o.y>=0&&o.y<=$('chart').getBoundingClientRect().height)),'own BTCDEGEN LIQ remains visible on BTC');await page.evaluate(()=>{$('overlay').checked=true;});await page.selectOption('#lev','200');
+ await page.evaluate(()=>{$('overlay').checked=false;draw();});assert(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L LIQ D')&&o.y>=0&&o.y<=$('chart').getBoundingClientRect().height)),'own BTCDEGEN LIQ remains visible on BTC');await page.evaluate(()=>{$('overlay').checked=true;});await page.fill('#lev','200');
  // Distant entry and liquidation labels appear after vertical panning, without a feed reload.
  await page.evaluate(()=>{window.panFixture={book,candles:candles[0],publicTrades,view};book={cash:100,positions:[],history:[]};const px=priceOf(0);candles[0]=[{t:Math.floor(Date.now()/60000)*60000,o:px,h:px+2,l:px-2,c:px}];publicTrades=[{id:'distant',pair:300,isOpen:true,long:true,lev:500,amount:123,entry:px+100,liq:px+100.1,kind:'public'}];view={span:75,off:0,yOff:0};renderPublic();ownLabels=[];draw()});
  assert(!(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L 500× $123 D')))));

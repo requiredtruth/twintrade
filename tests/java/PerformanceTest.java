@@ -11,7 +11,7 @@ public class PerformanceTest {
   check(new JSONObject(MarketStore.snapshotFor(20,-1)).getJSONObject("selectedCandles").getJSONArray("20").length()==101,"Switch market failed");
   MarketStore.merge(0,new JSONArray().put(new JSONObject().put("t",minute-60000).put("o",110).put("h",111).put("l",109).put("c",110).put("source","gains-history")));
   check(new JSONObject(MarketStore.snapshotFor(0,revision)).getJSONObject("selectedCandles").getJSONArray("0").length()==101,"Backfill invalidation failed");
-  String old=MarketStore.book();MarketStore.open(0,true,10,1,"{\"fee\":0,\"slip\":0,\"borrow\":0,\"funding\":0,\"liq\":90}");check(!MarketStore.book().equals(old),"Ledger cache stale after open");MarketStore.reset();check(new JSONObject(MarketStore.book()).getDouble("cash")==100,"Ledger cache stale after reset");
+  String old=MarketStore.book();MarketStore.open(0,true,10,1.1,"{\"fee\":0,\"slip\":0,\"borrow\":0,\"funding\":0,\"liq\":90}");check(!MarketStore.book().equals(old),"Ledger cache stale after open");MarketStore.reset();check(new JSONObject(MarketStore.book()).getDouble("cash")==100,"Ledger cache stale after reset");
   System.out.println("PASS: selected history, revision deltas/backfill, market switching, all quotes and ledger freshness. Bridge bytes "+full.length()+" -> "+delta.length()+" (40 markets × 101 candles).");
  }
 }

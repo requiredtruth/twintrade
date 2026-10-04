@@ -7,7 +7,7 @@ for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFi
  await new Promise(r=>setImmediate(r));
  node('lev').value='500';node('lev').options=[{value:'200'},{value:'500'},{value:'1000'}];
  run("pair=0;syncLeverage();cfg={...cfg,fee:0,slip:0,borrow:0,funding:0};marketFees[300]={feePct:0,spreadPct:0,borrowHourly:0,fundLongHourly:0,fundShortHourly:0,at:Date.now()};prices[0]=100;prices[300]=101;last[0]=last[300]=Date.now();book={cash:100,positions:[],history:[]};const t=Math.floor(Date.now()/60000)*60000;candles[0]=[{t,o:100,h:100.05,l:99.95,c:100}];");
- assert.equal(node('lev').options[1].disabled,false);assert.equal(node('lev').options[2].disabled,true);assert.equal(node('lev').value,'500');
+ assert.equal(node('lev').max,'500');assert.equal(node('lev').value,'500');
  assert.equal(run('TradeConfig.orderMarket(0,200).pairIndex'),0);assert.equal(run('TradeConfig.orderMarket(0,500).pairIndex'),300);assert.equal(run('TradeConfig.market(0).maxLeverage'),200);
  await run('sendOrder(true)');assert.equal(run('book.positions.length'),1);assert.equal(run('book.positions[0].pair'),300);assert.equal(run('book.positions[0].entry'),101);assert.equal(run('book.positions[0].lev'),500);assert.equal(run('myPositions().length'),1);assert(node('positions').innerHTML.includes('BTCDEGEN'));assert(node('quote').textContent.includes('Order BTCDEGEN'));assert(node('fees').textContent.includes('BTCDEGEN/USD'));
  assert(labels.some(({s,y})=>s.startsWith('L LIQ D')&&y>=0&&y<=400),'own DEGEN liquidation label visible on narrow BTC candles');assert(labels.some(({s})=>s.startsWith('L 500×')&&s.includes('D NET')));
@@ -19,6 +19,6 @@ for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFi
  let opened,capRows;env.Feed={updateCaps:raw=>capRows=JSON.parse(raw),open:(pi,long,percent,lev)=>{opened={pi,long,percent,lev};return 'fixture stop'},paper:()=>JSON.stringify({cash:100,positions:[],history:[]}),snapshot:()=>JSON.stringify({prices:[],candles:[]})};
  run('last[300]=Date.now()');await run('sendOrder(false)');assert.equal(opened.pi,300);assert.equal(opened.lev,500);assert.equal(capRows.find(m=>m.pairIndex===0).maxLeverage,200);assert.equal(capRows.find(m=>m.pairIndex===300).maxLeverage,500);
  opened=null;run('last[300]=Date.now()-6000;last[0]=Date.now()');await run('sendOrder(false)');assert.equal(opened,null,'fresh BTC cannot substitute stale BTCDEGEN execution quote');delete env.Feed;
- run("TradeConfig.discover([{pairIndex:300,symbol:'BTCDEGEN/USD',maxLeverage:400}]);syncLeverage()");assert.equal(node('lev').options[1].disabled,true);assert.throws(()=>run('TradeConfig.orderMarket(0,500)'));
+ run("TradeConfig.discover([{pairIndex:300,symbol:'BTCDEGEN/USD',maxLeverage:400}]);syncLeverage()");assert.equal(node('lev').max,'400');assert.equal(node('lev').value,'400');assert.throws(()=>run('TradeConfig.orderMarket(0,500)'));
  console.log('PASS: combined BTC 500× option, actual DEGEN paper/native routing, independent fresh quotes/fees/caps, own paper/live LIQ labels and current-coin close.');
 })().catch(e=>{console.error(e);process.exit(1)});

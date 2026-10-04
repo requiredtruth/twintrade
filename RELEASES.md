@@ -1,3 +1,9 @@
+# v0.39.0 — Full market leverage ranges
+
+Full leverage ranges for every market. Exact entry supports 1.1× and up to three decimal places; quick choices include each market’s actual minimum and maximum, including 150× altcoins and 250× commodities. Live group minimums and pair-specific maximums refresh the selector and browser/native order validation. Disabled markets stay disabled in the Android bridge. BTC continues routing higher leverage through BTCDEGEN.
+
+Validation: all JavaScript and native regression tests; browser controls and rotation; signed APK verification; Android startup and app recreation checks in CI. No funded live orders are submitted by tests.
+
 # TwinTrade release lineage
 
 1. v0.3.0-beta — original supplied source ZIP, unmodified; beta APK compiled from that source. Original source tests pass.

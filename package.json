@@ -1,1 +1,1 @@
-{"name":"twintrade-tests","version":"0.38.0","private":true,"devDependencies":{"playwright":"1.50.1"},"scripts":{"test:browser":"node tests/browser-smoke.cjs"}}
+{"name":"twintrade-tests","version":"0.39.0","private":true,"devDependencies":{"playwright":"1.50.1"},"scripts":{"test:browser":"node tests/browser-smoke.cjs"}}

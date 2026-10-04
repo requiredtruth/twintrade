@@ -1,0 +1,13 @@
+{
+  "tag": "v0.39.0",
+  "title": "TwinTrade 0.39.0 \u2014 Full market leverage ranges",
+  "sequence": 23,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "6197f6ad1242fed06923f3b87b926b886279efffe4c014d1d41c1e8dbe116cae",
+    "TwinTrade.html": "646cc5343d68b4012e3d227b85359fa8237a41f117fdf526f53d13db3e8e28b2",
+    "TwinTrade-source.zip": "057f4e2cfa099acb0db1f75279dcf8491df24fd333a2401dad5bf835a3023417",
+    "spec.md": "e3047d9b1ac25620c47940c22858bdc26de5fb1e65d56054cc9e70a4beaab65f",
+    "SHA256SUMS": "5ae2469e9f1fd89b2d30a6b84e7c2cbd3996ef92b36d9fabaa6b40092a9e0704"
+  }
+}

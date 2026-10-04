@@ -64,3 +64,7 @@ Background refreshes and retries stay quiet; progress is shown for startup and e
 0.37.0 shows public execution messages/sounds for all markets and seeds a silent, timestamped last confirmed trade at startup. Live alerts no longer wait for snapshots/history; chart lines remain scoped to the selected market.
 
 0.38.0 scopes execution text, startup history and sounds to the selected chart (BTC includes BTCDEGEN), with silent matching event restoration when switching charts.
+
+### 0.39.0 leverage controls
+
+Type an exact leverage (including 1.1×) or use Quick ×. The label shows the selected market’s current minimum and maximum; quick choices always include both endpoints. 150× and 250× markets no longer stop at the old 100× preset.
