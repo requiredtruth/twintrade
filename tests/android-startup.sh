@@ -9,21 +9,43 @@ capture() {
  adb pull /sdcard/twintrade-startup.png build/android-startup.png
 }
 trap capture EXIT
-launch() {
- adb shell am start -W -n com.twintrade.app/.MainActivity
- sleep 12
- adb shell pidof com.twintrade.app
- adb logcat -d -s TwinTrade | tee build/android-page.log
- grep -q 'Trading page initialized: true' build/android-page.log
- adb shell uiautomator dump /sdcard/twintrade-window.xml
- sleep 3
- adb shell uiautomator dump /sdcard/twintrade-window.xml
- adb shell cat /sdcard/twintrade-window.xml > build/android-window.xml
- python3 - <<'CHECK'
+app_pids=()
+inspect_window() {
+ for attempt in 1 2 3; do
+  adb shell rm -f /sdcard/twintrade-window.xml
+  if timeout 25s adb shell uiautomator dump /sdcard/twintrade-window.xml; then
+   adb shell cat /sdcard/twintrade-window.xml > build/android-window.xml
+   if python3 - <<'CHECK'
 from pathlib import Path
 s=Path('build/android-window.xml').read_text()
 assert 'com.twintrade.app' in s, 'Trading Activity is not visible'
 CHECK
+   then return 0; fi
+  fi
+  echo "Retrying UI inspection ($attempt/3)"
+  sleep 3
+ done
+ echo 'Trading Activity inspection failed'; return 1
+}
+launch() {
+ adb shell am start -W -n com.twintrade.app/.MainActivity
+ pid="$(adb shell pidof com.twintrade.app | tr -d '\r')"
+ test -n "$pid"
+ app_pids+=("$pid")
+ ready=false
+ for attempt in $(seq 1 23); do
+  test "$(adb shell pidof com.twintrade.app | tr -d '\r')" = "$pid"
+  adb logcat -d --pid="$pid" -s TwinTrade > build/android-page.log
+  if grep -q 'Trading page initialized: true' build/android-page.log; then
+   ready=true; break
+  fi
+  sleep 2
+ done
+ cat build/android-page.log
+ test "$ready" = true
+ inspect_window
+ sleep 3
+ inspect_window
 }
 adb shell pm grant com.twintrade.app android.permission.POST_NOTIFICATIONS
 launch
@@ -33,9 +55,12 @@ launch
 adb shell am force-stop com.twintrade.app
 launch
 adb logcat -d > build/android-startup.log
-if grep -E 'FATAL EXCEPTION|Fatal signal' build/android-startup.log; then
- echo 'Android startup crashed'; exit 1
-fi
+for pid in "${app_pids[@]}"; do
+ adb logcat -d --pid="$pid" > build/android-process.log
+ if grep -E 'FATAL EXCEPTION|Fatal signal' build/android-process.log; then
+  echo 'Android app startup crashed'; exit 1
+ fi
+done
 adb shell screencap -p /sdcard/twintrade-startup.png
 adb pull /sdcard/twintrade-startup.png build/android-startup.png
 printf 'PASS: Android cold startup, app switching and process recreation
