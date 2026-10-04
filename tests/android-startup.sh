@@ -14,7 +14,7 @@ launch() {
  sleep 12
  adb shell pidof com.twintrade.app
  adb logcat -d -s TwinTrade | tee build/android-page.log
- rg 'Trading page initialized: true' build/android-page.log
+ grep -q 'Trading page initialized: true' build/android-page.log
  adb shell uiautomator dump /sdcard/twintrade-window.xml
  sleep 3
  adb shell uiautomator dump /sdcard/twintrade-window.xml
@@ -33,7 +33,7 @@ launch
 adb shell am force-stop com.twintrade.app
 launch
 adb logcat -d > build/android-startup.log
-if rg 'FATAL EXCEPTION|Fatal signal' build/android-startup.log; then
+if grep -E 'FATAL EXCEPTION|Fatal signal' build/android-startup.log; then
  echo 'Android startup crashed'; exit 1
 fi
 adb shell screencap -p /sdcard/twintrade-startup.png
