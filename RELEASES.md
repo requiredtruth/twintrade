@@ -21,3 +21,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - v0.25.0: fixed chart geometry during sync, transient text above borrowing rates, bounded history retries, overlapping refresh prevention, preserved spreads, deferred snapshot reloads and less DOM/candle processing. Same update certificate as v0.24.0.
 
 - v0.26.0: compact trade labels, expanded zoom submenu and OHLC intervals, BTCDEGEN overlays on BTC, per-position estimated LIQs, and app-switch state continuity. Same update certificate as v0.25.0.
+
+- **0.27.0**: Saved-session startup recovery, page-ready Android resume and guarded background-monitor startup; Android 15 APK launch regression required before publishing.

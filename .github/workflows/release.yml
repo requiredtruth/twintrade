@@ -35,6 +35,27 @@ jobs:
         with:
           name: browser-qa
           path: build/mobile-qa.png
+      - name: Enable KVM for Android startup regression
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 15 APK startup, app-switch and recreation regression
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash tests/android-startup.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-startup-qa
+          path: |
+            build/android-startup.log
+            build/android-window.xml
+            build/android-startup.png
       - name: Release integrity
         run: python3 tools/verify-release.py
       - name: Verify compiled APK signatures and alignment

@@ -1,0 +1,13 @@
+{
+  "tag": "v0.27.0",
+  "title": "TwinTrade 0.27.0 \u2014 Startup crash recovery",
+  "sequence": 11,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "be992d8e8a14624969e5b607c2b25bbb49c179707ed6564e6489259c8cac5d6a",
+    "TwinTrade.html": "694a5481f48165a72ce0bd9acfdef7129d4522ec4483355d6b6211dd618a524f",
+    "TwinTrade-source.zip": "9ddd32f15a3e8c669b4cdb63f0aa2593d2f98b992183c48e5e493a63a115d7bf",
+    "spec.md": "26d8723eb7d5e48464347d0c4d2f1954772d077342a4df0d9ea78e30e58a0551",
+    "SHA256SUMS": "13b60da2b11db3932ab03195d796428ed6ebea5aaea2b1cb6616b44d2d5aef60"
+  }
+}

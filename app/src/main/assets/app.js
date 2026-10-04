@@ -1,5 +1,5 @@
 'use strict';
-/* TwinTrade 0.26.0: minute-floored candle merges (no double bars),
+/* TwinTrade 0.27.0: minute-floored candle merges (no double bars),
  * every stroked line carries a label, left-stacked tags. */
 const $=id=>document.getElementById(id),money=n=>Number.isFinite(n)?'$'+n.toFixed(2):'—',esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* Rough live PnL for others' lines (gross, fees unknown): ~estimate. */
@@ -20,11 +20,14 @@ let syncBeganAt=Date.now(),syncPair=0,nativeRunning=false,nativeStatus='',native
 let statsRevision=0,averageCache={pair:null,revision:-1,bands:[]};
 let publicRevision=0,publicChanges=new Map(),missingPublic=new Map(),accountPage='portfolio';
 let knownPublic=new Map(),marketFees={},marketFeesAt=0;
-const savedSession=load('chartSession',{});
+const rawSession=load('chartSession',{});
+const savedSession=rawSession&&typeof rawSession==='object'&&!Array.isArray(rawSession)?rawSession:{};
 if(TradeConfig.marketOrNull(savedSession.pair))pair=savedSession.pair;
 let view={span:75,off:0,yOff:0,...savedSession.view};let chartInterval=[0,1,5,15,60,240,1440].includes(savedSession.interval)?savedSession.interval:0,historyLoadedAt={},publicLoadedAt=0;
 view.span=Math.max(10,Math.min(10080,Number(view.span)||75));
-if(savedSession.at>Date.now()-86400000){if(Array.isArray(savedSession.candles))candles[pair]=Engine.dedupeCandles(savedSession.candles);if(Array.isArray(savedSession.trades))publicTrades=savedSession.trades.filter(p=>p.isOpen);selectedPublic=savedSession.selectedPublic||null;}
+view.off=Number.isFinite(+view.off)?Math.max(0,Math.min(10079,Math.trunc(+view.off))):0;
+view.yOff=Number.isFinite(+view.yOff)?+view.yOff:0;
+if(savedSession.at>Date.now()-86400000){if(Array.isArray(savedSession.candles))candles[pair]=Engine.dedupeCandles(savedSession.candles);if(Array.isArray(savedSession.trades))publicTrades=savedSession.trades.filter(p=>p&&typeof p==='object'&&p.isOpen&&Number.isInteger(p.pair)&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.amount)&&p.amount>0&&Number.isFinite(p.lev)&&p.lev>0);selectedPublic=savedSession.selectedPublic||null;}
 function checkpointSession(){try{const trades=publicTrades.map(({id,user,index,net,pair,isOpen,long,lev,amount,entry,liq,liqError})=>({id,user,index,net,pair,isOpen,long,lev,amount,entry,liq,liqError,kind:'public'}));localStorage.setItem('chartSession',JSON.stringify({at:Date.now(),pair,view,interval:chartInterval,selectedPublic,candles:candlesOf(pair),trades,overlay:$('overlay').checked,avgOverlay:$('avgOverlay').checked}));persist();}catch{}}
 function onAppResume(){syncNative();managePriceTransport();if(Date.now()-(historyLoadedAt[pair]||0)>60000)loadHistory();if(Date.now()-publicLoadedAt>60000)loadPublicSnapshot();refreshWallet();render();}
 function chartPair(p){return p.pair===pair||pair===0&&p.pair===300;}
