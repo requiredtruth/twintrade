@@ -1,4 +1,4 @@
-# TwinTrade 0.33.0
+# TwinTrade 0.34.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -51,6 +51,8 @@ Startup regression: `bash tests/android-startup.sh releases/v27/TwinTrade.apk` w
 
 0.31.0 reduces repeated Android bridge/history/chart work, yields large sync calculations, bounds failed variable refreshes and adds a detailed loading progress overlay at the top of the chart.
 
-Background refreshes and retries quiet; progress is shown for startup and explicit user loads only.
+Background refreshes and retries stay quiet; progress is shown for startup and explicit user loads only.
 
 0.33.0 combines BTC and BTCDEGEN in the BTC view. Leverage above the regular BTC cap executes on BTCDEGEN, with its own fresh quotes and fees. Your BTC and BTCDEGEN positions and liquidation lines remain visible together.
+
+0.34.0 waits for the execution market’s holding rates before saving new paper positions, shows leveraged hourly costs/credits, and fixes vertical panning so distant public entries and liquidation lines appear as they enter view.

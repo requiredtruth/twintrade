@@ -13,6 +13,17 @@ public class CandleFeesTest {
   java.lang.reflect.Field ledger=MarketStore.class.getDeclaredField("book");ledger.setAccessible(true);JSONObject nativeBook=(JSONObject)ledger.get(null),pos=nativeBook.getJSONArray("positions").getJSONObject(0);long closeTime=System.currentTimeMillis();pos.put("opened",closeTime-3600000);
   java.lang.reflect.Method closeAt=MarketStore.class.getDeclaredMethod("closeAt",JSONObject.class,double.class,long.class,String.class);closeAt.setAccessible(true);closeAt.invoke(null,pos,100.2698,closeTime,"Closed");
   JSONObject result=new JSONObject(MarketStore.book()),receipt=result.getJSONArray("history").getJSONObject(0).getJSONObject("settlement");check(Math.abs(receipt.getDouble("hold")-14)<1e-9,"holding cost saved");check(Math.abs(receipt.getDouble("net")-25.96)<1e-8,"net deducts fees and hold exactly once");check(Math.abs(result.getDouble("cash")-125.96)<1e-8,"settled cash reconciles");check(!"OK".equals(MarketStore.close(pos.getString("id"))),"no duplicate payout");
+  // Both sides of actual 500x BTCDEGEN settle leveraged holding costs/credits.
+  for(boolean isLong:new boolean[]{true,false}){
+   MarketStore.reset();MarketStore.tick(300,100,System.currentTimeMillis());
+   String rates="{\"fee\":0.02,\"slip\":0,\"borrow\":0.001,\"funding\":0,\"fundingSide\":"+(isLong?0.002:-0.004)+",\"liq\":90}";
+   check("OK".equals(MarketStore.open(300,isLong,100,500,rates)),"open actual DEGEN 500x");
+   nativeBook=(JSONObject)ledger.get(null);pos=nativeBook.getJSONArray("positions").getJSONObject(0);closeTime=System.currentTimeMillis();pos.put("opened",closeTime-3600000);
+   closeAt.invoke(null,pos,100.,closeTime,"Closed");result=new JSONObject(MarketStore.book());receipt=result.getJSONArray("history").getJSONObject(0).getJSONObject("settlement");
+   check(Math.abs(receipt.getDouble("hold")-(isLong?1.5:-1.5))<1e-9,"500x holding side and amount");
+   check(Math.abs(receipt.getDouble("net")-(isLong?-21.5:-18.5))<1e-9,"500x fees and holding deducted once");
+   check(Math.abs(result.getDouble("cash")-(isLong?78.5:81.5))<1e-9,"500x cash reconciles");
+  }
   System.out.println("PASS: native candle gap/backfill and signed side funding accounting parity.");
  }
 }

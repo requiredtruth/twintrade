@@ -1,0 +1,13 @@
+{
+  "tag": "v0.34.0",
+  "title": "TwinTrade 0.34.0 \u2014 500\u00d7 holding costs and offscreen chart lines",
+  "sequence": 18,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "e2f50f7e7b19780fc5ef69018ccf3330ff9237d85201115cb34baeaa83a51e41",
+    "TwinTrade.html": "58673430ef4efd0c9a07bf29087b97328ecab1a0c39960d97c279f06f49a3a6b",
+    "TwinTrade-source.zip": "35b36a93763ee0b50d73e91d62df8e840abd7b1926aae89d5059ec499b922740",
+    "spec.md": "a55051f36964df39a7ee91a9161b257528d78d6b7f622cb8fe54ff0d9b68053d",
+    "SHA256SUMS": "9352efd426fa41b62364a4ece9694c503133f15042d0dee0b644198f1e187ba8"
+  }
+}

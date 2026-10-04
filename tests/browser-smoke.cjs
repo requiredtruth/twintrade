@@ -8,9 +8,20 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  // Combined BTC restores 500× through the actual DEGEN market, and owns
  // entry / LIQ tags remain on the BTC chart even without public overlays.
  await page.evaluate(()=>{window.ownLabels=[];const proto=CanvasRenderingContext2D.prototype,original=proto.fillText;proto.fillText=function(text,x,y,...rest){ownLabels.push({text,y});return original.call(this,text,x,y,...rest)};});
- await page.selectOption('#lev','500');await page.click('#long');await page.waitForTimeout(300);
- assert.equal(await page.evaluate(()=>book.positions.at(-1).pair),300);assert.equal(await page.evaluate(()=>book.positions.at(-1).lev),500);assert((await page.locator('#positions').textContent()).includes('BTCDEGEN'));assert((await page.locator('#quote').textContent()).includes('Order BTCDEGEN'));
+ await page.selectOption('#lev','500');
+ // Real browser quote and position use DEGEN rates, including leveraged credit.
+ await page.evaluate(()=>{marketFees[300]={feePct:.02,spreadPct:0,borrowHourly:.001,fundLongHourly:.002,fundShortHourly:-.004,at:Date.now()};render()});
+ assert((await page.locator('#quote').textContent()).includes('1.5000% collateral/h'));assert((await page.locator('#quote').textContent()).includes('/h credit'));
+ await page.click('#long');await page.waitForTimeout(300);
+ assert.equal(await page.evaluate(()=>book.positions.at(-1).pair),300);assert.equal(await page.evaluate(()=>book.positions.at(-1).lev),500);assert.equal(await page.evaluate(()=>book.positions.at(-1).cost.fundingSide),.002);assert((await page.locator('#positions').textContent()).includes('BTCDEGEN'));assert((await page.locator('#quote').textContent()).includes('Order BTCDEGEN'));
  await page.evaluate(()=>{$('overlay').checked=false;draw();});assert(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L LIQ D')&&o.y>=0&&o.y<=$('chart').getBoundingClientRect().height)),'own BTCDEGEN LIQ remains visible on BTC');await page.evaluate(()=>{$('overlay').checked=true;});await page.selectOption('#lev','200');
+ // Distant entry and liquidation labels appear after vertical panning, without a feed reload.
+ await page.evaluate(()=>{window.panFixture={book,candles:candles[0],publicTrades,view};book={cash:100,positions:[],history:[]};const px=priceOf(0);candles[0]=[{t:Math.floor(Date.now()/60000)*60000,o:px,h:px+2,l:px-2,c:px}];publicTrades=[{id:'distant',pair:300,isOpen:true,long:true,lev:500,amount:123,entry:px+100,liq:px+100.1,kind:'public'}];view={span:75,off:0,yOff:0};renderPublic();ownLabels=[];draw()});
+ assert(!(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L 500× $123 D')))));
+ // Minimum price padding is 0.03%, so compute the actual unpanned span.
+ await page.evaluate(()=>{const px=priceOf(0),span=4+2*Math.max(.6,(px+2)*.0003);view.yOff=100/span;ownLabels=[];draw()});
+ assert(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L 500× $123 D')&&o.y>=0&&o.y<=$('chart').getBoundingClientRect().height)));assert(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L LIQ 500× $123 D'))));
+ await page.evaluate(()=>{book=panFixture.book;candles[0]=panFixture.candles;publicTrades=panFixture.publicTrades;view=panFixture.view;renderPublic();draw()});
  for(const [w,h]of [[393,852],[852,393],[360,640],[740,360],[393,852]]){await page.setViewportSize({width:w,height:h});await page.waitForTimeout(150);
  const chartBefore=await page.locator('#chart').boundingBox();
  await page.evaluate(()=>setLoadBar(100,'1248 open trades synced'));
