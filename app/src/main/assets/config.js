@@ -56,6 +56,8 @@ M('ETHDEGEN/USD','ETHDEGEN',313,500,'crypto',true),
 M('BNBDEGEN/USD','BNBDEGEN',327,500,'crypto',true),
 ]);
 function market(index){const m=marketOrNull(index);if(!m)throw Error('Unsupported market');if(m.maxLeverage<2)throw Error('Market trading is unavailable');return m;}
+function leverageCap(index){const ids=index===0?[0,300]:[index];return Math.max(0,...ids.map(i=>marketOrNull(i)?.maxLeverage||0));}
+function orderMarket(index,leverage){const primary=marketOrNull(index);if(index===0&&(!primary||primary.maxLeverage<2||leverage>primary.maxLeverage)){const degen=market(300);if(!Number.isFinite(leverage)||leverage<1||leverage>degen.maxLeverage)throw Error("BTC leverage unavailable for this market");return degen;}return market(index);}
 function marketOrNull(index){return discovered.find(m=>m.pairIndex===index)||markets.find(m=>m.pairIndex===index)||null;}
 /* Runtime-merged Polygon assets from
  * backend-polygon.gains.trade/trading-variables/pairs,groups,pairInfos.
@@ -64,6 +66,6 @@ let discovered=[];
 function discover(list){if(!Array.isArray(list))return 0;let n=0;for(const e of list){try{const pi=+e.pairIndex;if(!Number.isInteger(pi)||pi<0||pi>1000)continue;const lev=+e.maxLeverage;if(!Number.isFinite(lev)||lev<0)continue;const sym=String(e.symbol||'').toUpperCase();if(!/^[A-Z0-9]+\/[A-Z0-9]+$/.test(sym))continue;const base=sym.split('/')[0];const grp=String(e.group||'crypto');discovered=discovered.filter(m=>m.pairIndex!==pi);discovered.push(Object.freeze({symbol:sym,base,quote:sym.split('/')[1],pairIndex:pi,collateralIndex:3,feedId:null,maxLeverage:lev,group:grp,degen:/DEGEN/.test(base)}));n++;}catch{}}return n;}
 function allMarkets(){return markets.map(m=>marketOrNull(m.pairIndex)).concat(discovered.filter(d=>!markets.some(m=>m.pairIndex===d.pairIndex))).sort((a,b)=>a.pairIndex-b.pairIndex);}
 function apiSymbol(m){return m.base+'-'+m.quote;}
-const api={network:config,markets,market,marketOrNull,allMarkets,discover,apiSymbol};
+const api={network:config,markets,market,leverageCap,orderMarket,marketOrNull,allMarkets,discover,apiSymbol};
 root.TradeConfig=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

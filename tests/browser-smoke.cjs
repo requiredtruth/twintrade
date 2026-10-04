@@ -5,6 +5,12 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
  await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);
  assert.equal(await page.locator('#price').textContent(),'$84610.00');await page.click('#long');await page.waitForTimeout(300);assert((await page.locator('#positions').textContent()).includes('L'));
+ // Combined BTC restores 500× through the actual DEGEN market, and owns
+ // entry / LIQ tags remain on the BTC chart even without public overlays.
+ await page.evaluate(()=>{window.ownLabels=[];const proto=CanvasRenderingContext2D.prototype,original=proto.fillText;proto.fillText=function(text,x,y,...rest){ownLabels.push({text,y});return original.call(this,text,x,y,...rest)};});
+ await page.selectOption('#lev','500');await page.click('#long');await page.waitForTimeout(300);
+ assert.equal(await page.evaluate(()=>book.positions.at(-1).pair),300);assert.equal(await page.evaluate(()=>book.positions.at(-1).lev),500);assert((await page.locator('#positions').textContent()).includes('BTCDEGEN'));assert((await page.locator('#quote').textContent()).includes('Order BTCDEGEN'));
+ await page.evaluate(()=>{$('overlay').checked=false;draw();});assert(await page.evaluate(()=>ownLabels.some(o=>o.text.startsWith('L LIQ D')&&o.y>=0&&o.y<=$('chart').getBoundingClientRect().height)),'own BTCDEGEN LIQ remains visible on BTC');await page.evaluate(()=>{$('overlay').checked=true;});await page.selectOption('#lev','200');
  for(const [w,h]of [[393,852],[852,393],[360,640],[740,360],[393,852]]){await page.setViewportSize({width:w,height:h});await page.waitForTimeout(150);
  const chartBefore=await page.locator('#chart').boundingBox();
  await page.evaluate(()=>setLoadBar(100,'1248 open trades synced'));

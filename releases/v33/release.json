@@ -1,0 +1,13 @@
+{
+  "tag": "v0.33.0",
+  "title": "TwinTrade 0.33.0 \u2014 Combined BTC 500\u00d7 and own liquidation lines",
+  "sequence": 17,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "0edf304b768d59269e42d8fbbecdac1b4916711a2113b70fd769d13d9d4bf69f",
+    "TwinTrade.html": "7d0e9beebdf40f9e8be22b0a65cf6a4171f9c2fc3a536fe833ed40d81d368533",
+    "TwinTrade-source.zip": "c3a1c85658d32003229da88c149b40890abc6994bc544b6298752378c0ded219",
+    "spec.md": "6187a2c2bb79e50c36eae327de38cca4cde5cfe95723c9b6686cbbd4fea265e2",
+    "SHA256SUMS": "d0e53d94779ba36208dd02bbbdb794c3abf04c55cabb0d0afd1057ef7059eeac"
+  }
+}
