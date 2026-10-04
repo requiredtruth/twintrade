@@ -52,3 +52,6 @@ header{display:grid;grid-template-columns:40px minmax(0,1fr) auto 40px;gap:2px 8
 @media(min-width:640px) and (max-height:500px){body{grid-template-rows:48px 24px 26px 30px 34px minmax(0,1fr) 32px minmax(24px,48px)}}
 
 .chartbar{position:relative}#zoomPanel{position:absolute;z-index:24;right:0;top:100%;width:min(360px,95vw);padding:10px;background:#171e27;border:1px solid #44546c;border-radius:8px;box-shadow:0 8px 24px #0009;line-height:2.5}#zoomPanel button{margin:3px;padding:7px 10px}#zoomPanel[hidden]{display:none}
+
+.close-options{display:flex;gap:6px}.close-options button{flex:1;font-size:12px;padding:10px 5px}#closeMenu{color:#ffb9c7;font-size:11px;padding:8px}#closeMenuDialog h2{margin-top:0}#closeMenuDialog h2 button{float:right}
+#settlementDialog{max-height:88dvh;overflow:auto}#settlementDialog h2{margin-top:0}#settlementRows article{padding:10px 0;border-bottom:1px solid #354053}#settlementRows dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;font-size:12px}#settlementRows dt,#settlementRows dd{margin:0}#settlementRows dd{text-align:right;font-family:monospace}#settlementRows small{color:#91a0b5}#dismissSettlement{width:100%;margin-top:10px;min-height:42px}#settlementTotal{font-size:12px;line-height:1.6}

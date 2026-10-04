@@ -1,0 +1,13 @@
+{
+  "tag": "v0.29.0",
+  "title": "TwinTrade 0.29.0 \u2014 Close details and six scoped close options",
+  "sequence": 13,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "0f759e9ee33e524ed7a3341553411e195c149743a5e80217d221a5c7094991b0",
+    "TwinTrade.html": "875fd4c01aa278c10512e40bc5f59baec26fb6a2b6014e64d9aa3f40e91b7ebd",
+    "TwinTrade-source.zip": "aa791137cd758dec118c22530f2801af79c29a67ae3d6fd9d981a6f0d03bf892",
+    "spec.md": "f295227c15972a5beef9ec195a41503e0c5c32d37490077a7eb774d3534495cc",
+    "SHA256SUMS": "e5cb5821fdac843d3d1cecc901828f4e5c6b301a9d900795cf19c64c2d626d56"
+  }
+}
