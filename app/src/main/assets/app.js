@@ -127,7 +127,7 @@ const available=mode==='paper'?book.cash:liveBalance;const allocation=Number.isF
 try{$('quote').textContent=mode==='paper'?`Collateral ${money(allocation)} · Notional ${money(n)} · base round-trip fee est. ${money(n*paperCosts(pair,true).fee/50)} · spread est. ${paperCosts(pair,true).slip}%/side · paper estimate (no fee discounts/decay)`:'Live fees, gas and slippage reviewed before signing';}catch{}
 if(!fullyLoaded&&firstPublicDone&&candlesOf(pair).length>0)fullyLoaded=true;renderFees();renderAccount();draw();}
 const LINE_STYLE={myLong:{color:'#ffe144',dash:[],width:2},myShort:{color:'#b373ff',dash:[],width:2},otherLong:{color:'#ff9f1a',dash:[2,3],width:1.5},otherShort:{color:'#9d7bff',dash:[6,3],width:1.5},aggLong:{color:'#00e5ff',dash:[10,4],width:3},aggShort:{color:'#ff7ad9',dash:[10,4],width:3},myLiq:{color:'#ff2450',dash:[4,4],width:1.5},myAvg:{color:'#ffffff',dash:[],width:2},otherLiq:{color:'#ff69bd',dash:[4,4],width:1.2},price:{color:'#20e08c',dash:[],width:1}};
-function draw(){let canvas;try{canvas=$('chart');}catch{return}if(!canvas||!canvas.getBoundingClientRect)return;let r=canvas.getBoundingClientRect(),d=devicePixelRatio||1,w=r.width,h=r.height;if(!w||!h)return;if(canvas.width!==Math.round(w*d)||canvas.height!==Math.round(h*d)){canvas.width=w*d;canvas.height=h*d}let ctx;try{ctx=canvas.getContext('2d');}catch{return}if(!ctx||!ctx.setTransform)return;ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,h);let full=candlesOf(pair);try{const gaps=full.filter(c=>c.source==='gap-fill').length;$('historyStatus').textContent=$('historyStatus').textContent.split(' · gaps:')[0]+(gaps?' · gaps: '+gaps+' amber placeholders, retrying':'');}catch{}let a=chartBars();if(!a.length)return;
+function draw(){let canvas;try{canvas=$('chart');}catch{return}if(!canvas||!canvas.getBoundingClientRect)return;let r=canvas.getBoundingClientRect(),d=devicePixelRatio||1,w=r.width,h=r.height;if(!w||!h)return;if(canvas.width!==Math.round(w*d)||canvas.height!==Math.round(h*d)){canvas.width=w*d;canvas.height=h*d}let ctx;try{ctx=canvas.getContext('2d');}catch{return}if(!ctx||!ctx.setTransform)return;ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,h);let full=candlesOf(pair);try{const gaps=full.filter(c=>c.source==='gap-fill').length;$('historyStatus').textContent=$('historyStatus').textContent.split(' · gaps:')[0]+(gaps?' · gaps: '+gaps+' amber placeholders · backfill pending':'');}catch{}let a=chartBars();if(!a.length)return;
 let mine=(mode==='paper'?book.positions:livePositions).filter(p=>p.pair===pair);
 let others=$('overlay').checked?publicTrades.filter(p=>chartPair(p)&&p.isOpen&&(!selectedPublic||p.id===selectedPublic)):[];
 let cl=clusteredPublic(others);let overlays=mine.concat(cl.singles,cl.groups);
@@ -319,9 +319,34 @@ async function fetchHistoryChain(chain,apiSym,from,to){const ctl=new AbortContro
 /* Reference price for PnL display: live oracle first, else latest candle
  * close, so colors/percentages show even before a feed tick arrives. */
 function refPrice(p){const live=priceOf(p);if(live>0)return live;try{const a=candlesOf(p);if(a.length&&a[a.length-1].c>0)return a[a.length-1].c;}catch{}return 0;}
-const historyLoading=new Set(),historyRetryTimers=new Map(),historyRequested=new Map();
-async function fetchHistoryRange(chain,sym,from,to){const ranges=[];for(let t=from;t<to;t+=300*60000)ranges.push([t,Math.min(to,t+300*60000)]);const rows=[];for(let i=0;i<ranges.length;i+=3){const pages=await Promise.all(ranges.slice(i,i+3).map(([f,t])=>fetchHistoryChain(chain,sym,f,t)));for(const p of pages)rows.push(...p.rows);}return {rows,chain};}
-async function loadHistory(targetPair=pair,requestedMinutes=Math.max(300,view.span)){if(historyLoading.has(targetPair)){historyRequested.set(targetPair,Math.max(historyRequested.get(targetPair)||0,requestedMinutes));return;}clearTimeout(historyRetryTimers.get(targetPair));historyRetryTimers.delete(targetPair);historyLoading.add(targetPair);try{const m=TradeConfig.marketOrNull(targetPair);const apiSym=m?TradeConfig.apiSymbol(m):(targetPair?'ETH':'BTC')+'-USD';const to=Date.now(),from=to-Math.min(10080,requestedMinutes)*60000;let got=null;try{got=await fetchHistoryRange('polygon',apiSym,from,to);}catch(e1){try{got=await fetchHistoryRange('arbitrum',apiSym,from,to);}catch(e2){throw e1;}}candles[targetPair]=Engine.mergeCandles(candlesOf(targetPair),got.rows);historyLoadedAt[targetPair]=Date.now();if(targetPair===pair&&snapshotBusy)setLoadBar(38,'History loaded · drawing…');else if(targetPair===pair)setLoadBar(100,'Ready');try{if(targetPair===pair)$('historyStatus').textContent=candles[targetPair].length?`Gains history + live · 1m (${got.chain})`:'Waiting for live prices · history empty';}catch{}}catch{try{if(targetPair===pair)$('historyStatus').textContent='History unavailable · live only · retrying';}catch{}if(targetPair===pair)setLoadBar(100,'History pending · live only');historyRetryTimers.set(targetPair,setTimeout(()=>{historyRetryTimers.delete(targetPair);if(targetPair===pair&&!document.hidden)loadHistory(targetPair);},30000))}finally{historyLoading.delete(targetPair);const next=historyRequested.get(targetPair)||0;historyRequested.delete(targetPair);if(next>requestedMinutes)loadHistory(targetPair,next);}}
+const historyLoading=new Set(),historyRetryTimers=new Map(),historyRequested=new Map(),historyRepairCursor=new Map(),historyRetryAttempts=new Map();
+async function fetchHistoryRange(chain,sym,from,to){const ranges=[];for(let t=from;t<to;t+=300*60000)ranges.push([t,Math.min(to,t+300*60000)]);const rows=[];let succeeded=0,error;for(let i=0;i<ranges.length;i+=3){const pages=await Promise.allSettled(ranges.slice(i,i+3).map(([f,t])=>fetchHistoryChain(chain,sym,f,t)));for(const p of pages){if(p.status==='fulfilled'){succeeded++;rows.push(...p.value.rows);}else error=p.reason;}}if(!succeeded)throw error||Error('History unavailable');return {rows,chain};}
+function scheduleHistoryRetry(targetPair,minutes,progress){const attempts=progress?0:(historyRetryAttempts.get(targetPair)||0)+1;historyRetryAttempts.set(targetPair,attempts);const delay=Math.min(300000,30000*2**Math.min(4,Math.max(0,attempts-1)));clearTimeout(historyRetryTimers.get(targetPair));historyRetryTimers.set(targetPair,setTimeout(()=>{historyRetryTimers.delete(targetPair);if(targetPair===pair&&!document.hidden)loadHistory(targetPair,minutes);},delay));}
+async function loadHistory(targetPair=pair,requestedMinutes=Math.max(300,view.span)){
+ if(historyLoading.has(targetPair)){historyRequested.set(targetPair,Math.max(historyRequested.get(targetPair)||0,requestedMinutes));return;}
+ clearTimeout(historyRetryTimers.get(targetPair));historyRetryTimers.delete(targetPair);historyLoading.add(targetPair);
+ const before=candlesOf(targetPair).filter(c=>c.source==='gap-fill').length;let failed=false;
+ try{
+  const m=TradeConfig.marketOrNull(targetPair),apiSym=m?TradeConfig.apiSymbol(m):(targetPair?'ETH':'BTC')+'-USD',to=Date.now(),from=to-Math.min(10080,requestedMinutes)*60000;let got;
+  try{got=await fetchHistoryRange('polygon',apiSym,from,to);if(!got.rows.length)throw Error('Empty history');}catch(e1){got=await fetchHistoryRange('arbitrum',apiSym,from,to);if(!got.rows.length)throw e1;}
+  candles[targetPair]=Engine.mergeCandles(candlesOf(targetPair),got.rows);historyLoadedAt[targetPair]=Date.now();
+  if(targetPair===pair&&snapshotBusy)setLoadBar(38,'History loaded · drawing…');else if(targetPair===pair)setLoadBar(100,'Ready');
+  if(targetPair===pair)$('historyStatus').textContent=`Gains history + live · 1m (${got.chain})`;
+ }catch{failed=true;if(targetPair===pair){$('historyStatus').textContent='History unavailable · cached/live · backfill pending';setLoadBar(100,'History pending · live only');}}
+ try{
+  const m=TradeConfig.marketOrNull(targetPair),sym=m?TradeConfig.apiSymbol(m):(targetPair?'ETH':'BTC')+'-USD';
+  const plan=Engine.gapRepairPlan(candlesOf(targetPair),historyRepairCursor.get(targetPair)||0);historyRepairCursor.set(targetPair,plan.next);
+  await Promise.all(plan.ranges.map(async r=>{
+   for(const chain of ['polygon','arbitrum']){
+    try{const got=await fetchHistoryChain(chain,sym,r.from-60000,r.to+60000);candles[targetPair]=Engine.mergeCandles(candlesOf(targetPair),got.rows);if(!candlesOf(targetPair).some(c=>c.source==='gap-fill'&&c.t>=r.from&&c.t<r.to))break;}catch{/* Retain successful pages and live prices. */}
+   }
+  }));
+ }finally{
+  const remaining=candlesOf(targetPair).filter(c=>c.source==='gap-fill').length;
+  if(failed||remaining)scheduleHistoryRetry(targetPair,requestedMinutes,remaining<before);else historyRetryAttempts.delete(targetPair);
+  historyLoading.delete(targetPair);const next=historyRequested.get(targetPair)||0;historyRequested.delete(targetPair);if(next>requestedMinutes)loadHistory(targetPair,next);
+ }
+}
 try{$('respawn').onclick=()=>{if(mode==='paper')$('reset').onclick()};}catch{}
 try{$('keepAlive').onchange=()=>{if(window.Feed)Feed.keepAlive($('keepAlive').checked)};}catch{}
 try{$('battery').onclick=()=>window.Feed?.batterySettings();}catch{}
@@ -371,7 +396,7 @@ function setupPublicBackend(){loadPublicSnapshot();if(publicSocket)try{publicSoc
 try{$('publicTrades').onclick=e=>{const el=e.target.closest?.('[data-public]');if(el){selectedPublic=selectedPublic===el.dataset.public?null:el.dataset.public;try{$('tradersPanel').hidden=true;$('shade').hidden=true;}catch{}renderPublic();draw()}};}catch{}
 setInterval(()=>{recalcPublic();if(Date.now()-publicVarsAt>60000)loadPublicSnapshot()},5000);
 setInterval(()=>{renderStats();const now=Date.now(),ms=now-lastRateAt;if(ms>=1000){lastKbps=Engine.dataRate(rxWindow,ms);rxWindow=0;lastRateAt=now;try{$('kbps').textContent=lastKbps.toFixed(1)+' KB/s';$('livedot').className=fresh(pair)?'on':'';}catch{}}},1000);
-setInterval(()=>loadHistory(pair),60000);setInterval(()=>{if(Date.now()-marketFeesAt>120000)fetchMarketFees()},30000);
+setInterval(()=>{if(!document.hidden&&!historyRetryTimers.has(pair))loadHistory(pair);},60000);setInterval(()=>{if(Date.now()-marketFeesAt>120000)fetchMarketFees()},30000);
 setInterval(()=>{try{if(!$('globalPanel').hidden||Date.now()-globalAt>180000)loadGlobal();}catch{}},60000);
 
 function syncLeverage(){let cap;try{cap=TradeConfig.market(pair).maxLeverage;}catch{cap=500}try{for(const option of Array.from($('lev').options||[])){option.disabled=Number(option.value)>cap;option.hidden=option.disabled}if(+$('lev').value>cap)$('lev').value=String(cap);}catch{}}

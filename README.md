@@ -1,4 +1,4 @@
-# TwinTrade 0.27.0
+# TwinTrade 0.28.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -42,3 +42,5 @@ The supplied v17 APK uses its original certificate. This rebuilt release uses a 
 0.27.0 shortens sides to L/S and trade sizes/leverage to whole numbers, adds a Zoom submenu with 10m–1w range and 1m–1d OHLC candles, shows BTCDEGEN public trades on BTC, draws every displayed public position’s known or estimated LIQ, and retains the chart on app return.
 
 Startup regression: `bash tests/android-startup.sh releases/v27/TwinTrade.apk` with a connected Android 15 emulator.
+
+0.28.0 targets missing candle ranges beyond the latest five hours, retains successful history pages, tries alternate Gains history for incomplete ranges, and uses one bounded repair timer with outage backoff. Native monitoring no longer forks retry chains.
