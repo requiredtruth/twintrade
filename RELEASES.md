@@ -31,3 +31,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.33.0**: Restore combined BTC 500× via BTCDEGEN execution; include own DEGEN positions, PnL, liquidation lines and current-coin close on BTC chart.
 
 - **0.34.0**: Await execution-market holding rates; show leveraged hourly costs/credits; fix vertical pan scale and retain all distant public entry/LIQ strokes.
+
+- **0.35.0**: Six public OPEN/CLOSE/LIQ L/S sounds; replacing chart-top event banner; confirmed liquidation classification and duplicate-report suppression.

@@ -1,0 +1,13 @@
+{
+  "tag": "v0.35.0",
+  "title": "TwinTrade 0.35.0 \u2014 Public trade sounds and chart-top event banner",
+  "sequence": 19,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "3525ac76f3794eb61fbbcedbdf4531231691185a1bd5de5491cf505b22d179ad",
+    "TwinTrade.html": "ff68566ed35f6cd300bc7afe96e9c5f60b345bdc2fc045da3ead22ffd79328ff",
+    "TwinTrade-source.zip": "1dc5305f027dd4b5d788bb0355b1b651ed12e9c84834aec04aed92b9342f5494",
+    "spec.md": "d6d5d3b37c47706a4737fed3a61d4e212372bef2bb125cf81ca7b5901589f24b",
+    "SHA256SUMS": "e141a8b73f0ac167fef503b18a7b7ecb073c730bc56d766c09dfbd89e7d3dba7"
+  }
+}

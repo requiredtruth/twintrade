@@ -1,0 +1,38 @@
+// Execute the real application handlers against deterministic transport/DOM doubles.
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const eth=require('../app/src/main/assets/ethers.js');
+const nodes={},stored={},intervals=[],timeouts=new Map();let nextTimer=0;
+const ctx2d=new Proxy({measureText:s=>({width:s.length*6})},{get:(o,k)=>o[k]||(()=>{})});
+const node=id=>nodes[id]??={id,value:({amount:'10',lev:'10'})[id]||'',options:[],checked:true,hidden:true,textContent:'',innerHTML:'',className:'',dataset:{},getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx2d,addEventListener(){},showModal(){this.open=true},close(){this.open=false}};
+const env={console,document:{getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:(f,ms)=>{timeouts.set(++nextTimer,{f,ms});return nextTimer},clearTimeout(id){timeouts.delete(id)},setInterval:(f,ms)=>{intervals.push({f,ms});return intervals.length},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(url){this.url=url;this.readyState=1;}close(){this.readyState=3}},ethers:{utils:eth.utils,providers:{JsonRpcProvider:class{constructor(){this.connection={url:'fixture'}}async getNetwork(){throw Error('offline fixture')}}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline fixture')},GABI:[]};
+env.window=env;vm.createContext(env);const run=code=>vm.runInContext(code,env);
+const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
+(async()=>{
+ await new Promise(r=>setImmediate(r));run("fullyLoaded=true;pair=0;soundOn=true;publicTrades=[];knownPublic.clear();publicNoticeState.clear();");
+ const sounds=[],tones=[];const actualSound=env.eventSound;env.eventSound=k=>{sounds.push(k);actualSound(k)};env.tone=(...args)=>tones.push(args);
+ const p=(id,long=true,pi=0)=>({id:'POLYGON:other:'+id,user:'other',pair:pi,long,lev:500,amount:100,entry:100,liq:99,net:'POLYGON',isOpen:true});env.p=p;
+ // Six distinct sound signatures, with mute respected independently of banner text.
+ const signatures=new Set();for(const action of ['open','close','liq'])for(const long of [true,false]){tones.length=0;env.row=p(action+long,long);env.action=action;run('notifyPublicTrade(row,action)');assert.equal(node('tradeEvent').hidden,false);assert(node('tradeEvent').textContent.includes((action==='liq'?'LIQ':action.toUpperCase())+' '+(long?'L':'S')));signatures.add(JSON.stringify(tones));}assert.equal(signatures.size,6);assert.equal(sounds.length,6);
+ // A newer banner replaces rather than stacks; the old hide timer is cancelled.
+ env.row=p('replace',false,300);run("notifyPublicTrade(row,'open')");const first=run('tradeEventTimer');env.row=p('replace2',true);run("notifyPublicTrade(row,'close')");assert(!timeouts.has(first));assert(node('tradeEvent').textContent.includes('CLOSE L'));assert(!node('tradeEvent').textContent.includes('OPEN S'));const current=run('tradeEventTimer');timeouts.get(current).f();assert.equal(node('tradeEvent').hidden,true);
+ // Duplicate socket/contract reports and snapshots cannot repeat sounds or infer LIQ from liq price.
+ const before=sounds.length;run("notifyPublicTrade(p('replace2'),'close');notePublicDiff([p('snapshot')],false);notePublicDiff([],false)");assert.equal(sounds.length,before);
+ const mutedTones=tones.length;run("soundOn=false;notifyPublicTrade(p('mute'),'open')");assert(node('tradeEvent').textContent.includes('OPEN L'));assert.equal(tones.length,mutedTones);run('soundOn=true'); // No new tones while muted.
+ let at=sounds.length;run("notifyPublicTrade(p('startup'),'open',true);notifyPublicTrade(p('eth',true,1),'open');wallet={address:'other'};notifyPublicTrade(p('own'),'open');wallet=null;");assert.equal(sounds.length,at);
+ // Real websocket register/update/unregister handling, including BTCDEGEN on BTC.
+ const raw=(index,long=true)=>({user:'other',index,pairIndex:300,collateralIndex:3,collateralAmount:100000000,leverage:500000,openPrice:100e10,long,isOpen:true,tradeType:0});env.raw=raw;run('publicTrades=[];knownPublic.clear()');at=sounds.length;
+ run("applyBackendChange({name:'registerTrade',value:{trade:raw(40,false)}},'POLYGON')");assert.equal(sounds.at(-1),'public-open-short');assert(node('tradeEvent').textContent.includes('BTCDEGEN'));run("applyBackendChange({name:'registerTrade',value:{trade:raw(40,false)}},'POLYGON');applyBackendChange({name:'updateLeverage',value:{user:'other',index:40,leverage:400000}},'POLYGON')");assert.equal(sounds.length,at+1);
+ run("publicTrades[0].liq=99;applyBackendChange({name:'unregisterTrade',value:{user:'other',index:40}},'POLYGON')");const pending=run("pendingPublicCloses.get('POLYGON:other:40').timer");timeouts.get(pending).f();assert.equal(sounds.at(-1),'public-close-short','a known LIQ line is not evidence of liquidation');
+ // Confirmed execution cancels an unknown-reason close and identifies LIQ_CLOSE=6.
+ run("applyBackendChange({name:'registerTrade',value:{trade:raw(41,true)}},'POLYGON');applyBackendChange({name:'unregisterTrade',value:{user:'other',index:41}},'POLYGON')");const delayed=run("pendingPublicCloses.get('POLYGON:other:41').timer");at=sounds.length;
+ run("applyBackendChange({name:'liveEvents',value:[{event:'LimitExecuted',args:{t:raw(41,true),orderType:6,marketPrice:99e10}}]},'POLYGON')");assert(!timeouts.has(delayed));assert.equal(sounds.at(-1),'public-liq-long');assert.equal(sounds.length,at+1);assert(node('tradeEvent').textContent.includes('LIQ L'));assert(node('tradeEvent').textContent.includes('$99.00'));
+ run("applyBackendChange({name:'unregisterTrade',value:{user:'other',index:41,action:'TradeClosedLIQ'}},'POLYGON')");assert.equal(sounds.length,at+1);
+ // Exercise actual Polygon event subscriptions, including TP/SL close versus LIQ.
+ const handlers={};env.fixtureProvider={getBlockNumber:async()=>100};run('provider=fixtureProvider');env.chain=async()=>({on:(name,fn)=>handlers[name]=fn,removeAllListeners(){},filters:{MarketExecuted:()=>0,LimitExecuted:()=>0},queryFilter:async()=>[]});run("cfg.eventRpc='';wallet=null");await run('setupEvents()');
+ let serial=0;const emit=async(event,args)=>handlers[event]({event,args:{orderId:{index:1},liqPrice:99e10,...args},transactionHash:'fixture'+serial++,logIndex:0});
+ at=sounds.length;await emit('MarketExecuted',{t:raw(50,true),open:true});assert.equal(sounds.at(-1),'public-open-long');await emit('MarketExecuted',{t:raw(50,true),open:false});assert.equal(sounds.at(-1),'public-close-long');await emit('LimitExecuted',{t:raw(51,false),orderType:6});assert.equal(sounds.at(-1),'public-liq-short');await emit('LimitExecuted',{t:raw(52,true),orderType:4});assert.equal(sounds.at(-1),'public-close-long');assert.equal(sounds.length,at+4);
+ at=sounds.length;run('quietEvents=true');await emit('LimitExecuted',{t:raw(53,true),orderType:6});run('quietEvents=false');assert.equal(sounds.length,at,'historical backfill remains silent');
+ // Event expiry never changes loading state or revives a completed progress overlay.
+ run("loadingTasks.clear();$('loadingProgress').hidden=true;notifyPublicTrade(p('last'),'open')");timeouts.get(run('tradeEventTimer')).f();assert.equal(node('loadingProgress').hidden,true);
+ console.log('PASS: six unique sound patterns, side/action labels, replacing/expiring banner, mute, current-chart/own/history filtering, socket/contract dedupe, confirmed LIQ classification and progress independence.');
+})().catch(e=>{console.error(e);process.exit(1)});

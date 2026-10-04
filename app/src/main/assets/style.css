@@ -61,3 +61,7 @@ header{display:grid;grid-template-columns:40px minmax(0,1fr) auto 40px;gap:2px 8
 /* Detailed estimates scroll within their space, keeping trading controls visible. */
 #quote{max-height:68px;overflow:auto;overscroll-behavior:contain}
 @media(min-width:640px) and (max-height:500px){footer{overflow:hidden}.inputs,.actions{flex-shrink:0}#quote{flex:1;min-height:0;max-height:none}}
+
+/* Latest public execution replaces the banner in the progress overlay slot. */
+#tradeEvent{position:absolute;top:0;left:0;right:0;z-index:5;min-height:30px;padding:7px 8px;border-left:4px solid #ffe144;background:#101721f5;pointer-events:none;font:11px monospace;overflow-wrap:anywhere}
+#tradeEvent.short{border-left-color:#b373ff;color:#b373ff}#tradeEvent.long{color:#ffe144}#tradeEvent.liq{background:#421629f5;border-left-color:#ff668f}#tradeEvent[hidden]{display:none}
