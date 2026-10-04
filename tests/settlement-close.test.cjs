@@ -33,6 +33,26 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  env.fixture=[E.open(0,true,10,10,100,{...cost,fee:0,borrow:0}),E.open(1,true,10,10,100,{...cost,fee:0,borrow:0})];run('book={cash:80,positions:fixture,history:[]};last[0]=Date.now();last[1]=0');await run('closeMany()');assert.equal(run('book.history.length'),1);assert.equal(run('book.positions[0].pair'),1);assert(node('settlementStatus').textContent.includes('not closed'));
  // Live batches stop on rejection and wait for each confirmed removal before the next request.
  node('dismissSettlement').onclick();env.confirm=()=>true;env.fixture=[{id:'l1',index:1,pair:0,long:true,kind:'live'},{id:'l2',index:2,pair:1,long:false,kind:'live'}];run('mode="live";wallet={address:"fixture"};livePositions=fixture;liveHistory=[];pending=[]');let sent=0;env.closeLive=async()=>{sent++;return false};await run('closeMany()');assert.equal(sent,1);assert(node('settlementStatus').textContent.includes('not submitted'));
- env.closeLive=async p=>{sent++;run('livePositions=livePositions.filter(p=>p.id!=='+JSON.stringify(p.id)+')');return true};env.refreshWallet=async()=>{};sent=0;await run('closeMany()');assert.equal(sent,2);assert.equal(run('livePositions.length'),0);assert(node('settlementTotal').textContent.includes('confirmed'));
+ env.closeLive=async p=>{sent++;run('livePositions=livePositions.filter(p=>p.id!=='+JSON.stringify(p.id)+')');return true};env.refreshWallet=async()=>true;sent=0;await run('closeMany()');assert.equal(sent,2);assert.equal(run('livePositions.length'),0);assert(node('settlementTotal').textContent.includes('confirmed'));
+ // During oracle settlement, all four context-changing controls must stay blocked.
+ run('livePositions=fixture;pending=[];mode="live";wallet={address:"fixture"}');
+ const originalWallet=run('wallet'),originalRpc=run('cfg.rpc');let releaseSync;
+ env.closeLive=async p=>{sent++;run('livePositions=livePositions.filter(p=>p.id!=='+JSON.stringify(p.id)+')');return true};
+ env.refreshWallet=()=>new Promise(resolve=>{releaseSync=resolve});sent=0;
+ const batch=run('closeMany()');await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(sent,1);assert.equal(run('busy'),false);assert.equal(run('bulkCloseBusy'),true);
+ node('rpc').value='https://changed.example';node('key').value='0x'+'1'.repeat(64);
+ node('saveSettings').onclick();await node('saveKey').onclick();node('forgetKey').onclick();await node('switchMode').onclick();
+ assert.equal(run('wallet'),originalWallet);assert.equal(run('cfg.rpc'),originalRpc);assert.equal(run('mode'),'live');
+ // A failed sync cannot promote stale missing-position data into confirmation.
+ env.sleep=async()=>{run('mode="paper"')};releaseSync(false);await batch;
+ assert.equal(sent,1);assert.equal(run('bulkCloseBusy'),false);assert(node('settlementStatus').textContent.includes('remaining orders were not sent'));
+ // A context change during a successful awaited sync still stops the batch.
+ run('livePositions=fixture;pending=[];mode="live";wallet={address:"fixture"}');sent=0;
+ env.refreshWallet=async()=>{run('wallet={address:"another"}');return true};await run('closeMany()');
+ assert.equal(sent,1);assert(node('settlementStatus').textContent.includes('Wallet, mode or node changed'));
+ // Do not borrow a different owner's historical receipt with the same ID.
+ run('livePositions=fixture.slice(0,1);pending=[];mode="live";wallet={address:"fixture"};liveHistory=[{id:"l1",owner:"another",net:1234}]');
+ env.refreshWallet=async()=>true;await run('closeMany()');assert.equal(run('closeReceipts[0].net'),undefined);
  console.log('PASS: $14 holding + $7/$7 fees deducted once, $125.96 cash return, native ledger receipt, holding credits, capped losses, all six close scopes and partial failure.');
 })().catch(e=>{console.error(e);process.exit(1)});

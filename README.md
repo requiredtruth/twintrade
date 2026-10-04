@@ -1,4 +1,4 @@
-# TwinTrade 0.29.0
+# TwinTrade 0.30.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -46,3 +46,5 @@ Startup regression: `bash tests/android-startup.sh releases/v27/TwinTrade.apk` w
 0.28.0 targets missing candle ranges beyond the latest five hours, retains successful history pages, tries alternate Gains history for incomplete ranges, and uses one bounded repair timer with outage backoff. Native monitoring no longer forks retry chains.
 
 0.29.0 adds persistent close-detail dialogs with saved paper settlement receipts and a Close menu beside Positions: all/longs/shorts for the current coin or all coins. Holding costs and both fees are already included in net P&L; receipts show every deduction and cash returned.
+
+0.30.0 locks wallet, node and mode changes for the entire close batch and requires successful wallet reconciliation between live closes. Builds refuse to rotate a missing private release key.

@@ -1,0 +1,13 @@
+{
+  "tag": "v0.30.0",
+  "title": "TwinTrade 0.30.0 \u2014 Safe close batch context and fresh reconciliation",
+  "sequence": 14,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "e3c129dcf14462b30ce30536e2eba0d1542de7a3b3fba761cdf78ad547a3d9cb",
+    "TwinTrade.html": "ca7f78a1894dc704ea0e018fa6e5d415ede73447dc8c34863c700427c7faa7a7",
+    "TwinTrade-source.zip": "e45c1a10a472e6629bef5ba7ea13a6a0137ba41669ecfed224af53affbacf337",
+    "spec.md": "df65ba4c749dae694fe203c4f91ad175513ddffcc3f758ca254f6aceadbad3ad",
+    "SHA256SUMS": "0f94857a45f496e7ecbed19598a525c2497ea74ccb00703648a5b6ae933207bb"
+  }
+}

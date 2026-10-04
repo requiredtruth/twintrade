@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-apk="${1:-releases/v29/TwinTrade.apk}"
+apk="${1:-$(find releases -mindepth 2 -maxdepth 2 -name TwinTrade.apk | sort -V | tail -1)}"
 adb install -r "$apk"
 adb logcat -c
 capture() {
