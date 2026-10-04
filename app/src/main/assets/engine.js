@@ -35,6 +35,15 @@ function dedupeCandles(list){if(!Array.isArray(list))return [];const m=new Map()
  * Placeholder OHLC uses previous close and is discarded on each reconciliation. */
 function continuousCandles(list){const bars=dedupeCandles((list||[]).filter(c=>c&&c.source!=='gap-fill'));if(!bars.length)return [];const out=[],floor=bars[bars.length-1].t-10079*60000;let prev=null;for(const c of bars){if(prev)for(let t=Math.max(prev.t+60000,floor);t<c.t;t+=60000)out.push({t,o:prev.c,h:prev.c,l:prev.c,c:prev.c,source:'gap-fill'});if(c.t>=floor)out.push(c);prev=c;}return out.slice(-10080);}
 function mergeCandles(existing,incoming,now=Date.now()){const current=Math.floor(now/60000)*60000,m=new Map(dedupeCandles((existing||[]).filter(c=>c.source!=='gap-fill')).map(c=>[c.t,c]));for(const c of dedupeCandles(incoming)){if(c.source==='gap-fill')continue;const old=m.get(c.t);if(!old||c.source==='gains-history'&&c.t<current||!(old.source==='gains-history'&&c.t<current))m.set(c.t,c);}return continuousCandles([...m.values()]);}
+/* Revision-matched native snapshots carry only the active tail. Preserve the
+ * normal history precedence, falling back to reconciliation for older bars. */
+function mergeLiveTail(existing,incoming,now=Date.now()){
+ const rows=dedupeCandles(incoming),a=existing||[],tail=a[a.length-1],c=rows[0];
+ if(rows.length!==1||!tail||c.t!==tail.t)return mergeCandles(a,incoming,now);
+ if(c.source==='gap-fill'||tail.source==='gains-history'&&tail.t<Math.floor(now/60000)*60000&&c.source!=='gains-history')return a;
+ if(['o','h','l','c','source'].some(k=>tail[k]!==c[k]))a[a.length-1]=c;
+ return a;
+}
 /* Derive bounded repair pages from retained missing buckets, not a job queue.
  * Rotate past unavailable ranges so one outage cannot starve other repairs. */
 function gapRepairPlan(list,cursor=0,maxPages=3){const pages=[];let page=null;for(const c of list||[]){if(c.source!=='gap-fill')continue;if(!page||c.t>page.to||c.t-page.from>=298*60000){page={from:c.t,to:c.t+60000};pages.push(page);}else page.to=c.t+60000;}if(!pages.length)return {ranges:[],next:0};const start=cursor%pages.length,n=Math.min(maxPages,pages.length);return {ranges:Array.from({length:n},(_,i)=>pages[(start+i)%pages.length]),next:(start+n)%pages.length};}
@@ -42,5 +51,5 @@ function holdingLabel(cost){const gain=cost<0;return {text:'Hold '+(gain?'gain':
 function avgNet(nets){if(!Array.isArray(nets))return null;const f=nets.filter(Number.isFinite);return f.length?f.reduce((s,v)=>s+v,0)/f.length:null;}
 /* Sound mood from average open P&L: positive / negative / flat (none). */
 function positionMood(avg,hasPositions){if(!hasPositions||!Number.isFinite(avg)||avg===0)return 'flat';return avg>0?'positive':'negative';}
-const api={validateCosts,freshQuote,parsePrices,parseV4,open,value,settle,liquidation,collateral,history,dedupeCandles,continuousCandles,mergeCandles,holdingLabel,gapRepairPlan,clusterEntries,moveClass,dataRate,avgNet,positionMood,maxLevFor};root.Engine=api;if(typeof module!=='undefined')module.exports=api;
+const api={validateCosts,freshQuote,parsePrices,parseV4,open,value,settle,liquidation,collateral,history,mergeLiveTail,dedupeCandles,continuousCandles,mergeCandles,holdingLabel,gapRepairPlan,clusterEntries,moveClass,dataRate,avgNet,positionMood,maxLevFor};root.Engine=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

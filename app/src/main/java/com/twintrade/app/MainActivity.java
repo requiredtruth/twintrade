@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
   @JavascriptInterface public int acceptPriceFrame(String raw){return PriceFeed.ingest(raw,System.currentTimeMillis());}
   @JavascriptInterface public void reconnect(){startMonitor("RECONNECT");}
   @JavascriptInterface public String snapshot(){return MarketStore.snapshot();}
+  @JavascriptInterface public String snapshotFor(int pair,long revision){return MarketStore.snapshotFor(pair,revision);}
   @JavascriptInterface public void seed(String raw){MarketStore.seed(raw);}
   @JavascriptInterface public String paper(){return MarketStore.book();}
   @JavascriptInterface public String open(int pair,boolean isLong,double percent,double lev,String cost){return MarketStore.open(pair,isLong,percent,lev,cost);}

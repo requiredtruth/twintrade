@@ -23,6 +23,8 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  await run('loadHistory(0)');const first=run('historyRetryTimers.get(0)');await run('loadHistory(0)');assert(!timeouts.has(first));assert.equal(run('historyRetryTimers.size'),1);for(let i=0;i<10;i++)await run('loadHistory(0)');assert.equal(timeouts.get(run('historyRetryTimers.get(0)')).ms,300000);
  // One failed page does not throw away the other successful history pages.
  env.fetchHistoryChain=async(chain,sym,from)=>{if(from===0)throw Error('page unavailable');return {chain,rows:[bar(now)]};};const result=await run("fetchHistoryRange('polygon','BTC-USD',0,600*60000)");assert.equal(result.rows.length,1);
+ // A retained week fetches only the recent page on routine refresh.
+ env.fixture=Array.from({length:10080},(_,i)=>bar(now-(10079-i)*60000));run('candles[0]=fixture;historyLoadedAt[0]=Date.now()');let pageCount=0;env.fetchHistoryChain=async chain=>{pageCount++;return {chain,rows:[bar(now)]}};await run('loadHistory(0,10080)');assert.equal(pageCount,1,'retain completed week history instead of redownloading 34 pages');
  // No growing queue for a week-long outage; repair rotates across pages.
  env.fixture=[bar(now-10000*60000),bar(now)];run('candles[0]=Engine.continuousCandles(fixture)');const plan=run('Engine.gapRepairPlan(candles[0])'),next=run('Engine.gapRepairPlan(candles[0],3)');assert.equal(plan.ranges.length,3);assert(next.ranges[0].from>plan.ranges[2].from);assert(plan.ranges.every(r=>r.to-r.from<=298*60000));
  console.log('PASS: old-gap recovery, partial-history fallback, successful-page retention, one bounded retry, backoff and rotating repair batches.');

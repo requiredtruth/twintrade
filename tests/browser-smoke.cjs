@@ -9,7 +9,12 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  const chartBefore=await page.locator('#chart').boundingBox();
  await page.evaluate(()=>setLoadBar(100,'1248 open trades synced'));
  const chartDuring=await page.locator('#chart').boundingBox();assert.deepEqual(chartDuring,chartBefore,'sync message must not shift/resize chart');
- assert.equal(await page.locator('#loadbar').count(),0,'green progress bar removed');
+ await page.evaluate(()=>{loadingTasks.clear();loadingProgress('history',25,'History 1/4 pages');loadingProgress('traders',60,'POLYGON 60/100');});
+ assert.equal(await page.locator('#loadingProgress').isVisible(),true);assert((await page.locator('#loadingDetails').textContent()).includes('History 1/4 pages'));
+ assert.deepEqual(await page.locator('#chart').boundingBox(),chartBefore,'progress overlay keeps chart fixed');
+ const progressBox=await page.locator('#loadingProgress').boundingBox();assert(progressBox.y>=chartBefore.y&&progressBox.y<chartBefore.y+5,'progress is at chart top');
+ await page.evaluate(()=>{loadingProgress('history',100,'History ready',true);});assert((await page.locator('#loadingDetails').textContent()).includes('POLYGON 60/100'));
+ await page.evaluate(()=>{loadingProgress('traders',100,'Traders ready',true);});
  const messageBox=await page.locator('#syncMessage').boundingBox(),feesBox=await page.locator('#fees').boundingBox();assert(messageBox.y+messageBox.height<=feesBox.y+1,'sync message above borrowing text');
  await page.evaluate(()=>setLoadBar(100,''));assert.deepEqual(await page.locator('#chart').boundingBox(),chartBefore,'clearing message keeps chart fixed');await page.screenshot({path:'build/mobile-qa.png'});for(const id of ['menu','settings','long','short']){const b=await page.locator('#'+id).boundingBox();assert(b&&b.x>=0&&b.y>=0&&b.x+b.width<=w+1&&b.y+b.height<=h+1,`${id} outside ${w}x${h}: ${JSON.stringify(b)}`)}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'No horizontal overflow');}
  await page.evaluate(()=>setLoadBar(100,'Trades synced'));await page.waitForTimeout(2200);await page.evaluate(()=>setLoadBar(100,'New trades synced'));await page.waitForTimeout(1500);assert.equal(await page.locator('#syncMessage').isVisible(),true,'old timer does not clear new sync text');await page.waitForTimeout(2100);assert.equal(await page.locator('#syncMessage').isVisible(),false,'completed sync text expires');

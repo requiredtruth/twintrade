@@ -30,5 +30,20 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  let bodyDone,signal;env.fetch=async(u,opts)=>{signal=opts.signal;return{ok:true,json:async()=>new Promise(r=>bodyDone=r)}};const json=realFetchJson('fixture',1234);for(let i=0;i<5;i++)await Promise.resolve();const timer=[...timeouts.entries()].find(([id,t])=>t.ms===1234);assert(timer);timer[1].f();assert.equal(signal.aborted,true);bodyDone({ok:true});await json;assert(!timeouts.has(timer[0]));
  // Missing native history text preserves the browser's valid chart status.
  env.Feed={snapshot:()=>JSON.stringify({prices:[],candles:[],running:false}),paper:()=>JSON.stringify({cash:100,positions:[],history:[]})};node('historyStatus').textContent='Gains history';run('syncNative()');assert.equal(node('historyStatus').textContent,'Gains history');delete env.Feed;
- console.log('PASS: transient sync timer replacement, history retry cleanup/market switch, holding spread preservation, fee refresh deduplication, deferred snapshot reload and unchanged DOM reuse.');
+ // Independent progress tasks: history completion cannot dismiss traders.
+ run("loadingTasks.clear();loadingProgress('history',20,'History pages');loadingProgress('traders',40,'POLYGON 60/120');loadingProgress('history',100,'History ready',true)");
+ assert.equal(node('loadingProgress').hidden,false);assert.equal(node('loadingBar').value,40);assert.equal(node('loadingDetails').textContent,'POLYGON 60/120');assert(!timeouts.has(run('progressHideT')));
+ run("loadingProgress('traders',100,'Traders ready',true)");assert(timeouts.has(run('progressHideT')));timeouts.get(run('progressHideT')).f();assert.equal(node('loadingProgress').hidden,true);
+ // Cached chart aggregation is reused and invalidated by live OHLC / zoom.
+ run("pair=0;candles[0]=[{t:60000,o:100,h:101,l:99,c:100}];view={span:75,off:0,yOff:0};chartInterval=1;barsCache={};");
+ assert.equal(run('chartBars()===chartBars()'),true);run('globalThis.firstBars=chartBars();candles[0][0].h=102');assert.equal(run('firstBars===chartBars()'),false);
+ run('globalThis.firstBars=chartBars();view.span=60');assert.equal(run('firstBars===chartBars()'),false);
+ // Current-market tail snapshots must avoid full merge, keep other histories,
+ // and update native paper state when serialized ledger changes.
+ let fullMerges=0;const originalMerge=env.Engine.mergeCandles;env.Engine.mergeCandles=(...args)=>{fullMerges++;return originalMerge(...args)};
+ const now=Date.now(),t=Math.floor(now/60000)*60000;let rawBook=JSON.stringify({cash:100,positions:[],history:[]});
+ env.Feed={snapshotFor:(pi,rev)=>JSON.stringify({candleRevision:7,selectedCandles:{[pi]:[{t,o:100,h:102,l:99,c:101,source:'gains-live'}]},candles:[],running:true}),paper:()=>rawBook};
+ run('nativeCandleRevisions.clear();syncNative()');const firstMerges=fullMerges;run('syncNative()');assert.equal(fullMerges,firstMerges);assert.equal(run('candles[0].at(-1).c'),101);
+ rawBook=JSON.stringify({cash:110,positions:[],history:[]});run('syncNative()');assert.equal(run('book.cash'),110);delete env.Feed;env.Engine.mergeCandles=originalMerge;
+ console.log('PASS: progress task isolation, cached OHLC invalidation, incremental native candles and fresh ledger; transient sync timer replacement, history retry cleanup/market switch, holding spread preservation, fee refresh deduplication, deferred snapshot reload and unchanged DOM reuse.');
 })().catch(e=>{console.error(e);process.exit(1)});
