@@ -1,7 +1,8 @@
 const {chromium}=require('playwright');const assert=require('node:assert/strict');const path=require('node:path');
 (async()=>{const browser=await chromium.launch({headless:true,...(process.env.TWINTRADE_CHROME?{executablePath:process.env.TWINTRADE_CHROME}:{}),args:['--no-sandbox']});
  const errors=[];const page=await browser.newPage({viewport:{width:393,height:852}});page.on('pageerror',e=>errors.push(e.message));
- await page.route('https://**/*',r=>r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
+ // Valid empty trader snapshots prevent unrelated offline retry notices from racing timer assertions.
+ await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
  await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);
  assert.equal(await page.locator('#price').textContent(),'$84610.00');await page.click('#long');await page.waitForTimeout(300);assert((await page.locator('#positions').textContent()).includes('L'));
  for(const [w,h]of [[393,852],[852,393],[360,640],[740,360],[393,852]]){await page.setViewportSize({width:w,height:h});await page.waitForTimeout(150);
