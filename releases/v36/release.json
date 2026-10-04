@@ -1,0 +1,13 @@
+{
+  "tag": "v0.36.0",
+  "title": "TwinTrade 0.36.0 \u2014 Persistent latest trade and verified live overlays",
+  "sequence": 20,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "04633db655438a270c5dda8e40cf25a0970ce6c5dc65e184bd9a3fc3941c76e0",
+    "TwinTrade.html": "28952c402c3f190efbb48b9cbf7ecccd323c2fa9ec86bf1f92785f2c7e509696",
+    "TwinTrade-source.zip": "15d37b4ca9a1abf4d6144a84e819a6b33f120512f1c63ddae88c262b49be56dd",
+    "spec.md": "74123be0c086f96bdae2974c8329d81fab66f2993b0948900319ca2d6ad07a09",
+    "SHA256SUMS": "9f69f20f03d992ef01c43e041f3d2cfda238a203e0bd5126b689b821f01d09f9"
+  }
+}

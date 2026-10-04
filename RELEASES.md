@@ -33,3 +33,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.34.0**: Await execution-market holding rates; show leveraged hourly costs/credits; fix vertical pan scale and retain all distant public entry/LIQ strokes.
 
 - **0.35.0**: Six public OPEN/CLOSE/LIQ L/S sounds; replacing chart-top event banner; confirmed liquidation classification and duplicate-report suppression.
+
+- **0.36.0**: Persistent latest trade box, session restoration, verified socket entry/LIQ additions/removals and reopened-trade sounds.

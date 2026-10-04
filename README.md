@@ -58,3 +58,5 @@ Background refreshes and retries stay quiet; progress is shown for startup and e
 0.34.0 waits for the execution market’s holding rates before saving new paper positions, shows leveraged hourly costs/credits, and fixes vertical panning so distant public entries and liquidation lines appear as they enter view.
 
 0.35.0 adds six distinct public execution sounds (OPEN/CLOSE/LIQ × L/S) and a replacing chart-top event banner in the loading-overlay position. Alerts follow the current chart, including BTCDEGEN on BTC; historical snapshots stay quiet and duplicate socket/contract reports are suppressed.
+
+0.36.0 keeps the latest trade banner until replacement, including chart switches and session recreation, and verifies entry/LIQ line changes through all three live socket callbacks. Closed metadata no longer suppresses a new open sound.
