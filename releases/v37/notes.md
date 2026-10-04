@@ -1,0 +1,7 @@
+Public OPEN/CLOSE/LIQ text and six long/short sounds now cover every market across Polygon, Arbitrum and Base. Messages identify their market; chart entry/LIQ overlays remain scoped to the selected coin.
+
+The box shows connection/waiting state immediately and loads a timestamped last confirmed execution at startup without playing historical sounds or changing position lines. Live alerts no longer wait for candles/snapshots. Historical RPC queries no longer mute concurrent live sockets; late history responses preserve newer live messages and global feed rows.
+
+Validation covers off-chart messages, alerts before snapshot readiness, silent historical seeding, historical/live deduplication, response races, all six sounds, current-market line additions/removals and saved-session persistence. Source/native and mobile browser tests, APK integrity/signature/alignment, and Android 15 startup/app-switch/recreation gate release publication. Uses the existing signing certificate. No funded transaction or physical-device test is performed.
+
+Read-only live browser verification: startup displayed a real last confirmed SOLDEGEN execution on BTC, then actual XRPDEGEN CLOSE and OPEN messages replaced it while BTC stayed selected. Later history enriches temporary pair-number labels without repeating audio. Captured production-frame replay also passed before readiness on an unchanged BTC chart: 15 trade changes, 3 open deliveries.

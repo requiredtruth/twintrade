@@ -60,3 +60,5 @@ Background refreshes and retries stay quiet; progress is shown for startup and e
 0.35.0 adds six distinct public execution sounds (OPEN/CLOSE/LIQ × L/S) and a replacing chart-top event banner in the loading-overlay position. Alerts follow the current chart, including BTCDEGEN on BTC; historical snapshots stay quiet and duplicate socket/contract reports are suppressed.
 
 0.36.0 keeps the latest trade banner until replacement, including chart switches and session recreation, and verifies entry/LIQ line changes through all three live socket callbacks. Closed metadata no longer suppresses a new open sound.
+
+0.37.0 shows public execution messages/sounds for all markets and seeds a silent, timestamped last confirmed trade at startup. Live alerts no longer wait for snapshots/history; chart lines remain scoped to the selected market.

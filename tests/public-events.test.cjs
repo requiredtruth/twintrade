@@ -23,7 +23,15 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  // Duplicate socket/contract reports and snapshots cannot repeat sounds or infer LIQ from liq price.
  const before=sounds.length;run("notifyPublicTrade(p('replace2'),'close');notePublicDiff([p('snapshot')],false);notePublicDiff([],false)");assert.equal(sounds.length,before);
  const mutedTones=tones.length;run("soundOn=false;notifyPublicTrade(p('mute'),'open')");assert(node('tradeEvent').textContent.includes('OPEN L'));assert.equal(tones.length,mutedTones);run('soundOn=true'); // No new tones while muted.
- let at=sounds.length;run("notifyPublicTrade(p('startup'),'open',true);notifyPublicTrade(p('eth',true,1),'open');wallet={address:'other'};notifyPublicTrade(p('own'),'open');wallet=null;");assert.equal(sounds.length,at);
+ let at=sounds.length;run("notifyPublicTrade(p('startup'),'open',true);wallet={address:'other'};notifyPublicTrade(p('own'),'open');wallet=null;");assert.equal(sounds.length,at);
+ // Live off-chart trades are visible and audible even before initial snapshots/candles finish.
+ at=sounds.length;run("fullyLoaded=false;firstPublicDone=false;pair=0;notifyPublicTrade(p('eth',false,1),'open')");assert.equal(sounds.length,at+1);assert(node('tradeEvent').textContent.includes('ETH / USD'));assert(node('tradeEvent').textContent.includes('OPEN S'));run('fullyLoaded=true');
+ // A quiet historical report cannot consume a later genuinely live execution.
+ at=sounds.length;run("notifyPublicTrade(p('quiet-then-live'),'open',true);notifyPublicTrade(p('quiet-then-live'),'open')");assert.equal(sounds.length,at+1);
+ // Startup history supplies a silent last confirmed execution without changing chart lines.
+ env.seedRows=[{date:new Date(Date.now()-60000).toISOString(),pair:'ETH/USD',address:'seed',tradeIndex:9,action:'TradeClosedLIQ',long:0,leverage:50,size:10,price:100,net:'BASE'}];
+ at=sounds.length;const count=run('publicTrades.length');run('clearTradeEvent();seedLatestPublicTrade(seedRows)');assert(node('tradeEvent').textContent.includes('Last confirmed'));assert(node('tradeEvent').textContent.includes('LIQ S'));assert.equal(sounds.length,at);assert.equal(run('publicTrades.length'),count,'history banner never adds closed positions');
+ run("notifyPublicTrade(p('newer'),'open');seedLatestPublicTrade(seedRows)");assert(node('tradeEvent').textContent.includes('OPEN L'));assert(!node('tradeEvent').textContent.includes('Last confirmed'),'late history never replaces newer live event');
  // Real websocket register/update/unregister handling, including BTCDEGEN on BTC.
  const raw=(index,long=true)=>({user:'other',index,pairIndex:300,collateralIndex:3,collateralAmount:100000000,leverage:500000,openPrice:100e10,long,isOpen:true,tradeType:0});env.raw=raw;run('publicTrades=[];knownPublic.clear()');at=sounds.length;
  run("applyBackendChange({name:'registerTrade',value:{trade:raw(40,false)}},'POLYGON')");assert.equal(sounds.at(-1),'public-open-short');assert(node('tradeEvent').textContent.includes('BTCDEGEN'));run("applyBackendChange({name:'registerTrade',value:{trade:raw(40,false)}},'POLYGON');applyBackendChange({name:'updateLeverage',value:{user:'other',index:40,leverage:400000}},'POLYGON')");assert.equal(sounds.length,at+1);
@@ -57,17 +65,26 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  env.historyOpen={name:'new-trade-history',action:'TradeOpenedMarket',address:'history-user',tradeIndex:'91',pair:'BTC/USD',long:1,leverage:200,size:10,price:100,tx:'history-open',logIndex:1};
  at=sounds.length;deliver(env.historyOpen);assert.equal(sounds.length,at+1);assert(run("publicTrades.some(p=>p.id==='POLYGON:history-user:91')"));deliver(env.historyOpen);assert.equal(sounds.length,at+1);
  deliver({...env.historyOpen,action:'TradeClosedLIQ',price:99,tx:'history-close'});assert.equal(sounds.at(-1),'public-liq-long');assert(!run("publicTrades.some(p=>p.id==='POLYGON:history-user:91')"));
+ // Confirmed history enriches an unknown-pair label without repeating sound.
+ run("notifyPublicTrade({...p('enrich',false,326),id:'ARBITRUM:enrich-user:100',net:'ARBITRUM'},'open')");at=sounds.length;
+ deliver({name:'new-trade-history',action:'TradeOpenedMarket',address:'enrich-user',tradeIndex:100,pair:'XRPDEGEN/USD',long:0,leverage:500,size:100,price:100},'ARBITRUM');assert(node('tradeEvent').textContent.includes('XRPDEGEN/USD'));assert.equal(sounds.length,at,'metadata enrichment stays silent');
+ // Deferred startup history cannot overwrite live messages or erase live global rows.
+ const historyWait=[];env.fetch=async url=>{if(String(url).includes('/api/trading-history/'))return new Promise(resolve=>historyWait.push(resolve));throw Error('offline fixture')};
+ run('globalBusy=false;clearTradeEvent();globalTrades=[]');const historyLoad=run('loadGlobal()');await new Promise(r=>setImmediate(r));
+ env.raceOpen={...env.historyOpen,address:'race-user',tradeIndex:92,tx:'new-live',date:new Date().toISOString()};deliver(env.raceOpen);const liveText=node('tradeEvent').textContent,liveTones=sounds.length;
+ for(const resolve of historyWait)resolve({ok:true,json:async()=>env.seedRows});await historyLoad;
+ assert.equal(node('tradeEvent').textContent,liveText);assert.equal(sounds.length,liveTones);assert(run("globalTrades.some(g=>g.tx==='new-live')"),'history reload preserves newer live global rows');env.fetch=async()=>{throw Error('offline fixture')};
  // Optional read-only live capture is replayed through these same transport callbacks.
  if(process.env.TWINTRADE_LIVE_CAPTURE){
-  let accepted=0,opens=0;run('publicTrades=[];publicNoticeState.clear();knownPublic.clear();fullyLoaded=true;quietEvents=false');
+  let accepted=0,opens=0;run('publicTrades=[];publicNoticeState.clear();knownPublic.clear();pair=0;fullyLoaded=false;quietEvents=false');
   for(const file of process.env.TWINTRADE_LIVE_CAPTURE.split(','))for(const line of fs.readFileSync(file,'utf8').trim().split('\n').filter(Boolean)){
    const msg=JSON.parse(line),net=path.basename(file).includes('arbitrum')?'ARBITRUM':path.basename(file).includes('base')?'BASE':'POLYGON';
-   const t=msg.value?.trade||msg.value;if(t?.user&&t.index!==undefined){run('pair='+Number(t.pairIndex||0));deliver(msg,net);const id=net+':'+t.user.toLowerCase()+':'+Number(t.index);env.liveId=id;
+   const t=msg.value?.trade||msg.value;if(t?.user&&t.index!==undefined){deliver(msg,net);const id=net+':'+t.user.toLowerCase()+':'+Number(t.index);env.liveId=id;
     if(msg.name==='registerTrade'&&Number(t.tradeType)===0&&run('displayablePair('+Number(t.pairIndex)+')')){assert(run('publicTrades.some(p=>p.id===liveId)'),'live register accepted');opens++;}
     if(msg.name==='unregisterTrade')assert(!run('publicTrades.some(p=>p.id===liveId)'),'live unregister removed');accepted++;
-   }else if(msg.name==='new-trade-history'){env.historyFrame=msg;const market=run('TradeConfig.allMarkets().find(m=>m.symbol===historyFrame.pair)');if(market&&/^TradeOpened(Market|Limit)$/.test(msg.action)){run('pair='+market.pairIndex);deliver(msg,net);env.liveId=net+':'+msg.address.toLowerCase()+':'+msg.tradeIndex;assert(run('publicTrades.some(p=>p.id===liveId)'),'real history OPEN accepted');assert(node('tradeEvent').textContent.includes('OPEN'));opens++;accepted++;}else deliver(msg,net);}else deliver(msg,net);
+   }else if(msg.name==='new-trade-history'){env.historyFrame=msg;const market=run('TradeConfig.allMarkets().find(m=>m.symbol===historyFrame.pair)');if(market&&/^TradeOpened(Market|Limit)$/.test(msg.action)){deliver(msg,net);env.liveId=net+':'+msg.address.toLowerCase()+':'+msg.tradeIndex;assert(run('publicTrades.some(p=>p.id===liveId)'),'real history OPEN accepted');assert(node('tradeEvent').textContent.includes('OPEN'));opens++;accepted++;}else deliver(msg,net);}else deliver(msg,net);
   }
-  assert(accepted>0,'capture contains actual new trade changes');assert(opens>0,'capture contains actual new trade opens');console.log('PASS: real live websocket capture replay: '+accepted+' trade changes, '+opens+' opens');
+  assert(accepted>0,'capture contains actual new trade changes');assert(opens>0,'capture contains actual new trade opens');assert.equal(run('pair'),0,'production off-chart frames never change BTC selection');assert.equal(node('tradeEvent').hidden,false,'production frames show messages before readiness');console.log('PASS: real live websocket capture replay on unchanged BTC chart before readiness: '+accepted+' trade changes, '+opens+' open deliveries');
   run('pair=0');
  }
  // Exercise actual Polygon event subscriptions, including TP/SL close versus LIQ.
@@ -77,5 +94,5 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  at=sounds.length;run('quietEvents=true');await emit('LimitExecuted',{t:raw(53,true),orderType:6});run('quietEvents=false');assert.equal(sounds.length,at,'historical backfill remains silent');
  // Persistent event does not change loading state.
  run("loadingTasks.clear();$('loadingProgress').hidden=true;notifyPublicTrade(p('last'),'open')");assert.equal(node('tradeEvent').hidden,false);assert.equal(node('loadingProgress').hidden,true);
- console.log('PASS: six unique sound patterns, side/action labels, persistent replacing banner, mute, current-chart/own/history filtering, socket/contract dedupe, confirmed LIQ classification and progress independence.');
+ console.log('PASS: six unique sound patterns, side/action labels, persistent replacing banner, mute, all-market delivery and silent startup history, socket/contract dedupe, confirmed LIQ classification and progress independence.');
 })().catch(e=>{console.error(e);process.exit(1)});
