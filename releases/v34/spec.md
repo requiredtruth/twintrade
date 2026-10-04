@@ -160,3 +160,5 @@ Regression tests cover a $100 position with $53.96 price P&L, $7 opening fee, $7
 - VersionCode 34 / versionName 0.34.0 retains the existing update signing certificate.
 
 Live borrowing now includes both the legacy borrowing component and v10 borrowing returned by the Polygon contracts, avoiding understated BTCDEGEN holding costs. If a component is unavailable, live PnL remains unknown rather than treating it as zero.
+
+Detailed order estimates scroll inside a bounded area. Landscape order controls stay visible beneath the estimates instead of being pushed beyond the viewport.

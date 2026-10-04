@@ -7,3 +7,5 @@ JavaScript and native regression tests cover 500× holding cost/credit settlemen
 Assets: APK, standalone HTML, source ZIP, spec.md and SHA256SUMS.
 
 Live borrowing now includes both the legacy borrowing component and v10 borrowing returned by the Polygon contracts, avoiding understated BTCDEGEN holding costs. If a component is unavailable, live PnL remains unknown rather than treating it as zero.
+
+Detailed order estimates scroll inside a bounded area. Landscape order controls stay visible beneath the estimates instead of being pushed beyond the viewport.
