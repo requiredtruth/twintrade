@@ -29,5 +29,10 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  run('view={span:280,off:70,yOff:5};selectedPublic="test";');node('resetChart').onclick();assert.equal(run('view.span'),75);assert.equal(run('view.off'),0);assert.equal(run('view.yOff'),0);assert.equal(run('selectedPublic'),null);
  run('book={cash:80,positions:[{...make(1),kind:"paper",pair:1,opened:Date.now(),cost:{fee:0,slip:0,borrow:0,funding:0,liq:90}}],history:[{...make(4),pair:1,net:4,closed:Date.now(),status:"Closed"}]};mode="paper";');
  node('portfolioOpen').onclick();assert.equal(node('accountPanel').hidden,false);assert(node('accountRows').innerHTML.includes('ETH / USD'));node('accountHistory').onclick();assert(node('accountRows').innerHTML.includes('Closed'));
+ run('pair=0;publicTrades=[make(11),{...make(12),long:false,amount:30},{...make(13),pair:300,lev:500},{...make(14),pair:2}];renderPublic();');
+ assert(node('ratioRows').innerHTML.includes('L 66.67%'));assert(node('ratioRows').innerHTML.includes('S 33.33%'));assert(node('ratioRows').innerHTML.includes('2 : 1 L:S'));assert(node('ratioRows').innerHTML.includes('500–&lt;')===false);assert(node('ratioRows').innerHTML.includes('500–<1000×'));
+ node('ratioBasis').value='value';node('ratioBasis').onchange();assert(node('ratioRows').innerHTML.includes('L 66.67%'));assert(node('ratioRows').innerHTML.includes('$6000.00 : $3000.00'));
+ run('publicTrades[0].isOpen=false;renderPublic()');assert(node('ratioRows').innerHTML.includes('$5000.00 : $3000.00'));
+ run('pair=2;render()');assert(node('ratioRows').innerHTML.includes('L 100.00%'));run('pair=1;render()');assert(node('ratioRows').innerHTML.includes('no trades'));assert(!node('ratioRows').innerHTML.includes('50.00%'));
  console.log('PASS: snapshot retention, confirmed closure tombstones, concurrent events, liq persistence, partial websocket updates, malformed/partial snapshots, chart reset, all-market portfolio/history.');
 })().catch(e=>{console.error(e);process.exit(1)});

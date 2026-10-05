@@ -67,3 +67,6 @@ header{display:grid;grid-template-columns:40px minmax(0,1fr) auto 40px;gap:2px 8
 #tradeEvent.short{border-left-color:#b373ff;color:#b373ff}#tradeEvent.long{color:#ffe144}#tradeEvent.liq{background:#421629f5;border-left-color:#ff668f}#tradeEvent[hidden]{display:none}
 
 .leverage-control{display:flex;gap:5px}.inputs .leverage-control input{width:55%;min-width:0}.inputs .leverage-control select{width:45%;min-width:0;font-size:13px}
+
+#ratioPanel{padding:4px 8px;background:#101923;font-size:11px}.ratio-heading{display:flex;align-items:center;gap:8px}.ratio-heading select{font-size:11px;padding:2px;width:auto}.ratio-heading span{color:#9aabba}#ratioRows{display:flex;gap:6px;overflow-x:auto;padding:4px 0}.ratio-card{flex:0 0 auto;min-width:116px;border:1px solid #334252;border-radius:4px;padding:3px 5px;font-variant-numeric:tabular-nums}.ratio-card small{display:block;color:#9aabba}.ratio-card:first-child{border-color:#92a8be}.ratio-track{height:3px;background:#d8ba32;margin-top:3px}.ratio-track i{display:block;height:100%;background:#b35cfa}
+@media(min-width:640px) and (max-height:500px){body{grid-template-rows:48px 24px 26px 30px 34px 76px minmax(0,1fr) 32px minmax(24px,48px)}#ratioPanel{grid-column:1;grid-row:6;min-width:0;overflow:hidden}#chartwrap{grid-row:7}.tabs{grid-row:8}#positions{grid-row:9}}

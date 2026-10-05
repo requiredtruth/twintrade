@@ -1,0 +1,13 @@
+{
+  "tag": "v0.41.0",
+  "title": "TwinTrade 0.41.0 \u2014 Chart leverage-tier long/short ratios",
+  "sequence": 25,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "9b400c8dc03a4494c57631409aa346e603ba312801d0034edaf017be1ede709d",
+    "TwinTrade.html": "69e46dcb751c0fa9460002ecb23c0178c6cb1dac2c73e3198f2be25ca28ee776",
+    "TwinTrade-source.zip": "c97229778f83041992fb826755c25840eafa3a08d1bc77a52585a5fc54134f8a",
+    "spec.md": "5c1eaa70bf225019018656a5f2fae15629c7b645fb20e195f83194e1e9602c92",
+    "SHA256SUMS": "896d95c9571a49d11bc55553c54092f6999e7405fc4f27dd00c57af87bd7b5b1"
+  }
+}
