@@ -1,0 +1,13 @@
+{
+  "tag": "v0.40.0",
+  "title": "TwinTrade 0.40.0 \u2014 Exact allowance verification",
+  "sequence": 24,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "929d1ed91c8d531955bb5e50563fa51e4d2e10730c6c6eb8eefcc70f3e9ee7b5",
+    "TwinTrade.html": "a99bdebd024eaf2b8f9790c05171c6ebebb57f1d5b440436953f676e3d6fef55",
+    "TwinTrade-source.zip": "f5713affb19e16b688684cf2ec02c97d454acade47bfc8c8b02b84bd491e155e",
+    "spec.md": "0dd5ed9be77a2b9a81128b0606a7019b3fd0c9e747e973855b4c8a5057742750",
+    "SHA256SUMS": "8f9b223d4c2d1a0806e50bda2276e93749a1402c6b85025b49fa01386894c6ed"
+  }
+}

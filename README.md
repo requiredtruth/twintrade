@@ -1,4 +1,4 @@
-# TwinTrade 0.35.0
+# TwinTrade 0.40.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -27,7 +27,7 @@ The browser version supports paper trading and public data. Private-key persiste
 
 ## APK installation
 
-The supplied v17 APK uses its original certificate. This rebuilt release uses a different certificate. Installing over the original will fail; preserve your wallet recovery material and paper records before uninstalling it. No wallet or signing private keys are included in the repository or public release. Source builds generate a local build/signing.jks; preserve it privately for future updates.
+The supplied v17 APK uses its original certificate. This rebuilt release uses a different certificate. Installing over the original will fail; preserve your wallet recovery material and paper records before uninstalling it. No wallet or signing private keys are included in the repository or public release. Release builds require the preserved private `build/signing.jks` and fail rather than silently rotating the certificate.
 
 0.20.0 adds stable public trade tracking, reset chart, bold high-leverage averages, 30-second desync warnings and all-market Portfolio / Past trades menu pages. Confirmed live history import covers the backend's past-24h window; missing settlements remain unavailable.
 
@@ -68,3 +68,7 @@ Background refreshes and retries stay quiet; progress is shown for startup and e
 ### 0.39.0 leverage controls
 
 Type an exact leverage (including 1.1×) or use Quick ×. The label shows the selected market’s current minimum and maximum; quick choices always include both endpoints. 150× and 250× markets no longer stop at the old 100× preset.
+
+### 0.40.0 exact allowance verification
+
+Live opens reduce any different USDC allowance to the exact collateral amount, verify the confirmed on-chain allowance before simulation/submission, and stop without submitting an order if verification differs. Replacement approval transaction hashes are saved for reliable reconciliation.

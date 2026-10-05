@@ -1,0 +1,3 @@
+Live opens now replace any different USDC allowance with the exact six-decimal collateral amount and read it back after confirmation. If the confirmed allowance differs, TwinTrade records the mismatch and does not simulate or submit the trading transaction.
+
+Replacement approval transaction hashes are persisted so approval-only recovery follows the transaction that actually mined. Regression coverage verifies oversized-allowance reduction, signer binding, exact read-back, replacement-hash journaling, and rejection before submission. The release also corrects stale version documentation. No funded live transaction was sent during validation.

@@ -20,12 +20,17 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  resolveBtc({rows:[{t:Math.floor(Date.now()/60000)*60000-60000,o:10,h:10,l:10,c:10}],chain:'polygon'});await btc;
  assert.equal(run('candles[0][0].c'),10);assert.equal(run('candles[1][0].c'),20);
  // Review rejected: no token approval or trading transaction.
- const state={approvals:0,opens:0,signerConnected:false};
+ const state={approvals:0,opens:0,signerConnected:false,allowance:eth.utils.parseUnits('1000',6),approvalApplies:true};
  env.chain=async()=>({connect(){return this},getTradingActivated:async()=>0,getCollateral:async()=>({isActive:true,collateral:run('NETWORK.usdc')}),pairTotalPositionSizeFeeP:async()=>0,pairs:async()=>({from:'BTC',to:'USD'}),callStatic:{openTrade:async()=>{}},openTrade:async()=>{state.opens++;return{hash:'open-hash',wait:async()=>({logs:[],status:1})}},interface:{parseLog(){throw Error('no logs')}}});
- env.ethers.Contract=class{async decimals(){return 6}async balanceOf(){return eth.utils.parseUnits('100',6)}async allowance(){return eth.constants.Zero}connect(){state.signerConnected=true;return this}async approve(){assert(state.signerConnected,'Approval must have a signer');state.approvals++;return{hash:'approval-hash',wait:async()=>({status:1})}}};
+ env.ethers.Contract=class{async decimals(){return 6}async balanceOf(){return eth.utils.parseUnits('100',6)}async allowance(){return state.allowance}connect(){state.signerConnected=true;return this}async approve(spender,value){assert(state.signerConnected,'Approval must have a signer');assert.equal(spender.toLowerCase(),run('DIAMOND.toLowerCase()'));state.approvals++;if(state.approvalApplies)state.allowance=value;return{hash:'approval-original',wait:async()=>({status:1,transactionHash:'approval-replacement'})}}};
  run("wallet={address:'0x1111111111111111111111111111111111111111',connect(){return this}};liveBalance=100;mode='live';pair=0;setPrice(0,100,Date.now());indexPrices[0]=100;indexTimes[0]=Date.now();");
  await run('sendOrder(true)');assert.equal(state.approvals,0);assert.equal(state.opens,0);
- env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);
+ env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);assert(state.allowance.eq(eth.utils.parseUnits('10',6)));assert.equal(run('pending[0].approvalHash'),'approval-replacement');
+ // An oversized pre-existing allowance is reduced to the exact order amount. A token that
+ // does not apply that change must stop before simulation or submission and journal the reason.
+ run('pending=[]');state.allowance=eth.utils.parseUnits('1000',6);state.approvalApplies=false;const opened=state.opens;
+ await run('sendOrder(false)');assert.equal(state.approvals,2);assert.equal(state.opens,opened);assert.equal(run('pending[0].status'),'Approval mismatch · order not submitted');assert(node('toast').textContent.includes('order was not submitted'));
+ state.approvalApplies=true;run('pending=[{owner:wallet.address,status:"Pending oracle execution"}]');
  // An unresolved submission prevents both another open and duplicate close.
  await run('sendOrder(false)');assert.equal(state.opens,1);
  env.position={pair:0,index:1,long:true,lev:10};await run('closeLive(position)');assert.equal(state.opens,1);assert(node('toast').textContent.includes('pending'));
