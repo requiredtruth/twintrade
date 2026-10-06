@@ -47,3 +47,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.38.0**: Selected-chart text/sounds, matching startup history and per-market persistent messages; BTC excludes other coins.
 
 - **0.43.0**: Chart range/zoom readout, local time/date ticks, visible price bounds, and missing-history loading after chart gestures.
+
+- **0.44.0**: Chart details dialog with a Chart button beside Stats, freeing chart space while keeping bottom candle time/date labels; automatic audio recovery, sound status and enable/test control.

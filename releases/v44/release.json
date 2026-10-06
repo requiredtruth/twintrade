@@ -1,0 +1,13 @@
+{
+  "tag": "v0.44.0",
+  "title": "TwinTrade 0.44.0 \u2014 Chart dialog and sound recovery",
+  "sequence": 28,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "1e563decaed3e999d09b94d32a5c57b4bb2d1e5b54a56cdf8376dc27b55a82e0",
+    "TwinTrade.html": "96bf0260a515c51f4ab297eb4bff450a74bd745ff825c1946c68aea9eaea98be",
+    "TwinTrade-source.zip": "4debdfe2dcd082a69194ee9f1140874fdcd58abd6f59137aad335e62975d0ff8",
+    "spec.md": "1d0381804bad83b6ccff92b7c95065652c0ae4b33acba481ac035764b025f649",
+    "SHA256SUMS": "83ae5dad61a2ed51fd506ee45619b98bc8a8f76936011d7f18080fef8ca2b515"
+  }
+}
