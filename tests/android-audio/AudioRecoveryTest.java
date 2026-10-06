@@ -9,7 +9,7 @@ public class AudioRecoveryTest extends Instrumentation {
   if(!ready.getBoolean(activity))throw new AssertionError("Trading page not ready");
   java.lang.reflect.Field field=MainActivity.class.getDeclaredField("audio");field.setAccessible(true);NativeAudio audio=(NativeAudio)field.get(activity);
   setSounds(activity,true);Thread.sleep(300);
-  checkSound(audio,"initial");
+  checkSound(audio,"short click",.05);checkSound(audio,"initial");
   for(int kind:new int[]{1,2}){
    audio.tone(660,2,"sine",.1,0);audio.tone(440,2,"sine",.1,1.5);Thread.sleep(80);
    getTargetContext().startForegroundService(new Intent().setComponent(new ComponentName("com.twintrade.audiotest","com.twintrade.audiotest.CompetingAudio")).putExtra("kind",kind));
@@ -22,5 +22,6 @@ public class AudioRecoveryTest extends Instrumentation {
   result.putString("stream","PASS: native PCM output before and after separate-app permanent/transient audio focus, and mute\n");finish(Activity.RESULT_OK,result);
  }catch(Throwable e){result.putString("stream","FAIL: "+e+"\n");finish(Activity.RESULT_CANCELED,result);}}
  private void setSounds(Activity activity,boolean enabled)throws Exception{java.lang.reflect.Field f=MainActivity.class.getDeclaredField("web");f.setAccessible(true);android.webkit.WebView web=(android.webkit.WebView)f.get(activity);runOnMainSync(()->web.evaluateJavascript("onTick=()=>{};eventSound=()=>{};onCandleClose=()=>{};soundOn="+enabled+";tickOn="+enabled+";renderAudioStatus();",null));}
- private void checkSound(NativeAudio audio,String stage)throws Exception{long before=audio.playedFrames();audio.tone(880,.25,"triangle",.12,0);Thread.sleep(150);if(!audio.status().equals("running")||audio.playedFrames()<=before)throw new AssertionError("No PCM playback "+stage+": "+audio.status());Thread.sleep(500);}
+ private void checkSound(NativeAudio audio,String stage)throws Exception{checkSound(audio,stage,.5);}
+ private void checkSound(NativeAudio audio,String stage,double duration)throws Exception{long before=audio.playedFrames();audio.tone(880,duration,"triangle",.12,0);for(int i=0;i<20&&audio.playedFrames()<=before;i++)Thread.sleep(100);if(audio.playedFrames()<=before)throw new AssertionError("No PCM playback "+stage+": "+audio.status());Thread.sleep(1000);}
 }

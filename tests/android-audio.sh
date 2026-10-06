@@ -22,4 +22,4 @@ fi
 sha256sum -c tests/android-audio/SHA256SUMS
 adb install -r tests/android-audio/test.apk
 adb shell am instrument -w com.twintrade.audiotest/.AudioRecoveryTest | tee build/android-audio-focus.log
-rg 'PASS: native PCM' build/android-audio-focus.log
+grep -F 'PASS: native PCM' build/android-audio-focus.log
