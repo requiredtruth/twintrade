@@ -53,3 +53,6 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.45.0**: Move total and tiered L/S ratios into their own dialog, opened by L/S beside Stats; preserve the Chart dialog and sound recovery.
 
 - v0.46.0 — restore frequent price sounds and native Android audio focus recovery; signed APK, HTML, source and specification.
+
+## v0.47.0
+Latest-candle right spacing and natural horizontal drag direction.

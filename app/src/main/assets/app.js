@@ -37,6 +37,7 @@ function chartBars(){const raw=candlesOf(pair),end=Math.max(0,raw.length-Math.ma
 function candleInterval(){return chartInterval||(view.span<=300?1:view.span<=1500?5:view.span<=4500?15:60);}
 function durationLabel(minutes){return minutes>=1440?+(minutes/1440).toFixed(2)+'d':minutes>=60?+(minutes/60).toFixed(2)+'h':minutes+'m';}
 function chartDate(t){return new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});}
+function chartPlot(width){const right=width-70,left=34,gap=Math.min(80,Math.max(40,(right-left)*.15));return {left,right,candleRight:right-gap,candleWidth:Math.max(1,right-gap-left)};}
 function chartTimeTicks(bars,left,right){
  if(!bars.length||right<=left)return [];
  const width=right-left,step=width/bars.length,ticks=[];
@@ -225,8 +226,8 @@ const pvScale=priceOf(pair);
 let lo=Math.min(...a.map(c=>c.l)),hi=Math.max(...a.map(c=>c.h));
 if(pvScale>0){lo=Math.min(lo,pvScale);hi=Math.max(hi,pvScale);}for(const p of mine)for(const v of [p.entry,safeLiq(p)])if(Number.isFinite(v)&&v>0){lo=Math.min(lo,v);hi=Math.max(hi,v);}
 let pad=Math.max((hi-lo)*.15,hi*.0003);lo-=pad;hi+=pad;const scaleSpan=hi-lo;lo+=view.yOff*scaleSpan;hi+=view.yOff*scaleSpan;
-const right=w-70,top=20,bottom=h-40,headPad=34,Y=v=>top+(hi-v)/(hi-lo)*(bottom-top);ctx.font='10px monospace';for(let i=0;i<=6;i++){let v=lo+(hi-lo)*i/6,y=Y(v);ctx.strokeStyle='#202938';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillStyle='#8290a5';ctx.fillText(v.toFixed(2),right+5,y+3)}
-let step=(right-headPad)/Math.max(1,a.length);
+const plot=chartPlot(w),right=plot.right,top=20,bottom=h-40,headPad=plot.left,Y=v=>top+(hi-v)/(hi-lo)*(bottom-top);ctx.font='10px monospace';for(let i=0;i<=6;i++){let v=lo+(hi-lo)*i/6,y=Y(v);ctx.strokeStyle='#202938';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillStyle='#8290a5';ctx.fillText(v.toFixed(2),right+5,y+3)}
+let step=plot.candleWidth/Math.max(1,a.length);
 const strokeLine=(v,style)=>{if(!(v>0))return Y(v);let y=Y(v);if(!Number.isFinite(y))return y;ctx.strokeStyle=style.color;ctx.lineWidth=style.width||1.5;ctx.setLineDash(style.dash||[]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(right,y);ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=1;return y;};
 const tagLine=(v,style,label)=>{if(!(v>0)||!label)return;let y=Y(v);ctx.font='10px monospace';let tw=12;try{tw=ctx.measureText(label).width;}catch{}ctx.fillStyle='#101721e8';ctx.fillRect(Math.max(1,right-tw-7),y-14,tw+7,13);ctx.fillStyle=style.color;ctx.fillText(label,Math.max(3,right-tw-4),y-4)};
 const tagLine2=(v,style,main,pnl,pnlUp,pct,yy)=>{if(!(v>0)||!main)return;let y=(yy==null?Y(v):yy);ctx.font='10px monospace';let w1=12,w2=0,w3=0;try{w1=ctx.measureText(main).width;if(pnl)w2=ctx.measureText(pnl).width;if(pct)w3=ctx.measureText(pct).width;}catch{}const tw=w1+(pnl?w2+5:0)+(pct?w3+4:0);ctx.fillStyle='#101721e8';ctx.fillRect(3,y-14,tw+9,13);let x=7;ctx.fillStyle=style.color;ctx.fillText(main,x,y-4);x+=w1+5;if(pnl){ctx.fillStyle=pnlUp?'#10d49b':'#ff5979';ctx.fillText(pnl,x,y-4);x+=w2+4;}if(pct){ctx.fillStyle=pnlUp?'#10d49b':'#ff5979';ctx.fillText(pct,x,y-4)}};
@@ -258,7 +259,7 @@ a.forEach((c,i)=>{let x=headPad+(i+.5)*step;ctx.strokeStyle=ctx.fillStyle=c.sour
 if(pv>0){
 ctx.font='bold 11px monospace';let ptw=12;try{ptw=ctx.measureText(money(pv)).width;}catch{}const py=Y(pv);ctx.fillStyle='#0a1420';ctx.fillRect(3,py-15,ptw+9,14);ctx.strokeStyle=LINE_STYLE.price.color;ctx.lineWidth=1.5;ctx.strokeRect(3,py-15,ptw+9,14);ctx.fillStyle='#ffffff';ctx.fillText(money(pv),7,py-4);}
 ctx.font='10px monospace';ctx.textAlign='center';
-for(const tick of chartTimeTicks(a,headPad,right)){ctx.strokeStyle='#303b4c';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tick.x,bottom);ctx.lineTo(tick.x,bottom+4);ctx.stroke();ctx.fillStyle='#b6c5da';ctx.fillText(tick.time,tick.x,h-21);ctx.fillStyle='#8190a5';ctx.fillText(tick.date,tick.x,h-7);}ctx.textAlign='left';}
+for(const tick of chartTimeTicks(a,headPad,plot.candleRight)){ctx.strokeStyle='#303b4c';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tick.x,bottom);ctx.lineTo(tick.x,bottom+4);ctx.stroke();ctx.fillStyle='#b6c5da';ctx.fillText(tick.time,tick.x,h-21);ctx.fillStyle='#8190a5';ctx.fillText(tick.date,tick.x,h-7);}ctx.textAlign='left';}
 function safeLiq(p){if(p.kind==='live'||p.kind==='public')return publicLiq(p);try{return Engine.liquidation(p)}catch{return NaN}}
 function liveValue(p){if(!priceOf(p.pair)||!p.feeTime)return NaN;return p.amount*p.lev*(p.long?1:-1)*(priceOf(p.pair)/p.entry-1)+(p.realizedPnl||0)-p.borrow-p.funding-p.trading-p.closeEstimate;}
 function renderPublic(){statsRevision++;renderRatios();let list;try{list=publicTrades.filter(chartPair);}catch{list=[]}try{setHTML('publicTrades',list.map(p=>{const pv=estPnl(p.entry,p.long,p.lev,p.amount,refPrice(p.pair));const badge=Number.isFinite(pv)?` <b class="${pv>=0?'positive':'negative'}">${fmtPnl(pv)}${p.amount>0?` (${(pv/p.amount*100>=0?'+':'')}${(pv/p.amount*100).toFixed(1)}%)`:''}</b>`:'';return `<div class="public ${p.id===selectedPublic?'selected':''}" data-public="${esc(p.id)}">${p.pair===300&&pair===0?'<span class="net">BTCDEGEN</span> ':''}${p.net&&p.net!=='POLYGON'?`<span class="net">${esc(p.net)}</span> `:''}<b class="${p.long?'long':'short'}">${p.long?'L':'S'} ${levLabel(p.lev)}×</b> ${cashLabel(p.amount)}${badge} collateral<small>${esc((p.user||'').slice(0,8))}…${esc((p.user||'').slice(-4))} · ${p.isOpen?'Open':'Closed'}<br>Entry ${money(p.entry)} · ${'LIQ '+money(publicLiq(p))+(p.liq>0?'':' EST')}</small></div>`;}).join('')||'<p class="muted">No open traders in this market right now. Trades appear here and on the chart as they open.</p>');}catch{}}
@@ -392,7 +393,7 @@ try{const cv=$('chart');const ptrs=new Map();let base=null,pinchD=0;const maxOff
 cv.addEventListener('pointerdown',e=>{ensureAudio();try{cv.setPointerCapture(e.pointerId);}catch{}ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1&&!base)base={x:e.clientX,y:e.clientY,off:view.off,yOff:view.yOff};if(ptrs.size===2){const q=[...ptrs.values()];pinchD=Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y);}});
 cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
 if(ptrs.size===2){const q=[...ptrs.values()];const d=Math.hypot(q[0].x-q[1].x,q[0].y-q[1].y);if(pinchD>0&&Math.abs(d-pinchD)>4){setChartSpan(view.span*pinchD/d);pinchD=d;}return;}
-if(ptrs.size===1&&base){const dx=e.clientX-base.x,dy=e.clientY-base.y;if(Math.abs(dx)+Math.abs(dy)>2){view.off=Math.max(0,Math.min(maxOff(),base.off-Math.round(dx*view.span/Math.max(1,cv.getBoundingClientRect().width-70))));view.yOff=base.yOff+dy/400;draw();}}});
+if(ptrs.size===1&&base){const dx=e.clientX-base.x,dy=e.clientY-base.y;if(Math.abs(dx)+Math.abs(dy)>2){view.off=Math.max(0,Math.min(maxOff(),base.off+Math.round(dx*view.span/chartPlot(cv.getBoundingClientRect().width).candleWidth)));view.yOff=base.yOff+dy/400;draw();}}});
 cv.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);if(!ptrs.size){base=null;pinchD=0;requestChartHistory();}});
 cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(!ptrs.size){base=null;pinchD=0;}});
 cv.addEventListener('wheel',e=>{e.preventDefault();setChartSpan(view.span*(e.deltaY<0?1/1.2:1.2));},{passive:false});}catch{}

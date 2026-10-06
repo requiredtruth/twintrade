@@ -1,7 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
-const stored={},nodes={},texts=[],strokes=[],events={};
+const stored={},nodes={},texts=[],strokes=[],events={},chartEvents={};
 const ctx=new Proxy({fillText:s=>texts.push(s),moveTo:(x,y)=>strokes.push({x,y}),measureText:s=>({width:s.length*5})},{get:(o,k)=>o[k]||(()=>{})});
-const node=id=>nodes[id]??={value:({amount:'10',lev:'100'})[id]||'',checked:true,hidden:true,textContent:'',innerHTML:'',getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx,addEventListener(){},setAttribute(){}};
+const node=id=>nodes[id]??={value:({amount:'10',lev:'100'})[id]||'',checked:true,hidden:true,textContent:'',innerHTML:'',getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx,addEventListener(e,f){if(id==='chart')chartEvents[e]=f;},setAttribute(){}};
 function boot(){const env={console,document:{hidden:false,getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener:(e,f)=>events[e]=f},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:()=>0,clearTimeout(){},setInterval(){},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(){this.readyState=1}close(){this.readyState=3}},ethers:{providers:{JsonRpcProvider:class{}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline')},GABI:[]};env.window=env;vm.createContext(env);for(const f of ['config.js','engine.js','trade-state.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/src/main/assets',f),'utf8'),env);return {env,run:c=>vm.runInContext(c,env)}}
 (async()=>{const {run,env}=boot();await new Promise(r=>setImmediate(r));
 run(`pair=0;const t=new Date(2026,9,5,23,0).getTime();candles[0]=Array.from({length:1440},(_,i)=>({t:t+i*60000,o:100,h:101,l:99,c:100,source:'gains-history'}));view={span:75,off:0,yOff:0};draw();`);
@@ -12,7 +12,15 @@ run('view.span=1440;view.off=0;chartInterval=60;draw()');assert.match(node('char
 const midnight=run('chartTimeTicks(chartBars(),34,900)');assert(new Set(midnight.map(t=>t.date)).size>=2,'midnight ticks include both dates');
 run('view.span=60;view.off=300;chartInterval=0;draw()');assert.match(node('chartDetails').textContent,/Past 5h/);const past=node('chartRange').textContent;run('view.off=0;draw()');assert.notEqual(node('chartRange').textContent,past);
 for(const width of [240,323,780]){const ticks=run(`chartTimeTicks(chartBars(),34,${width})`);assert(ticks.every(t=>t.x>=34&&t.x<width));assert(ticks.every((t,i)=>!i||t.x-ticks[i-1].x>=82));}
-run('candles[0]=[];draw()');assert.match(node('chartRange').textContent,/Waiting for candles/);assert.equal(run('chartTimeTicks([],34,323).length'),0);
+// Candle bodies and time ticks leave breathing room before the price scale.
+for(const width of [320,393,852]){const plot=run(`chartPlot(${width})`);assert(plot.right-plot.candleRight>=40);assert(plot.right-plot.candleRight<=80);for(const count of [1,10,75,1440]){const step=plot.candleWidth/count,lastX=plot.left+(count-.5)*step;assert(lastX+Math.min(6,step*.65)/2<=plot.candleRight);}}
+run('view={span:75,off:100,yOff:0};chartInterval=0;draw()');
+const pointer=(x,id=1)=>({pointerId:id,clientX:x,clientY:100});
+chartEvents.pointerdown(pointer(120));chartEvents.pointermove(pointer(180));const older=run('view.off');assert(older>100,'drag right reveals older candles');chartEvents.pointerup(pointer(180));
+chartEvents.pointerdown(pointer(180));chartEvents.pointermove(pointer(120));assert.equal(run('view.off'),100,'drag left returns toward latest');chartEvents.pointerup(pointer(120));
+run('view.off=0');chartEvents.pointerdown(pointer(120));chartEvents.pointermove(pointer(60));assert.equal(run('view.off'),0,'cannot pan beyond latest');chartEvents.pointerup(pointer(60));
+run('view.off=candles[0].length-1');chartEvents.pointerdown(pointer(120));chartEvents.pointermove(pointer(180));assert.equal(run('view.off'),1439,'cannot pan beyond oldest history');chartEvents.pointerup(pointer(180));
+run('view.off=0;candles[0]=[];draw()');assert.match(node('chartRange').textContent,/Waiting for candles/);assert.equal(run('chartTimeTicks([],34,323).length'),0);
 run('candles[0]=[{t:Date.now(),o:1,h:1,l:1,c:1}];view.span=10;draw()');assert.equal(run('chartTimeTicks(chartBars(),34,323).length'),1);
 let historyCalls=[],scheduled;env.loadHistory=async(p,n)=>historyCalls.push([p,n]);env.setTimeout=(fn,ms)=>{if(ms===250)scheduled=fn;return 0};run('view.off=0;setChartSpan(1440)');await scheduled();assert.deepEqual(historyCalls,[[0,1440]],'gesture zoom requests missing day history');historyCalls=[];run('view.span=10080;view.off=1000;requestChartHistory()');await scheduled();assert.deepEqual(historyCalls,[[0,10080]],'gesture history remains capped at one week');
 console.log('PASS: chart range/zoom/interval, midnight dates, actual loaded bounds, past offsets, empty/single candle, tick spacing on phone and landscape.');})();
