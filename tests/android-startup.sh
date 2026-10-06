@@ -13,8 +13,7 @@ app_pids=()
 inspect_window() {
  for attempt in 1 2 3; do
   adb shell rm -f /sdcard/twintrade-window.xml
-  if timeout 25s adb shell uiautomator dump /sdcard/twintrade-window.xml; then
-   adb shell cat /sdcard/twintrade-window.xml > build/android-window.xml
+  if timeout 25s adb shell uiautomator dump /sdcard/twintrade-window.xml && adb shell cat /sdcard/twintrade-window.xml > build/android-window.xml; then
    if python3 - <<'CHECK'
 from pathlib import Path
 s=Path('build/android-window.xml').read_text()
