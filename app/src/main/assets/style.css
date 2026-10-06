@@ -70,3 +70,13 @@ header{display:grid;grid-template-columns:40px minmax(0,1fr) auto 40px;gap:2px 8
 
 #ratioPanel{padding:4px 8px;background:#101923;font-size:11px}.ratio-heading{display:flex;align-items:center;gap:8px}.ratio-heading select{font-size:11px;padding:2px;width:auto}.ratio-heading span{color:#9aabba}#ratioRows{display:flex;gap:6px;overflow-x:auto;padding:4px 0}.ratio-card{flex:0 0 auto;min-width:116px;border:1px solid #334252;border-radius:4px;padding:3px 5px;font-variant-numeric:tabular-nums}.ratio-card small{display:block;color:#9aabba}.ratio-card:first-child{border-color:#92a8be}.ratio-track{height:3px;background:#d8ba32;margin-top:3px}.ratio-track i{display:block;height:100%;background:#b35cfa}
 @media(min-width:640px) and (max-height:500px){body{grid-template-rows:48px 24px 26px 30px 34px 76px minmax(0,1fr) 32px minmax(24px,48px)}#ratioPanel{grid-column:1;grid-row:6;min-width:0;overflow:hidden}#chartwrap{grid-row:7}.tabs{grid-row:8}#positions{grid-row:9}}
+
+#chartReadout{flex-shrink:0;padding:4px 10px;background:#101722;border-top:1px solid #263346;font:10px/1.5 monospace;color:#b6c5da;min-width:0}
+#chartDetails{color:#8bc4ff}#chartRange{color:#9aabc1}
+#chartReadout>div{white-space:nowrap;overflow-x:auto;scrollbar-width:none}#chartReadout>div::-webkit-scrollbar{display:none}
+@media(max-width:639px){#positions{max-height:min(18vh,150px)}#chartwrap{min-height:100px}}
+@media(max-width:639px) and (max-height:700px){header{padding:3px 8px;gap:0 8px}header button{font-size:18px}#positions{min-height:38px;max-height:40px}footer{padding:8px}#quote{max-height:40px;overflow:auto;padding:4px 0;line-height:12px}.inputs input,.inputs select{font-size:14px;padding:6px;margin-top:3px}.actions button{padding:10px 4px;font-size:18px}.chartbar{padding:2px 8px}}
+@media(min-width:640px) and (max-height:500px){body{grid-template-rows:48px 16px 18px 24px 34px 52px 32px minmax(55px,1fr) 22px 20px}#chartReadout{grid-column:1;grid-row:7;padding:1px 8px;font-size:9px}#chartwrap{grid-row:8}.tabs{grid-row:9}#positions{grid-row:10}#ratioPanel{padding:2px 6px;display:flex;gap:5px;align-items:center}.ratio-heading{flex:0 0 72px;flex-wrap:wrap;gap:1px}.ratio-heading span{display:none}#ratioRows{flex:1;min-width:0;padding:0}.ratio-card{font-size:9px;min-width:105px;padding:2px 3px}.strip,.summary{padding:0 8px}header button{font-size:18px}#feesbar{padding:18px 8px 4px;font-size:9px}.tabs button{padding:2px 8px}#positions .position{padding:3px 8px}}
+/* Canvas dimensions cannot influence the flex/grid chart height after rotation. */
+#chart{position:absolute;inset:0}
+@media(max-width:639px) and (max-height:700px){header button{height:32px;min-height:32px}.strip,.summary{padding:3px 10px}}

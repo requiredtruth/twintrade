@@ -45,3 +45,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.37.0**: All-market execution text/sounds, startup last confirmed trade, readiness-independent live alerts and history/live race fixes.
 
 - **0.38.0**: Selected-chart text/sounds, matching startup history and per-market persistent messages; BTC excludes other coins.
+
+- **0.43.0**: Chart range/zoom readout, local time/date ticks, visible price bounds, and missing-history loading after chart gestures.
