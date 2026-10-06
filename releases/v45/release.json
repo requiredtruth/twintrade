@@ -1,0 +1,13 @@
+{
+  "tag": "v0.45.0",
+  "title": "TwinTrade 0.45.0 \u2014 L/S ratios dialog beside Stats",
+  "sequence": 29,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "9de1b4d3218db0567bf75aa2c81e35b861f7ed325dbd5ae624894d75a59eeae9",
+    "TwinTrade.html": "5df905d0d13fba2962bff4e69ea3794aea0f1d241e579ee88190d854b04c102e",
+    "TwinTrade-source.zip": "c7358a1ea3878743278c38bb38a01c3783eb157a9916148dcc61f5be0b6cc8e9",
+    "spec.md": "2bcc670386c67c01ca2eccbc1289d0fbd050fdf413d53be39a96ec46e61e2a4d",
+    "SHA256SUMS": "6604e412a734f32f2ee7dfadfa8776c6319cea955760117d1c1ee562f7969e70"
+  }
+}

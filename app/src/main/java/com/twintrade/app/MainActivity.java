@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
  @Override protected void onPause(){resumed=false;if(web!=null){if(pageReady)web.evaluateJavascript("if(typeof checkpointSession==='function')checkpointSession();",null);web.onPause();}super.onPause();}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);}
  @Override protected void onDestroy(){if(web!=null){web.removeJavascriptInterface("Vault");web.removeJavascriptInterface("Feed");web.destroy();web=null;}super.onDestroy();}
- @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('chartInfoDialog').open)document.getElementById('chartInfoDialog').close();else if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
+ @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('ratiosDialog').open)document.getElementById('ratiosDialog').close();else if(document.getElementById('chartInfoDialog').open)document.getElementById('chartInfoDialog').close();else if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
 
  public class Feed {
   @JavascriptInterface public void updateCaps(String raw){MarketStore.updateCaps(raw);}
