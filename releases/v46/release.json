@@ -1,0 +1,13 @@
+{
+  "tag": "v0.46.0",
+  "title": "TwinTrade 0.46.0 \u2014 frequent sounds and competing-app audio recovery",
+  "sequence": 30,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "f8d42f15819fb2212b265b6fdf0920809fb6d6e9febd91a17f3abac0150eb6d7",
+    "TwinTrade.html": "a6de1a9696e0e842b8af5d432c1caf229a5a909b41a6c403a462109e1a798c8b",
+    "TwinTrade-source.zip": "0492bc1b680e6ec78180db99696881f8f75083fbdb151d06dee45d1c7bb87240",
+    "spec.md": "27fb58b9f4991a61087ac017efb07940fc04c73ab4897a071b9433ef5a1465e1",
+    "SHA256SUMS": "6a69c51bdc4acfd23eb41bb07bc7b455eb14fd4936db1b26e0cfc252354616c6"
+  }
+}

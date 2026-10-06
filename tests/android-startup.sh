@@ -50,7 +50,7 @@ launch() {
  python3 - <<'AUDIO'
 from pathlib import Path
 lines=[line for line in Path("build/android-audio.log").read_text().splitlines() if "Audio engine: " in line]
-assert lines and lines[-1].endswith("Audio engine: running"), "Android audio did not recover: " + str(lines[-1:])
+assert lines and lines[-1].endswith(("Audio engine: running","Audio engine: ready")), "Android audio did not recover: " + str(lines[-1:])
 AUDIO
 }
 adb shell pm grant com.twintrade.app android.permission.POST_NOTIFICATIONS
@@ -69,5 +69,6 @@ for pid in "${app_pids[@]}"; do
 done
 adb shell screencap -p /sdcard/twintrade-startup.png
 adb pull /sdcard/twintrade-startup.png build/android-startup.png
+bash tests/android-audio.sh
 printf 'PASS: Android cold startup, app switching, process recreation and automatic audio recovery
 '

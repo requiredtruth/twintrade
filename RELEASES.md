@@ -51,3 +51,5 @@ No live-money transaction is submitted as part of verification. A successful bui
 - **0.44.0**: Chart details dialog with a Chart button beside Stats, freeing chart space while keeping bottom candle time/date labels; automatic audio recovery, sound status and enable/test control.
 
 - **0.45.0**: Move total and tiered L/S ratios into their own dialog, opened by L/S beside Stats; preserve the Chart dialog and sound recovery.
+
+- v0.46.0 — restore frequent price sounds and native Android audio focus recovery; signed APK, HTML, source and specification.
