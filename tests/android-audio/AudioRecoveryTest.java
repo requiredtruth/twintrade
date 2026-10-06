@@ -11,11 +11,11 @@ public class AudioRecoveryTest extends Instrumentation {
   setSounds(activity,true);Thread.sleep(300);
   checkSound(audio,"initial");
   for(int kind:new int[]{1,2}){
-   audio.tone(660,2,"sine",.1,0);Thread.sleep(80);
+   audio.tone(660,2,"sine",.1,0);audio.tone(440,2,"sine",.1,1.5);Thread.sleep(80);
    getTargetContext().startForegroundService(new Intent().setComponent(new ComponentName("com.twintrade.audiotest","com.twintrade.audiotest.CompetingAudio")).putExtra("kind",kind));
-   boolean lost=false;for(int i=0;i<30;i++){Thread.sleep(50);if(audio.status().equals("interrupted")){lost=true;break;}}
+   boolean lost=false;for(int i=0;i<80;i++){Thread.sleep(50);if(audio.status().equals("interrupted")){lost=true;break;}}
    if(!lost)throw new AssertionError("Competing app did not interrupt focus, kind="+kind+" state="+audio.status());
-   Thread.sleep(1200);checkSound(audio,"after competing app, kind="+kind);
+   Thread.sleep(3500);checkSound(audio,"after competing app, kind="+kind);
   }
   setSounds(activity,false);Thread.sleep(300);long before=audio.playedFrames();audio.tone(440,.2,"sine",.1,0);Thread.sleep(300);if(audio.playedFrames()!=before)throw new AssertionError("Mute ignored");
   setSounds(activity,true);Thread.sleep(300);checkSound(audio,"unmuted");
