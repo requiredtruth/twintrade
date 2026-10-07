@@ -1,4 +1,4 @@
-# TwinTrade 0.47.0
+# TwinTrade 0.48.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
@@ -13,6 +13,7 @@ Android and standalone browser trading terminal reconstructed from the supplied 
 - v0.44.0: Chart button beside Stats opens the current range/zoom/interval/timezone dialog. Candle time labels remain below the chart. Audio recovers on resume/interruption, with a sound status and explicit enable/test control.
 - v0.43.0: local time/date axis and history loading on gesture zoom.
 - v0.42.0: live opens and closes require a synchronized mark/index frame before review and again immediately before contract simulation or submission.
+- v0.48.0: confirmed transactions whose oracle order event cannot be decoded reconcile from exact resulting position state instead of blocking the wallet journal forever.
 
 Each release has APK, self-contained HTML, source ZIP, spec.md and SHA256SUMS. See spec.md and V17-AUDIT.md for provenance and validation limits. No funded trade or physical Android-device test was performed. This is a client of Gains/Polygon services; outages can pause trading.
 

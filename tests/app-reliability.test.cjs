@@ -37,6 +37,16 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  run('pending=[];last[0]=Date.now();indexTimes[0]=last[0]-1001');assert.throws(()=>run('liveQuote(0)'),/not synchronized/);
  run('indexTimes[0]=Date.now();last[0]=indexTimes[0]-1001');assert.throws(()=>run('liveQuote(0)'),/not synchronized/);
  state.desyncAfterApproval=false;run('indexTimes[0]=last[0];pending=[{owner:wallet.address,status:"Pending oracle execution"}]');assert.equal(run('liveQuote(0)'),100);
+ // If a confirmed receipt cannot be decoded into an oracle order ID, exact submitted
+ // metadata and the pre-submit index set safely reconcile the resulting state. Ambiguous
+ // matches remain blocked instead of guessing.
+ env.journal={action:'open',pair:0,long:true,leverage:10,collateralUnits:'10000000',tradeIndexesBefore:[1]};
+ env.positions=[{index:1,pair:0,long:true,lev:10,amount:10},{index:2,pair:0,long:true,lev:10,amount:10}];
+ assert.equal(run('reconcileConfirmedState(journal,positions)'),true);assert.equal(env.journal.status,'Open');assert.equal(env.journal.tradeIndex,2);
+ env.journal={action:'open',pair:0,long:true,leverage:10,collateralUnits:'10000000',tradeIndexesBefore:[1]};
+ env.positions=[{index:2,pair:0,long:true,lev:10,amount:10},{index:3,pair:0,long:true,lev:10,amount:10}];
+ assert.equal(run('reconcileConfirmedState(journal,positions)'),false);assert.equal(env.journal.status,undefined);
+ env.journal={action:'close',tradeIndex:7};env.positions=[];assert.equal(run('reconcileConfirmedState(journal,positions)'),true);assert.equal(env.journal.status,'Closed');
  // An unresolved submission prevents both another open and duplicate close.
  await run('sendOrder(false)');assert.equal(state.opens,1);
  env.position={pair:0,index:1,long:true,lev:10};await run('closeLive(position)');assert.equal(state.opens,1);assert(node('toast').textContent.includes('pending'));

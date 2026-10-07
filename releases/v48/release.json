@@ -1,0 +1,13 @@
+{
+  "tag": "v0.48.0",
+  "title": "TwinTrade 0.48.0 \u2014 durable receipt fallback reconciliation",
+  "sequence": 32,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "aa58336ddfc7567740022d2666d8a33bae14089bb98e47b537d608fa59202a56",
+    "TwinTrade.html": "c5b39a817d1332c5436fe73b7f5ea7fe8f8f43630578d6e5b0ed2ccf446ccd6c",
+    "TwinTrade-source.zip": "20c4cbe4008494e84b8b8c4ea33f33b41abb0724a3717b209d44ac7149b1ee41",
+    "spec.md": "72db9a684614fb5c3e77f50ead28e31f8c410d30acf459df713184fd0ffba721",
+    "SHA256SUMS": "f8a49bf5c7dc77f954ac9eb4aa7ece50a012721a85e9f776f31d2feb399fea72"
+  }
+}
