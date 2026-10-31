@@ -71,7 +71,7 @@ function priceOf(p){return prices[p]||0}
 function lastOf(p){return last[p]||0}
 function candlesOf(p){if(!candles[p])candles[p]=[];return candles[p]}
 function marketLabel(p){try{const m=TradeConfig.marketOrNull(p);if(m)return m.symbol.replace('/USD','')+' / USD';}catch{}if(Number.isInteger(p)&&p>=0)return 'pair '+p+' / USD';return 'BTC / USD';}
-function setPrice(i,v,now){const prev=prices[i]||0;prices[i]=v;last[i]=now;if(i===pair&&prev>0&&v!==prev){onTick(prev,v);checkCrossings(prev,v);}const a=candlesOf(i),t=Math.floor(now/60000)*60000;let c=a[a.length-1];if(!c||c.t!==t){if(c&&i===pair&&Number.isFinite(c.o)&&Number.isFinite(c.c))onCandleClose(c);if(c)for(let gt=Math.max(c.t+60000,t-10079*60000);gt<t;gt+=60000)a.push({t:gt,o:c.c,h:c.c,l:c.c,c:c.c,source:'gap-fill'});c={t,o:v,h:v,l:v,c:v,source:'gains-live'};a.push(c);if(a.length>10080)a.splice(0,a.length-10080)}else{c.source='gains-live';c.h=Math.max(c.h,v);c.l=Math.min(c.l,v);c.c=v}}
+function setPrice(i,v,now){const prev=prices[i]||0,a=candlesOf(i),t=Math.floor(now/60000)*60000;let c=a[a.length-1];const rollover=!!c&&c.t!==t;prices[i]=v;last[i]=now;if(i===pair&&prev>0&&v!==prev){onTick(prev,v,rollover);checkCrossings(prev,v);if(rollover&&Number.isFinite(c.o)&&Number.isFinite(c.c))onCandleClose(c);}if(!c||c.t!==t){if(c)for(let gt=Math.max(c.t+60000,t-10079*60000);gt<t;gt+=60000)a.push({t:gt,o:c.c,h:c.c,l:c.c,c:c.c,source:'gap-fill'});c={t,o:v,h:v,l:v,c:v,source:'gains-live'};a.push(c);if(a.length>10080)a.splice(0,a.length-10080)}else{c.source='gains-live';c.h=Math.max(c.h,v);c.l=Math.min(c.l,v);c.c=v}}
 /* ---- sounds: unique per actor + side + outcome; ticks vary by big/small. ---- */
 function ensureAudio(){if(window.NativeAudio){NativeAudio.enabled(soundOn||tickOn);audioError='';return;}try{if(!audioCtx||audioCtx.state==='closed')audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state!=='running'){const resumed=audioCtx.resume();if(resumed&&resumed.catch)resumed.then(()=>{audioError='';}).catch(()=>{audioError='Tap Enable sounds + test to retry';});}else audioError='';}catch{audioError='Audio unavailable · tap Enable sounds + test to retry';}}
 let lastAudioState='';
@@ -85,8 +85,8 @@ function tone(freq,dur=0.12,type='sine',gain=0.12,when=0){if(!soundOn&&!tickOn||
  * direction; the pulse cadence stays active through tiny back-and-forth moves. */
 let tickMotionState=null,tickBeat=false,priceSoundSuppressedUntil=0;
 function softTickFrequency(f){return Math.max(220,Math.min(1080,f));}
-function onTick(prev,next){if(!tickOn||!(prev>0&&next>0)||prev===next)return;const now=Date.now(),motion=Engine.tickMotion(tickMotionState,prev,next,now,pair),pct=(next-prev)/prev*100,abs=Math.abs(pct),micro=abs<.005,cooldown=motion.major?90:micro?130:105;tickMotionState=motion.state;if(now-lastTickAt<cooldown)return;lastTickAt=now;tickBeat=!tickBeat;
- if(now<priceSoundSuppressedUntil)return;
+function onTick(prev,next,silent=false){if(!tickOn||!(prev>0&&next>0)||prev===next)return;const now=Date.now(),motion=Engine.tickMotion(tickMotionState,prev,next,now,pair),pct=(next-prev)/prev*100,abs=Math.abs(pct),micro=abs<.005,cooldown=motion.major?90:micro?130:105;tickMotionState=motion.state;if(now-lastTickAt<cooldown)return;lastTickAt=now;tickBeat=!tickBeat;
+ if(silent||now<priceSoundSuppressedUntil)return;
  const up=motion.direction>0,big=abs>=.05;
  try{const ps=myPositions();let total=0,count=0,exposure=0;for(const p of ps){const px=refPrice(p.pair);if(!px)continue;const v=p.kind==='paper'?Engine.value(p,px).net:liveValue(p);if(Number.isFinite(v)){total+=v;count++;}exposure+=(p.long?1:-1)*p.amount*p.lev/p.entry;}
  const inPos=count>0,avg=inPos?total/count:0,favorable=!inPos||exposure===0?up:motion.direction*exposure>0,base=inPos?(avg>0?760:avg<0?420:620):620,g=Math.min(.14,.045+abs*1.1);
@@ -110,9 +110,7 @@ function myAvgEntry(){let w=0,s=0;for(const p of myPositions()){const n=(p.amoun
 function myTotalNet(targetPair=null){let s=0,n=0;for(const p of myPositions()){if(targetPair!==null&&!(targetPair===pair?chartPair(p):p.pair===targetPair))continue;if(!refPrice(p.pair))continue;const v=p.kind==='paper'?Engine.value(p,refPrice(p.pair)).net:liveValue(p);if(Number.isFinite(v)){s+=v;n++;}}return n?{total:s,count:n}:null;}
 /* Chart candle-close sound: fires regardless of positions; brighter when
  * average open P&L is positive, darker when negative. */
-function onCandleClose(c){if(!tickOn)return;const now=Date.now();if(now<priceSoundSuppressedUntil||now-lastCandleSoundAt<1500)return;lastCandleSoundAt=now;try{const up=c.c>=c.o,mood=positionMood();
-if(up){if(mood==='positive'){tone(523,0.12,'triangle',0.1);tone(659,0.14,'triangle',0.1,0.1);}else if(mood==='negative')tone(440,0.12,'triangle',0.06);else tone(520,0.16,'triangle',0.09);}
-else{if(mood==='negative'){tone(392,0.12,'triangle',0.1);tone(311,0.16,'triangle',0.1,0.1);}else if(mood==='positive')tone(349,0.12,'triangle',0.06);else tone(350,0.16,'triangle',0.09);}}catch{}}
+function onCandleClose(c){if(!tickOn)return;const now=Date.now();if(now<priceSoundSuppressedUntil||now-lastCandleSoundAt<1500)return;lastCandleSoundAt=now;try{const up=c.c>=c.o,mood=positionMood(),notes=up?(mood==='positive'?[[494,.08,'warm',.045,0],[622,.12,'chime',.052,.08]]:mood==='negative'?[[392,.11,'warm',.04,0]]:[[466,.09,'warm',.043,0],[554,.11,'chime',.045,.08]]):(mood==='negative'?[[392,.08,'warm',.045,0],[311,.13,'warm',.052,.08]]:mood==='positive'?[[440,.11,'warm',.04,0]]:[[415,.09,'warm',.043,0],[349,.12,'warm',.045,.08]]);window.NativeAudio?.clearPending?.();for(const note of notes)tone(...note);}catch{}}
 const EVENT_SOUND_PALETTE={
  'public-open-long':[[523,.07,'warm',.055,0],[659,.1,'chime',.06,.075],[784,.13,'chime',.05,.15]],
  'public-open-short':[[659,.07,'warm',.055,0],[494,.1,'warm',.06,.075],[392,.13,'chime',.05,.15]],

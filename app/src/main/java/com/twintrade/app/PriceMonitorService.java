@@ -17,8 +17,11 @@ public class PriceMonitorService extends Service {
   if(soundPair!=selected){soundPair=selected;soundMinute=minute;soundOpen=soundLast=next;lastPnlCrossAt=Long.MIN_VALUE;sonifier.reset();pnlCross=0;}
   if(pnlCross!=0&&state.optBoolean("events",true)){sonifier.suppressUntil(now+520);backgroundAudio.clearPending();EventSoundPalette.play((f,d,t,g,w)->backgroundAudio.tone(f,d,t,g*level,w),pnlCross>0?"profit":"loss",true,state.optString("profile","gentle"));}
   if(state.optBoolean("ticks",true)){
+   boolean minuteChanged=minute!=soundMinute,candle=pnlCross==0&&minuteChanged&&soundOpen>0&&soundLast>0;
+   if(candle)sonifier.suppressUntil(now+140);
    sonifier.tick(selected,prev,next,now,context[0],context[1],level);
-   if(pnlCross==0&&minute!=soundMinute&&soundOpen>0&&soundLast>0){boolean up=soundLast>=soundOpen;backgroundAudio.tone(up?659:440,.09,"sine",.065*level,0);soundMinute=minute;soundOpen=next;}
+   if(candle){backgroundAudio.clearPending();CandleSound.play(backgroundAudio::tone,soundLast>=soundOpen,context[0],level);}
+   if(minuteChanged){soundMinute=minute;soundOpen=next;}
   }
   soundLast=next;
   if(newLiquidation&&state.optBoolean("events",true)){sonifier.suppressUntil(now+520);backgroundAudio.clearPending();backgroundAudio.tone(220,.18,"sine",.075*level,0);backgroundAudio.tone(165,.2,"sine",.06*level,.15);}

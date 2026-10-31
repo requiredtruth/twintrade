@@ -1,7 +1,7 @@
-# TwinTrade 0.58.0 specification
+# TwinTrade 0.59.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 58, versionName 0.58.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 59, versionName 0.59.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -362,3 +362,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - Micro movement uses short chime pulses for favorable direction and warm pulses for unfavorable direction. Larger moves use a warm first note, a chime rise or warm fall, and at most one accent. Direction, adaptive noise, reversal hysteresis, meaningful-move detection and 90–130 ms cadence remain unchanged.
 - Big-move and profitable-position accents no longer stack into a four-note burst. They share one bounded third-note slot, reducing density and clipping risk while retaining stronger feedback for meaningful movement. Existing sound level, mute, audio focus, event arbitration and background ownership behavior remain authoritative.
 - Tests cover the frequency bounds, maximum three-note phrase, warm/chime-only production waveforms, profitable-short mood, cooldown, hysteresis, quiet-window recovery and native/web clamp parity alongside all accounting and transport regressions. Mobile browser, Android compilation, signing, alignment and package-integrity checks passed before publication. Holding/funding and trading logic are unchanged.
+
+
+## 0.59.0 — coherent minute-close sonification
+
+- Minute candle closes now use one shared semantic palette in the foreground app and Android background service. Rising and falling candles receive distinct warm/chime phrases; profitable, losing and neutral open-position moods select restrained variants without changing any P&L, holding or funding calculation.
+- The quote that rolls into a new minute updates directional hysteresis and cadence silently, then emits the candle phrase. This prevents the former boundary tick and candle tone from stacking. Native playback clears queued movement notes and reserves the short candle window while keeping the motion state current. Entry crossings, executions and liquidations retain higher priority and suppress the candle phrase.
+- All candle notes use warm/chime synthesis, remain between 220 and 700 Hz, peak at or below 0.052 before the saved Soft/Balanced/Full level, contain no more than two notes and finish within 200 ms. Existing event character, mute, media volume, audio focus, Keep Alive and foreground/background ownership controls remain unchanged.
+- Synthetic regression coverage verifies foreground rollover arbitration plus native direction/mood phrases, frequency/gain/duration bounds and level scaling. The complete JavaScript/native suite, mobile browser checks, Android compilation, signature/alignment/package verification and Android 15 lifecycle/audio-focus instrumentation gate publication. No funded transaction or physical-device listening/battery test is claimed.

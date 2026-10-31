@@ -1,0 +1,13 @@
+{
+  "tag": "v0.59.0",
+  "title": "TwinTrade 0.59.0 \u2014 coherent candle sonification",
+  "sequence": 43,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "413a94a3fa540d7f54269539cfb520860412d0345440e45dad6c9aaa84cc9647",
+    "TwinTrade.html": "f57586e5c4e6529e05b68d5c70f67279ab4f04ac480c8d60c284030eb819faee",
+    "TwinTrade-source.zip": "e1b06142b53eddc61f22e46b66264967830766cb3ca11185a7a1cf68607ae589",
+    "spec.md": "1d1532181cee36d8173b3571b3f90a04f03073334f78432f585fac1908b8cd3f",
+    "SHA256SUMS": "91aa642cfd0f84a73463921523f5f2386b78e1bb2b333da6997072f4c04c1d41"
+  }
+}

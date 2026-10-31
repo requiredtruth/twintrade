@@ -1,8 +1,10 @@
-# TwinTrade 0.58.0
+# TwinTrade 0.59.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
 ## Releases
+
+- v0.59.0: minute-close cues now use gentle mood-aware warm/chime phrases with foreground/background parity and replace the boundary tick instead of overlapping it.
 
 - v0.58.0: production directional ticks now use bounded 220–1080 Hz warm/chime phrases with at most three notes across web and Android background playback.
 - v0.57.0: sound preview now routes the current profit/loss crossing cues, prevents duplicate preview runs, spaces phrases to avoid overlap, and uses gentle tick examples.
