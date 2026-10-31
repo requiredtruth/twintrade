@@ -100,7 +100,7 @@ let bigEvT=0;
 function showBigEvent(text,cls){try{const b=$('bigEvent');if(!b)return;b.textContent=text;b.className=cls||'';b.hidden=false;clearTimeout(bigEvT);bigEvT=setTimeout(()=>{b.hidden=true;},4000);}catch{}}
 /* Price crossing your entry/liq lines: unique sounds + feed cards. */
 function checkCrossings(prev,next){if(!soundOn||!fullyLoaded)return;const now=Date.now();if(now-lastCrossAt<600)return;try{const ps=mode==='paper'?book.positions:livePositions;for(const p of ps){if(p.pair!==pair)continue;if((now-(p._xAt||0))<2000)continue;const liq=p.kind==='paper'?safeLiq(p):p.liq;
-if(Math.sign(next-p.entry)!==Math.sign(prev-p.entry)){p._xAt=now;lastCrossAt=now;eventSound(next>p.entry?'cross-up':'cross-down');pushEvent(`Price crossed your ${p.long?'L':'S'} entry ${money(p.entry)}`,next>p.entry?'long':'short');return;}
+if(Math.sign(next-p.entry)!==Math.sign(prev-p.entry)){p._xAt=now;lastCrossAt=now;const profitable=(next>p.entry)===p.long;eventSound(profitable?'pnl-profit':'pnl-loss');pushEvent(`${profitable?'Profit':'Loss'} side of your ${p.long?'L':'S'} entry ${money(p.entry)}`,profitable?'long':'short');return;}
 if(liq>0&&Math.sign(next-liq)!==Math.sign(prev-liq)){p._xAt=now;lastCrossAt=now;eventSound('liq-touch');pushEvent(`Price touched LIQ ${money(liq)} — danger`,'liq');return;}}}catch{}}
 /* Average net across ALL open positions (paper or live). Drives sound mood. */
 function avgOpenNet(){try{const ps=mode==='paper'?book.positions:livePositions;let s=0,n=0;for(const p of ps){if(!priceOf(p.pair))continue;const v=p.kind==='paper'?Engine.value(p,priceOf(p.pair)).net:liveValue(p);if(Number.isFinite(v)){s+=v;n++;}}return n?{avg:s/n,count:n}:null;}catch{return null;}}
@@ -126,8 +126,8 @@ const EVENT_SOUND_PALETTE={
  'my-close-loss':[[587,.08,'warm',.05,0],[494,.11,'warm',.055,.08],[392,.16,'sine',.045,.18]],
  'my-close':[[587,.09,'warm',.055,0],[659,.14,'chime',.05,.09]],
  'my-liq':[[220,.13,'warm',.065,0],[165,.18,'warm',.06,.12],[110,.22,'sine',.045,.27]],
- 'cross-up':[[659,.08,'warm',.055,0],[880,.13,'chime',.055,.08]],
- 'cross-down':[[587,.08,'warm',.05,0],[440,.13,'warm',.05,.08]],
+ 'pnl-profit':[[523,.08,'warm',.052,0],[698,.13,'chime',.055,.09]],
+ 'pnl-loss':[[494,.08,'warm',.048,0],[370,.13,'warm',.05,.09]],
  'liq-touch':[[247,.13,'warm',.06,0],[185,.18,'sine',.055,.13]]
 };
 function profiledEventNotes(notes){const selected=soundProfile==='minimal'&&notes.length>2?[notes[0],notes.at(-1)]:notes;return selected.map(([freq,dur,type,gain,when],i)=>soundProfile==='warm'?[freq*.88,dur,type==='chime'?'warm':type,gain*.9,when]:soundProfile==='minimal'?[freq,dur*.9,type,gain*.85,i?Math.min(when,.11):0]:[freq,dur,type,gain,when]);}

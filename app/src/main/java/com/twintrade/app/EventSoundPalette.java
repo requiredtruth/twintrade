@@ -13,7 +13,9 @@ public final class EventSoundPalette {
  public static void play(Output out,String action,boolean side){play(out,action,side,"gentle");}
  public static void play(Output out,String action,boolean side,String profile){
   final String selected="warm".equals(profile)||"minimal".equals(profile)?profile:"gentle";
-  Output target=(frequency,duration,type,gain,delay)->{if("minimal".equals(selected)&&delay>0&&delay<.14)return;if("warm".equals(selected)){frequency*=.88;if("chime".equals(type))type="warm";gain*=.9;}else if("minimal".equals(selected)){duration*=.9;gain*=.85;if(delay>0)delay=Math.min(delay,.11);}out.tone(frequency,duration,type,gain,delay);};
+  Output target=(frequency,duration,type,gain,delay)->emit(out,selected,frequency,duration,type,gain,delay);
+  if("profit".equals(action)){target.tone(523,.08,"warm",.052,0);emit(out,selected,698,.13,"chime",.055,.09,true);return;}
+  if("loss".equals(action)){target.tone(494,.08,"warm",.048,0);emit(out,selected,370,.13,"warm",.050,.09,true);return;}
   if("open".equals(action)){
    if(side){target.tone(523,.07,"warm",.055,0);target.tone(659,.10,"chime",.060,.075);target.tone(784,.13,"chime",.050,.15);}
    else {target.tone(659,.07,"warm",.055,0);target.tone(494,.10,"warm",.060,.075);target.tone(392,.13,"chime",.050,.15);}
@@ -24,5 +26,12 @@ public final class EventSoundPalette {
    if(side){target.tone(784,.07,"chime",.050,0);target.tone(659,.10,"warm",.055,.075);target.tone(523,.14,"warm",.045,.15);}
    else {target.tone(392,.07,"chime",.050,0);target.tone(494,.10,"warm",.055,.075);target.tone(587,.14,"warm",.045,.15);}
   }
+ }
+ private static void emit(Output out,String selected,double frequency,double duration,String type,double gain,double delay){emit(out,selected,frequency,duration,type,gain,delay,false);}
+ private static void emit(Output out,String selected,double frequency,double duration,String type,double gain,double delay,boolean keepMinimal){
+  if("minimal".equals(selected)&&!keepMinimal&&delay>0&&delay<.14)return;
+  if("warm".equals(selected)){frequency*=.88;if("chime".equals(type))type="warm";gain*=.9;}
+  else if("minimal".equals(selected)){duration*=.9;gain*=.85;if(delay>0)delay=Math.min(delay,.11);}
+  out.tone(frequency,duration,type,gain,delay);
  }
 }

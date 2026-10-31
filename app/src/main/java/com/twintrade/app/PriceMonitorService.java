@@ -2,7 +2,7 @@ package com.twintrade.app;
 import android.app.*;import android.content.*;import android.content.pm.ServiceInfo;import android.os.*;import org.json.*;import java.net.*;import java.io.*;import java.util.concurrent.*;
 public class PriceMonitorService extends Service {
  private static volatile PriceMonitorService instance;private final Object audioLock=new Object();private Notification.Builder notificationBuilder;private long notificationAt=0;private int holdingCursor=0;
- private NativeAudio backgroundAudio;private TickSound sonifier;private final EventSoundPalette.BurstGate tradeSoundGate=new EventSoundPalette.BurstGate();private volatile boolean ownsAudio=false;private String lastPaperEvent="";private int soundPair=-1;private long soundMinute=0;private double soundOpen=0,soundLast=0;
+ private NativeAudio backgroundAudio;private TickSound sonifier;private final EventSoundPalette.BurstGate tradeSoundGate=new EventSoundPalette.BurstGate();private volatile boolean ownsAudio=false;private String lastPaperEvent="";private int soundPair=-1;private long soundMinute=0,lastPnlCrossAt=Long.MIN_VALUE;private double soundOpen=0,soundLast=0;
  public static void visibilityChanged(){PriceMonitorService s=instance;if(s!=null)s.updateAudioOwnership();}
  private JSONObject audioState(){try{return new JSONObject(getSharedPreferences("market",0).getString("audioState","{}"));}catch(Exception e){return new JSONObject();}}
  private double soundLevel(JSONObject state){double level=state.optDouble("level",1);return Double.isFinite(level)&&level>0&&level<=1?level:1;}
@@ -13,17 +13,25 @@ public class PriceMonitorService extends Service {
   if(!ownsAudio)return accepted;
   double[] context=MarketStore.paperSoundState(selected);
   if("live".equals(state.optString("mode"))){double total=0,exposure=0;int count=0;JSONArray ps=state.optJSONArray("positions");if(ps!=null)for(int i=0;i<ps.length();i++)try{JSONObject p=ps.getJSONObject(i);int pair=p.getInt("pair");if(pair!=selected&&!(selected==0&&pair==300))continue;double px=MarketStore.priceOf(pair),n=p.getDouble("amount")*p.getDouble("lev"),entry=p.getDouble("entry"),d=p.getBoolean("long")?1:-1;if(px>0&&entry>0){exposure+=d*n/entry;if(!p.isNull("adjustment")){total+=n*d*(px/entry-1)+p.getDouble("adjustment");count++;}}}catch(Exception ignored){}context=new double[]{count>0?total/count:Double.NaN,exposure};}
-  long now=SystemClock.elapsedRealtime(),minute=System.currentTimeMillis()/60000;double level=soundLevel(state);
-  if(soundPair!=selected){soundPair=selected;soundMinute=minute;soundOpen=soundLast=next;sonifier.reset();}
+  long now=SystemClock.elapsedRealtime(),minute=System.currentTimeMillis()/60000;double level=soundLevel(state);int pnlCross=newLiquidation?0:entryCrossing(state,selected,prev,next,now);
+  if(soundPair!=selected){soundPair=selected;soundMinute=minute;soundOpen=soundLast=next;lastPnlCrossAt=Long.MIN_VALUE;sonifier.reset();pnlCross=0;}
+  if(pnlCross!=0&&state.optBoolean("events",true)){sonifier.suppressUntil(now+520);backgroundAudio.clearPending();EventSoundPalette.play((f,d,t,g,w)->backgroundAudio.tone(f,d,t,g*level,w),pnlCross>0?"profit":"loss",true,state.optString("profile","gentle"));}
   if(state.optBoolean("ticks",true)){
    sonifier.tick(selected,prev,next,now,context[0],context[1],level);
-   if(minute!=soundMinute&&soundOpen>0&&soundLast>0){boolean up=soundLast>=soundOpen;backgroundAudio.tone(up?659:440,.09,"sine",.065*level,0);soundMinute=minute;soundOpen=next;}
+   if(pnlCross==0&&minute!=soundMinute&&soundOpen>0&&soundLast>0){boolean up=soundLast>=soundOpen;backgroundAudio.tone(up?659:440,.09,"sine",.065*level,0);soundMinute=minute;soundOpen=next;}
   }
   soundLast=next;
   if(newLiquidation&&state.optBoolean("events",true)){sonifier.suppressUntil(now+520);backgroundAudio.clearPending();backgroundAudio.tone(220,.18,"sine",.075*level,0);backgroundAudio.tone(165,.2,"sine",.06*level,.15);}
   if(now-notificationAt>5000&&notificationBuilder!=null){notificationAt=now;notificationBuilder.setContentText(state.optString("symbol","Market")+" · "+String.format(java.util.Locale.US,"$%.2f",next)+(state.optBoolean("ticks",true)||state.optBoolean("events",true)?" · prices, candles and sounds active":" · prices and candles active; sounds muted"));((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(42,notificationBuilder.build());}
   return accepted;
  }}
+
+ private int entryCrossing(JSONObject state,int selected,double previous,double next,long now){
+  if(lastPnlCrossAt!=Long.MIN_VALUE&&now-lastPnlCrossAt<2000)return 0;
+  try{JSONArray positions;if("live".equals(state.optString("mode")))positions=state.optJSONArray("positions");else positions=new JSONObject(MarketStore.book()).optJSONArray("positions");if(positions==null)return 0;
+   for(int i=0;i<positions.length();i++){JSONObject p=positions.optJSONObject(i);if(p==null)continue;int pair=p.optInt("pair",-1);if(pair!=selected&&!(selected==0&&pair==300))continue;int result=EntryCrossing.outcome(p.optDouble("entry",Double.NaN),p.optBoolean("long"),previous,next);if(result!=0){lastPnlCrossAt=now;return result;}}
+  }catch(Exception ignored){}return 0;
+ }
 
  private void backgroundTrade(JSONObject event){synchronized(audioLock){if(stopped||MainActivity.visible||backgroundAudio==null)return;JSONObject state=audioState();int selected=state.optInt("pair",0),pair=event.optInt("pair",-1);String symbol=event.optString("symbol"),selectedSymbol=state.optString("symbol");boolean matches=pair==selected||selected==0&&pair==300||!symbol.isEmpty()&&(symbol.equals(selectedSymbol)||selected==0&&symbol.equals("BTCDEGEN/USD"));if(!matches)return;String action=event.optString("action");boolean side=event.optBoolean("long");try{event.put("pair",pair<0?selected:pair).put("text",(symbol.isEmpty()?selectedSymbol:symbol)+" · "+event.optString("net")+" · "+action.toUpperCase(java.util.Locale.US)+" "+(side?"L":"S"));getSharedPreferences("market",0).edit().putString("backgroundTradeEvent",event.toString()).apply();}catch(Exception ignored){}if(!state.optBoolean("events",true))return;updateAudioOwnership();long now=SystemClock.elapsedRealtime();int decision=tradeSoundGate.accept(action,now);if(decision<0)return;sonifier.suppressUntil(now+520);backgroundAudio.clearPending();double level=soundLevel(state);EventSoundPalette.play((f,d,t,g,w)->backgroundAudio.tone(f,d,t,g*level,w),action,side,state.optString("profile","gentle"));}}
 

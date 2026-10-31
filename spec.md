@@ -1,7 +1,7 @@
-# TwinTrade 0.55.0 specification
+# TwinTrade 0.56.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 55, versionName 0.55.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 56, versionName 0.56.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -338,3 +338,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - The selected level scales event, price, candle, preview, crossing and liquidation gains before foreground WebAudio or native PCM playback. It is included in the existing private Android audio-state handoff, so the background service applies the same level to directional ticks, minute candle cues, public execution phrases and paper liquidation cues.
 - Android media volume, output routing, transient ducking focus and the independent event/tick enable flags remain authoritative. Sound level changes no market, wallet, fee, position or transaction data. Gentle, Warm and Minimal keep their pitch/timbre behavior; event-priority arbitration and reversal hysteresis remain unchanged.
 - Tests cover persistence and invalid-value recovery, foreground gain scaling, native bridge gain scaling, background tick scaling, all existing audio routing/hysteresis/arbitration behavior, accounting and transport regressions. No funded transaction or physical-device listening test is claimed.
+
+
+## 0.56.0 — position-aware P&L crossing cues
+
+- Entry-line sounds now represent the position outcome. A long moving above entry and a short moving below entry use the same gentle profit phrase; the opposite crossings use a lower loss phrase. Feed cards likewise say “Profit side” or “Loss side,” removing the prior ambiguity where short profit used a generic downward-price cue.
+- The Android background foreground service now reads the already-private active paper ledger or live audio-state position summary and classifies entry crossings with the same long/short rules. Accepted P&L phrases clear queued movement notes, reserve the existing 520 ms movement quiet window and use the saved Gentle, Warm or Minimal profile and sound level.
+- A two-second background crossing cooldown prevents repeated entry-line chatter. Market changes reset the classifier, native paper liquidation keeps priority, and a P&L phrase suppresses a same-frame minute candle cue while directional state continues to update. Existing tick smoothing, hysteresis, mute, audio focus, holding/funding calculations and trading behavior are unchanged.
+- Regression tests cover all four long/short profit/loss directions, no-crossing moves, distinct two-note profile phrases, foreground short semantics and existing audio/accounting/transport behavior. Mobile browser, Android compilation, signature, alignment and package-integrity checks passed before release. No funded transaction or physical-device listening test is claimed.

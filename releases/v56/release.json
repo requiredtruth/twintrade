@@ -1,0 +1,13 @@
+{
+  "tag": "v0.56.0",
+  "title": "TwinTrade 0.56.0 \u2014 position-aware P&L crossing cues",
+  "sequence": 40,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "109f978ad6ac68d9117207557a968dc2b0c2bfa03536f7e643d284123e82bbe2",
+    "TwinTrade.html": "711addc143341d121e999c3c5e50c9d1dc0f65aea0eebf919bc5a7808181e291",
+    "TwinTrade-source.zip": "bbac036946ea9b03dd68306ac0ba52886f06d9286446394cd5281bb60ae08b6d",
+    "spec.md": "01f49f7692188667b0dc6c3af49c7770a537478fbb3155609728f36bdb551794",
+    "SHA256SUMS": "d4bdb52e7ca3b9b6fa3d5cfb59568d13067779506dfcd69efd74a94f50207ac7"
+  }
+}
