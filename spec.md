@@ -1,7 +1,7 @@
-# TwinTrade 0.60.0 specification
+# TwinTrade 0.61.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 60, versionName 0.60.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 61, versionName 0.61.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -378,3 +378,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - Android background paper liquidation no longer bypasses the polished palette with a generic two-sine alarm. The native ledger exposes only the side of its newest confirmed liquidation, and the foreground service routes it through the same long/short liquidation palette, selected Gentle/Warm/Minimal character and saved Soft/Balanced/Full level used by other execution events.
 - Liquidation retains priority: queued movement notes are cleared and the 520 ms quiet window remains in force. Mute, Android audio focus, media routing, Keep Alive ownership and foreground handoff are unchanged. No funded transaction path was added.
 - Synthetic regressions verify distinct owner liquidation signatures, preview routing, native confirmed-side recovery and all existing event priority, audio profile, movement, candle, accounting and transport behavior. Browser, Android compilation, signing, alignment, package and Android 15 lifecycle/audio-focus gates remain required for publication. No physical-device listening/battery test is claimed.
+
+
+## 0.61.0 — true native audio preemption
+
+- The Android native mixer's `clearPending` operation now stops and flushes the active PCM track as well as removing scheduled notes. Previously, a high-priority execution, entry crossing, candle close or liquidation removed future notes but could inherit the short portion of a movement tone already buffered in `AudioTrack`.
+- Preemption retains the acquired transient ducking focus and immediately creates a clean stream for the following phrase. It does not replay the interrupted note. The existing 520 ms event and 140 ms candle quiet windows keep direction/hysteresis state current and prevent movement audio from restarting beneath the replacement phrase.
+- Foreground WebAudio routing, native background ownership, mute, saved level/character, Android media routing and focus-loss recovery remain unchanged. Trading, settlement and holding/funding behavior are unchanged.
+- Android instrumentation starts a two-second native tone, verifies that it stops advancing after priority preemption, then verifies fresh PCM playback recovers immediately. The complete JavaScript/native suite, mobile browser, Android source compilation, signing/alignment/package and lifecycle/audio-focus gates remain required. No funded transaction or physical-device listening/battery test is claimed.

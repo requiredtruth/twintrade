@@ -19,8 +19,9 @@ public class AudioRecoveryTest extends Instrumentation {
   }
   setSounds(activity,false);Thread.sleep(300);long before=audio.playedFrames();audio.tone(440,.2,"sine",.1,0);Thread.sleep(300);if(audio.playedFrames()!=before)throw new AssertionError("Mute ignored");
   setSounds(activity,true);Thread.sleep(300);checkSound(audio,"unmuted");
+  long preemptionStart=audio.playedFrames();audio.tone(330,2,"warm",.08,0);for(int i=0;i<20&&audio.playedFrames()<=preemptionStart;i++)Thread.sleep(50);if(audio.playedFrames()<=preemptionStart)throw new AssertionError("Preemption fixture did not start");audio.clearPending();Thread.sleep(250);long preempted=audio.playedFrames();Thread.sleep(350);if(audio.playedFrames()!=preempted)throw new AssertionError("Cleared PCM continued playing");checkSound(audio,"after priority preemption",.08);
   checkBackground(activity);
-  result.putString("stream","PASS: native PCM output before and after separate-app permanent/transient audio focus, and mute; native background Home/screen-off playback and ownership handoff\n");finish(Activity.RESULT_OK,result);
+  result.putString("stream","PASS: native PCM output, priority preemption, separate-app permanent/transient audio focus and mute; native background Home/screen-off playback and ownership handoff\n");finish(Activity.RESULT_OK,result);
  }catch(Throwable e){result.putString("stream","FAIL: "+e+"\n");finish(Activity.RESULT_CANCELED,result);}}
  private void shell(String command)throws Exception{try(android.os.ParcelFileDescriptor.AutoCloseInputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(getUiAutomation().executeShellCommand(command))){byte[] b=new byte[1024];while(in.read(b)!=-1){}}}
 

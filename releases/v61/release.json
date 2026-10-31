@@ -1,0 +1,13 @@
+{
+  "tag": "v0.61.0",
+  "title": "TwinTrade 0.61.0 \u2014 true native audio preemption",
+  "sequence": 45,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "f0eca21de01fd732ececd9e7874d4361605733efc881cfe2143b5dab173d5121",
+    "TwinTrade.html": "9754e3dcaea560a30affa0a9bab9116de93bce74d5266a2b453bd305782da9bb",
+    "TwinTrade-source.zip": "cb69f4493b8add8cc6021ef79b9bcdb69da109bc4448a4724f8e4a8c883706a6",
+    "spec.md": "3b36d68c9c4670268beaad20deca4f7d46dd3f500237a01e5fa1635f0c1cc6be",
+    "SHA256SUMS": "6a39101a63ea5a91e2eb627499d7d63b51dc363193e7ec8b3d432da2c634ca66"
+  }
+}
