@@ -2,4 +2,4 @@ Entry-line sounds now describe the position outcome: long-above and short-below 
 
 The same classification now runs in Android background monitoring for active paper or live positions. It honors the saved sound profile and level, clears queued movement notes, suppresses overlapping ticks and same-frame candle audio, gives liquidation priority, and applies a two-second anti-repeat cooldown. Existing directional smoothing, reversal hysteresis, mute, audio focus and holding/funding behavior are preserved.
 
-Validated with the complete JavaScript/native regression suite, mobile browser checks, Android compilation, signature/alignment/package checks and lifecycle/audio-focus instrumentation. No funded transaction or physical-device listening test was performed.
+Validated with the complete JavaScript/native regression suite, mobile browser checks, Android compilation, signature/alignment/package checks and lifecycle/audio-focus instrumentation. The fee ledger and holding/funding calculations are unchanged. No funded transaction or physical-device listening test was performed.
