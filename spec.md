@@ -265,3 +265,10 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - If a confirmed transaction receipt cannot be decoded into an oracle order ID, later wallet refreshes reconcile an open only when exactly one new live position matches every recorded field. Multiple or partial matches remain unresolved and continue blocking duplicate submission.
 - A confirmed close with an undecodable order ID reconciles only after its exact trade index is absent from the authoritative live-position set. Failed receipts remain failed; ordinary decoded order-ID reconciliation is unchanged.
 - Regression tests cover exact open matching, ambiguous open rejection and exact close disappearance. VersionCode 48 / versionName 0.48.0 retains the private release certificate. No funded transaction or physical-device test was performed.
+
+## Unreleased — trade-stream reconnect ownership
+
+- Polygon, Arbitrum and Base trade-stream retries belong to the connection attempt that scheduled them. Replacing a connection invalidates its queued retries, including retries after a WebSocket constructor failure. Closing an old socket synchronously cannot schedule another replacement.
+- Messages from obsolete Polygon sockets cannot reset retry backoff or inflate feed byte counters. Current connection messages and reconnect behavior remain active; reconnect generations are independent across networks.
+- Deterministic tests run the actual three network connection handlers through delayed-close retries, manual replacement, repeated retry callbacks, constructor failures and cross-network recovery. All 25 JavaScript suites pass locally. Full native/browser and release checks are tracked in CI.
+- No new APK is bundled with this source change: the original private release signing key is unavailable in this development environment. Restore it through the existing private backup process before packaging the next matching version; never rotate the update certificate to bypass this blocker.
