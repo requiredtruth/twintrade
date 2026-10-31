@@ -1,7 +1,7 @@
-# TwinTrade 0.56.0 specification
+# TwinTrade 0.57.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 56, versionName 0.56.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 57, versionName 0.57.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -346,3 +346,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - The Android background foreground service now reads the already-private active paper ledger or live audio-state position summary and classifies entry crossings with the same long/short rules. Accepted P&L phrases clear queued movement notes, reserve the existing 520 ms movement quiet window and use the saved Gentle, Warm or Minimal profile and sound level.
 - A two-second background crossing cooldown prevents repeated entry-line chatter. Market changes reset the classifier, native paper liquidation keeps priority, and a P&L phrase suppresses a same-frame minute candle cue while directional state continues to update. Existing tick smoothing, hysteresis, mute, audio focus, holding/funding calculations and trading behavior are unchanged.
 - Regression tests cover all four long/short profit/loss directions, no-crossing moves, distinct two-note profile phrases, foreground short semantics and existing audio/accounting/transport behavior. Mobile browser, Android compilation, signature, alignment and package-integrity checks passed before release. No funded transaction or physical-device listening test is claimed.
+
+
+## 0.57.0 — coherent, non-overlapping sound preview
+
+- The Settings preview now routes entry crossings through the v0.56 profit/loss cue names. This fixes silent preview steps left by the removed raw `cross-up` and `cross-down` names and lets owners compare the actual cues used for long and short positions.
+- Preview phrases are spaced 560 ms apart, longer than the longest bundled phrase, so liquidation and event tails finish before the next example. A busy guard disables the button during playback and ignores a second invocation, preventing concurrent preview loops and audio spam.
+- The final movement examples use gentle two-note warm/chime phrases below 700 Hz instead of the former isolated 880 Hz full-gain sine. The selected sound character and level still transform every preview; the original event/tick enable preferences are restored in a `finally` path and status is refreshed even if playback is interrupted.
+- Regression coverage verifies current P&L routing, removal of obsolete cue names, bounded preview pitch, spacing and duplicate-run suppression alongside all existing audio, accounting and transport suites. Mobile browser, Android compilation, signing, alignment and package-integrity checks passed before publication. Holding/funding logic and trading behavior are unchanged.

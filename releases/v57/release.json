@@ -1,0 +1,13 @@
+{
+  "tag": "v0.57.0",
+  "title": "TwinTrade 0.57.0 \u2014 coherent sound preview",
+  "sequence": 41,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "33140c55ff2c02f9d1882457310c4416dec793b2ba31d2bd67ea6a29954cffa4",
+    "TwinTrade.html": "d03203015109b25f5eede8ae2b366ca5362fd759325992bf2bd7967ccc8709fe",
+    "TwinTrade-source.zip": "bc5fdb60773815588988080bc16428869c74032efa5b36cd044b952213e70904",
+    "spec.md": "529b5f9dbf52279959ed6173380448c84e4952bed8d6c5b37d845536ea5ecc4a",
+    "SHA256SUMS": "8ef61ea18fa46d9e06c18d72f8125504772592742cba4d0061e9468c12454fd2"
+  }
+}

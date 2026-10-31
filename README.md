@@ -1,9 +1,10 @@
-# TwinTrade 0.56.0
+# TwinTrade 0.57.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
 ## Releases
 
+- v0.57.0: sound preview now routes the current profit/loss crossing cues, prevents duplicate preview runs, spaces phrases to avoid overlap, and uses gentle tick examples.
 - v0.56.0: entry-line cues now describe profit versus loss for both long and short positions, with matching foreground and Android background playback, two-second anti-repeat control and event overlap suppression.
 - v0.55.0: persistent Soft, Balanced and Full sound levels scale event, price and candle cues consistently in the browser, APK foreground and Android background service.
 
