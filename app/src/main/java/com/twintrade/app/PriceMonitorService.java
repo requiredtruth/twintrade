@@ -24,7 +24,7 @@ public class PriceMonitorService extends Service {
    if(minuteChanged){soundMinute=minute;soundOpen=next;}
   }
   soundLast=next;
-  if(newLiquidation&&state.optBoolean("events",true)){sonifier.suppressUntil(now+520);backgroundAudio.clearPending();backgroundAudio.tone(220,.18,"sine",.075*level,0);backgroundAudio.tone(165,.2,"sine",.06*level,.15);}
+  if(newLiquidation&&state.optBoolean("events",true)){sonifier.suppressUntil(now+520);backgroundAudio.clearPending();int side=MarketStore.lastLiquidationSide();EventSoundPalette.play((f,d,t,g,w)->backgroundAudio.tone(f,d,t,g*level,w),"liq",side>=0,state.optString("profile","gentle"));}
   if(now-notificationAt>5000&&notificationBuilder!=null){notificationAt=now;notificationBuilder.setContentText(state.optString("symbol","Market")+" · "+String.format(java.util.Locale.US,"$%.2f",next)+(state.optBoolean("ticks",true)||state.optBoolean("events",true)?" · prices, candles and sounds active":" · prices and candles active; sounds muted"));((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(42,notificationBuilder.build());}
   return accepted;
  }}

@@ -1,0 +1,13 @@
+{
+  "tag": "v0.60.0",
+  "title": "TwinTrade 0.60.0 \u2014 side-specific liquidation audio",
+  "sequence": 44,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "77c1bbc27b24bae730b6da01d6c2eda3d14f2c37a48820ce81c624f9c2137f28",
+    "TwinTrade.html": "9754e3dcaea560a30affa0a9bab9116de93bce74d5266a2b453bd305782da9bb",
+    "TwinTrade-source.zip": "48958540746c1f00b380f6ac2c754289a9de72ab609eda9b0471aa9de9fd9a37",
+    "spec.md": "a99e22c646b709357e888f5ba2ad11bcf7d79b141617531ebec565742f43c8c2",
+    "SHA256SUMS": "5509a9d7f04f97264711f09dd7835e777257bfc5aa7d0ce434f877fb843c4c28"
+  }
+}

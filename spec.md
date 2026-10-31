@@ -1,7 +1,7 @@
-# TwinTrade 0.59.0 specification
+# TwinTrade 0.60.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 59, versionName 0.59.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 60, versionName 0.60.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -370,3 +370,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - The quote that rolls into a new minute updates directional hysteresis and cadence silently, then emits the candle phrase. This prevents the former boundary tick and candle tone from stacking. Native playback clears queued movement notes and reserves the short candle window while keeping the motion state current. Entry crossings, executions and liquidations retain higher priority and suppress the candle phrase.
 - All candle notes use warm/chime synthesis, remain between 220 and 700 Hz, peak at or below 0.052 before the saved Soft/Balanced/Full level, contain no more than two notes and finish within 200 ms. Existing event character, mute, media volume, audio focus, Keep Alive and foreground/background ownership controls remain unchanged.
 - Synthetic regression coverage verifies foreground rollover arbitration plus native direction/mood phrases, frequency/gain/duration bounds and level scaling. The complete JavaScript/native suite, mobile browser checks, Android compilation, signature/alignment/package verification and Android 15 lifecycle/audio-focus instrumentation gate publication. No funded transaction or physical-device listening/battery test is claimed.
+
+
+## 0.60.0 — side-specific owner liquidation audio
+
+- Owner paper liquidation cues now distinguish long from short positions in the foreground app. The sound preview exposes both actual routes, and automatic plus bridge-backed liquidation settlement selects the side-specific cue without changing settlement, holding/funding or liquidation accounting.
+- Android background paper liquidation no longer bypasses the polished palette with a generic two-sine alarm. The native ledger exposes only the side of its newest confirmed liquidation, and the foreground service routes it through the same long/short liquidation palette, selected Gentle/Warm/Minimal character and saved Soft/Balanced/Full level used by other execution events.
+- Liquidation retains priority: queued movement notes are cleared and the 520 ms quiet window remains in force. Mute, Android audio focus, media routing, Keep Alive ownership and foreground handoff are unchanged. No funded transaction path was added.
+- Synthetic regressions verify distinct owner liquidation signatures, preview routing, native confirmed-side recovery and all existing event priority, audio profile, movement, candle, accounting and transport behavior. Browser, Android compilation, signing, alignment, package and Android 15 lifecycle/audio-focus gates remain required for publication. No physical-device listening/battery test is claimed.
