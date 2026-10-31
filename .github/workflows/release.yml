@@ -22,11 +22,8 @@ jobs:
           java-version: '17'
       - name: Source regression tests
         run: bash test.sh
-      - name: Materialize generated standalone release HTML
-        run: |
-          if [ -f releases/v51/release.json ] && [ ! -f releases/v51/TwinTrade.html ]; then
-            cp dist/TwinTrade.html releases/v51/TwinTrade.html
-          fi
+      - name: Materialize source-bound standalone release HTML
+        run: python3 tools/materialize-release-html.py
       - name: Compile and package current Android source without release credentials
         run: bash tests/compile-android.sh
       - name: Read-only live Gains price socket probe

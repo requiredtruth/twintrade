@@ -1,0 +1,317 @@
+# TwinTrade 0.52.0 specification
+
+## Provenance and release lineage
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 52, versionName 0.52.0, package com.twintrade.app, min API 26 and target API 35.
+
+## Delivered behavior
+- Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
+- $100 paper account, percentage collateral choices, long/short positions, signed funding, borrowing and both entry/exit fee estimates. Existing positions retain their original cost assumptions. Reset explicitly confirms clearing paper state.
+- Android foreground monitoring owns the synchronized paper ledger, all market quotes and up to 600 minute candles per market. Liquidation and cash settlement continue while the WebView is backgrounded. Native and browser duplicate closes do not credit twice.
+- Gains v4 mark/index parsing, timestamp checks, reconnect watchdogs, chart snapshots and one-minute history. Cached/history candles do not make an order quote fresh. A quote must be positive, finite, at most five seconds old and not future-dated. Older native ticks do not overwrite newer quotes.
+- History requests capture their market before awaiting the network. Concurrent BTC/ETH requests merge only into their originating market. Singleton candles and impossible OHLC values are rejected.
+- Public open-trader snapshots and streams, global Polygon/Arbitrum/Base views, same-entry/leverage grouping, yellow/purple entries, liquidation overlays, chart drag/pinch/zoom, sounds, data-rate and freshness indicators. Public P&L and fees are estimates, not authoritative accounting.
+- Portrait header actions remain reachable; compact landscape docks the order controls beside the chart.
+- Safe-area handling for system bars, display cutouts and keyboard, compact-height layout, settings drawer, native battery settings and full monitor exit.
+
+## Live order execution
+Chain: Polygon 137. Diamond 0x209A9A01980377916851af2cA075C2b170452018. Native USDC 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359, six decimals, collateral index 3. HTTPS/WSS nodes are configurable and checked against Polygon. Contract addresses and market names are validated before execution; simulation remains the final contract preflight.
+
+Android Keystore encrypts a user-supplied wallet key. The browser build cannot persist a key or sign without this bridge. Enabling live mode is explicit. Every live open and close requires confirmation. Open review shows market, side, collateral, leverage, notional and maximum slippage before approval/signing. USDC approval is connected to the wallet signer, with an exact allowance. Live expected prices use fresh index quotes rather than chart mark prices. No wallet is generated, funded or traded during development.
+
+Pending requests are persisted and shown. Open/close submission is serialized; unresolved pending/uncertain orders block another order for the wallet. Receipt waits have a 60-second ceiling: timeout means uncertain, not success. Receipt/order reconciliation continues every 12 seconds and when returning to the app. Approval-only submissions reconcile separately. Successful replacement receipts are accepted. Wallet/node/mode changes are blocked while an order is actively submitting or a bulk close is awaiting settlement. No automatic retry sends another trading transaction.
+
+## Validation
+Six JavaScript regression suites cover accounting, SDK liquidation calculations, protocol constants, actual application handlers, duplicate settlement, signer-bound approval, rejected review, pending-order exclusion, market-switch history races, dynamic leverage changes, disabled markets, quote freshness and malformed candles/costs. Two Java ledger suites cover native allocation, liquidation, settlement, DEGEN markets, duplicate settlement, caps and timestamp/candle/cost validation. APK is compiled from the delivered Java/assets, aligned and signature verified. CI runs the standalone HTML in Chromium at 393×852, 852×393, 360×640 and 740×360, including repeated rotations, paper order rendering and settings controls, before release publication.
+
+## Operational limits
+No funded end-to-end open/close transaction and no physical Android installation were performed. Browser rendering is verified by CI; native lifecycle/insets still need device testing. Service uptime depends on Android power policy and user notification/background permissions. Public feeds, history APIs, oracle availability and RPC services can fail; stale quotes pause submission. A receipt does not establish oracle execution. Ambiguous order resolution remains visible for chain inspection. The current journal does not retain a signed prebroadcast transaction; a provider failure before returning a hash still requires checking the wallet on-chain before attempting another order. External market/contract changes may require another release. No promise of uninterrupted exchange service is made.
+
+## Signing and artifacts
+The original APK retains its original certificate. The rebuilt release has a new certificate and cannot update that installation directly. Back up wallet recovery material before uninstalling. Public release files are TwinTrade.apk, TwinTrade.html, TwinTrade-source.zip, spec.md and SHA256SUMS. Signing private keys and wallet keys are excluded.
+
+## 0.20.0 stable chart and account views
+- Public trade reloads publish atomically after all chain responses. Malformed or failed responses retain the previous chain. One missing snapshot retains an entry; two complete valid absences reconcile it. Confirmed close events remove immediately. Opens, closes and updates received during reload take precedence over its older response.
+- Public contract events and backend snapshots share chain/address/index identity. Last known liquidation is retained during partial updates. No 400/600 trade tracking caps or price-dependent nearest-60 selection; tracked lines remain until reconciled closure or user filtering. Off-chart prices remain tracked; normal price-focused scaling is retained.
+- Reset chart restores 75 candles, latest time, vertical center and clears selected-trader focus. It does not reset accounts.
+- Optional bold notional-weighted average entry and liquidation lines by side and nearest leverage band (50, 75, 100, 150, 200, 500, 1000). Positions below 50x are excluded. Missing liquidations do not enter the liquidation denominator; labels show coverage. These span all tracked trades in the current market, independent of the selected trader.
+- Healthy status is steady. Price delay/unavailability is shown only after five seconds, recovers on fresh quotes, and retains chart/positions. Historical OHLC snapshots never renew executable quote timestamps. Existing stale-order protection remains active.
+- Menu Portfolio and Past trades cover all markets in the active paper/live mode. Portfolio shows available balance, collateral, notional, estimated net/equity, and individual positions. Paper closures persist through the native ledger. Locally observed live closures are saved per wallet with unavailable settlement until confirmed data is available. The live history page also imports matching-address Polygon closures from public 24h history when available; it does not claim complete lifetime exchange history or invent realized P&L.
+- JavaScript/native regression tests cover snapshot races, malformed and partial snapshots, immediate close events, partial leverage updates, liquidation retention, weighted averages, desync threshold/recovery, chart reset, and all-market account views. Browser CI verifies actual rendering and repeated mobile rotations before publishing. No funded mainnet order or physical Android device test performed.
+- APK uses the same signing certificate as 0.19.0 for in-place updates. Private signing key remains outside the repository and source ZIP.
+
+
+## 0.21.0 candle continuity and fee/P&L corrections
+
+- Candles have one bucket per minute. Internal missing minutes carry the previous known close as explicitly marked amber flat placeholders; no invented extremes, interpolated price moves, timestamps in the future, or refreshed quote age. Gaps are not silently collapsed in time. The status states how many placeholders await history.
+- Reconcile selected market history every minute and when returning to the app, including the native app. Completed authoritative history replaces partial recorded bars and missing-minute placeholders; remaining placeholders are recalculated. A 600-minute retention cap bounds long outages. Native background history also retries every minute. Polygon history is preferred; Arbitrum fallback is explicitly named in chart status.
+- Own position chart labels now show NET with the same paper/live value calculation as cards. The average entry label sums only positions in the chart's market; the portfolio still sums every market. Public traders' P&L remains a gross estimate because their costs are unknown.
+- Fees are charged on notional. BTC: $100 collateral x 200 = $20,000 notional, standard .035% opening = $7 and .035% closing = $7, total $14 before spread, holding, discounts and closing fee decay. Open fee and estimated closing fee are separate labels.
+- New paper positions use available Polygon contract fee/spread and recent Polygon per-side hourly rates. Funding short rates are independent of long rates. Existing positions keep original cost assumptions; paper holding rates are frozen at entry and labeled accordingly. Unavailable Polygon rates use explicit settings assumptions; Arbitrum holding rates are never represented as Polygon rates. DEGEN base opening/closing fallback is .02%.
+- Paper is an estimate, without user volume/staking discounts, minimum-fee modeling, dynamic impact or the temporary closing fee decay. The quote states this. It is not a promise of a live settlement amount.
+- Live cards include realized trading fees, signed borrowing/funding, and estimated base closing fee. Base closing fee uses effective counter-trade rate and the trader's on-chain fee discount. Live net includes realized P&L from the fee ledger; price impact, minimum fees, closing decay and gas mean settlement can differ. Unavailable cost reads leave net unavailable rather than inventing an amount.
+- Negative combined holding costs are labeled Hold gain in green; positive costs are Hold loss in red. Funding component also says earned/paid. Closed paper trade cost details stop accruing at the recorded closure time.
+- VersionCode 21, versionName 0.21.0; same certificate as v0.19.0/v0.20.0 for update compatibility. No private key is distributed.
+
+## 0.22.0 quiet alerts and current stats
+- Removed the repeating near-liquidation sound and feed notification. Actual liquidation, closure and entry/LIQ crossing events continue working.
+- Gains price desync/unavailable banner appears at 30 seconds and clears on recovery. Fresh-order quote checks remain five seconds; the warning threshold does not permit stale orders.
+- Stats button opens a current-market popup, updated once per second while visible: mark/index, quote age, data rate, feed state, per-chain tracked counts, available balance, pending orders, own estimated net P&L, current market fees and order estimate. Long/short tables show collateral, notional, weighted entry/leverage/LIQ and LIQ coverage, with separate high-leverage bands and own positions. Missing liquidation prices are excluded from their average. Tables scroll horizontally inside the popup on phones.
+- Leverage-band chart aggregates are cached until trade/liquidation data or market changes, eliminating unchanged aggregation on every redraw.
+- Fixed own live liquidation lines to use their contract-derived price rather than paper-cost math. Public gross P&L is labeled GROSS instead of NET.
+- Old background price-socket callbacks no longer overwrite the replacement connection status.
+- VersionCode 22, versionName 0.22.0, update certificate identical to v0.21.0. Source/native regression suites and APK signature checks pass; CI validates popup updates, 30-second boundary, order controls, fee colors and repeated mobile rotations before publishing. No physical device or funded live trade was tested.
+
+## 0.24.0 price-socket recovery
+- Fixed the Android path that has a Feed bridge but no active background monitor: foreground price recovery now starts even when Keep Alive is off, including after Exit app and reopen. With an active but stalled monitor, a foreground recovery socket starts after eight seconds without fresh selected-market quotes. It closes when the Android page becomes hidden and resumes recovery on return.
+- Recovery frames enter the synchronized native ledger through a bounded bridge; charts, paper orders, settlement and liquidation share the same real quote owner. Native and foreground transports use the same PriceFeed parser. Invalid individual pairs no longer discard the remaining valid pairs in a frame. Timestamp freshness, future rejection, actual index/mark separation and order preflight remain enforced. Heartbeats cannot fabricate fresh prices or index quotes.
+- Keep Alive reflects its saved preference instead of being incorrectly overwritten with whether the monitor is running. No automatic wallet trading or background-preference change.
+- Stats includes native monitor status, foreground socket status, timestamp errors and index-quote availability. Reconnect price feed explicitly replaces the foreground socket and reconnects the native monitor when it is running.
+- Added actual native-frame/ledger tests and Android-bridge browser coverage with background monitoring off. CI also opens the live Gains v4 WebSocket read-only and requires a fresh BTC price before publishing; no funded transaction is performed.
+- VersionCode 23 / 0.24.0, same update certificate as 0.22.0. Physical device behavior still requires user confirmation.
+
+## 0.24.0 average liquidation overlays
+- All-leverage long/short average entry and liquidation lines, plus existing high-leverage bands, use the same cached statistics as the popup and refresh on public trade changes.
+- Known liquidation averages remain separate. Missing prices get an explicitly labeled reference estimate per position: entry × (1 ± 0.9 / leverage), weighted by collateral × leverage alongside known values. This uses a 90% collateral-loss assumption before unknown fees, spread, realized P&L and current dynamic liquidation thresholds; it is not an authoritative Gains liquidation quote.
+- EST labels and known/estimated coverage appear in stats and on chart lines. Known prices take precedence automatically when backfilled. Empty sides produce no line; price-focused chart scaling is preserved.
+
+## 0.25.0 stable status layout and request/render fixes
+- Removed the green loading/Ready progress bar. Sync text uses a fixed two-line strip above the borrowing text; showing, replacing or clearing it cannot resize the chart in portrait or landscape. Completed messages expire after 3.5 seconds, in-progress text after 8 seconds. Routine Ready callbacks do not erase newer sync text.
+- History failures keep one retry timer per market; new requests clear older retries and retries stop after switching away or hiding the app.
+- Same-market holding/fee refreshes and chart snapshots cannot overlap. Holding-rate updates retain the verified contract spread and fee metadata. Fetch aborts remain active through JSON parsing and timers are cleared on all exit paths.
+- Backend changes during a snapshot queue a follow-up reload; an old long-running snapshot cannot be replaced by another writer. Confirmed changes continue to overlay snapshots through the existing revision/tombstone system.
+- Unchanged positions/trader markup reuses existing DOM, preserving controls and reducing layout work. Chart slices no longer repeat a sort/dedup already performed on the full series. Missing native history labels retain the existing text.
+- Regression coverage includes timer replacement, market-switch retry cleanup, spread preservation, request deduplication, pending reloads and native missing-history behavior. Chromium checks geometry with status messages visible/hidden across five viewport transitions, replacement timer expiration, paper trading, stats, fees, and Android foreground bridge recovery.
+- APK built and signature verified against the v0.24.0 certificate. No physical Android device or funded order tested in this change. Local read-only live price probe is blocked by DNS in this execution environment; GitHub CI runs the same probe before publishing.
+
+## 0.26.0 chart controls and app continuity
+
+- Chart/card side labels use L/S, without OTHER or GROSS. Leverage and collateral cash labels truncate decimals; prices, fees and P&L retain precision. Arithmetic and settlement retain their original precision.
+- Zoom submenu contains reset, zoom in/out, min (1w), max (10m), 15m/1h/4h/1d/1w ranges, and Auto/1m/5m/15m/1h/4h/1d candle aggregation. Pinch and wheel use the expanded bounds. History uses bounded 300-minute pages, three concurrent requests, up to 10,080 retained minute candles; larger candle intervals aggregate actual OHLC. Missing minutes remain amber placeholders until real history arrives.
+- Regular BTC displays BTC and BTCDEGEN public entry and LIQ overlays and combines their public averages/stats. BTCDEGEN entries have a D marker and cards identify BTCDEGEN. This affects visualization only; order pair selection and prices remain independent.
+- Each displayed public position has its own known or estimated liquidation boundary, including positions with clustered entry lines. Missing LIQ uses entry ± entry × 0.9 / leverage, before unknown fees/spread/dynamic thresholds, labeled EST. Exact LIQs replace estimates as available. Boundaries outside the visible price range remain offscreen.
+- Returning from another app keeps the WebView and chart alive; native resume never navigates or reloads the page. Short returns skip full public/history reloads when recently refreshed; stale returns reconcile without clearing trades or resetting zoom. The launcher reuses the existing activity. Background checkpoints preserve market, zoom, pan, candle interval, overlay toggles, selected trade, cached entries/LIQs and selected-market candles for recreation. Cache values never authorize an order; existing fresh quote checks still apply.
+- Validation: source/native regressions, deterministic known/estimated BTCDEGEN overlays, range limits, real hour/day OHLC aggregation, resume refresh gates, checkpoint restoration, mobile browser menu/rotation/recreation tests and signed APK verification. Physical Android task-switch testing remains required for device-specific lifecycle behavior. No funded trade performed.
+
+## Version 0.27.0 — Startup recovery
+
+Validate saved chart sessions and cached public-trade rows before startup; invalid rows are discarded while valid trades, zoom and scroll settings remain. Android resume callbacks wait for the bundled page to finish loading. Background monitor starts run on the Activity main thread only while resumed; platform service-start/foreground-registration restrictions leave the foreground price path available. Wallet storage is untouched.
+
+Regression coverage includes malformed cached sessions, valid-state preservation, app handlers, native ledger/feed tests, mobile browser tests and an Android 15 emulator gate for cold launch, app switching and process recreation. Emulator logs and screenshot are uploaded by CI before release publication.
+
+## Version 0.28.0 — Candle gap recovery
+
+Missing retained one-minute buckets are backfilled by their actual timestamps, including gaps older than the normal five-hour refresh. A sweep repairs at most three pages of up to 298 missing minutes each, trying Polygon then Arbitrum for unresolved buckets. Pages rotate to avoid starvation and successful pages survive other page failures. Historical OHLC replaces placeholders; unavailable minutes remain visibly marked and are never relabeled as genuine data.
+
+Incomplete successful responses schedule recovery as well as transport errors. One timer per market retries at 30 seconds while making progress, backing off to five minutes without progress. Regular polling respects this timer; larger queued zoom requests retain their requested range. Native history uses its existing fixed-delay minute job without spawning extra retry chains. Retained history remains bounded to one week in the browser and 600 bars in the native ledger. Upstream data availability still determines whether all gaps can be resolved.
+
+Regression tests reproduce 73 missing minutes older than the normal refresh, incomplete Polygon history repaired by Arbitrum, partial page failures, retry deduplication/backoff and week-long outage paging.
+
+## Version 0.29.0 — Settlement details and scoped closing
+
+Paper closing saves a settlement receipt from the same calculation that credits the cash ledger: price P&L after spread, opening fee, closing fee, signed holding cost, net P&L, loss-limit adjustment, returned collateral, exit quote and close timestamp. The Android UI reads this settled receipt rather than recalculating the close notification from a different browser quote. Existing history can reconstruct its saved paper assumptions at the recorded close time without changing past cash balances. No additional deduction is made from net P&L.
+
+A close-detail dialog persists until the user dismisses it. Each paper receipt itemizes the costs already deducted and reconciles collateral + net P&L to cash returned. Batch receipts preserve the individual results, totals and failures; stale-price failures leave those positions open. Paper cost assumptions remain frozen estimates, not actual Gains settlements. Live close dialogs identify unavailable confirmed cost data instead of fabricating fees or cash returned.
+
+The Close button beside Positions opens exactly six choices: close all, close longs, close shorts, each for the current selected market only or all coins. Current-coin scope uses the selected pairIndex; BTC and BTCDEGEN remain separate own-position markets. Empty choices are disabled. Live batches require review, submit sequentially, and wait up to 120 seconds for each position's confirmed removal and pending-order reconciliation. A rejection or unresolved close stops the rest of the batch; duplicate opening/closing is blocked while the batch runs. No funded live order was sent in validation.
+
+Regression tests cover a $100 position with $53.96 price P&L, $7 opening fee, $7 closing fee and $14 holding cost: net $25.96 and returned cash $125.96. Native/browser receipts, signed credits, collateral loss caps, duplicate payouts, all six close scopes, partial failures and live-batch sequencing are covered. Browser tests verify the six-option menu, other-coin preservation, explicit dismissal and portrait/landscape dialog bounds.
+
+## Version 0.30.0 — Close batch context and reconciliation
+- Each batch captures its starting mode, wallet object, node settings and matching position rows. Wallet replacement/removal, node changes and live/paper switching are blocked until the entire batch finishes. If its context changes during an await, remaining requests stop with an explicit partial-completion report.
+- A live batch advances only after a successful wallet sync confirms the previous position is absent and the starting wallet has no unresolved orders. Failed or concurrent syncs cannot treat stale local absence as confirmation. Historical close details are matched to both position ID and owner.
+- Regression tests execute real controls during a deferred oracle wait, reject failed-sync advancement, abort changed-wallet continuation and reject another owner's receipt. All six close scopes and the prior accounting/lifecycle behavior remain covered.
+- Builds require the preserved private release signing key and fail when missing. They never silently generate a replacement certificate. VersionCode 30 / versionName 0.30.0 keeps the v0.19.0–v0.29.0 rebuilt-release certificate.
+- Source/native regressions, Chromium mobile/rotation checks and compiled APK signature/alignment/package checks are release gates. CI additionally checks Android 15 startup, app switch and recreation before publishing. No funded trading or physical-device testing is claimed.
+
+
+## Version 0.31.0 — Performance and detailed chart loading
+- The chart-top progress overlay reports history, retained gaps, per-chain trader counts, liquidation calculations, completion and retry states. Concurrent tasks cannot dismiss each other's active progress; the overlay does not change chart geometry.
+- The Android bridge keeps all mark/index prices and authoritative native liquidation checks. It transfers complete selected-market candle history on first selection, candle rollover or backfill, and only the changing tail between revisions. Every market's native history remains available after switching markets.
+- Native paper JSON is reused while unchanged and invalidated on every ledger mutation. Browser parsing reuses the same ledger until its serialized content changes. Native leverage-cap serialization is checked every five seconds; native validation still enforces the current cap when opening.
+- OHLC aggregation and identical-entry clustering reuse unchanged results; market and portfolio DOM reuse unchanged markup. Liquidation computations yield every 40 processed positions and snapshot normalization yields every 60 rows without dropping rows.
+- Periodic display rendering and stats/math pause while the document is hidden. Price ingestion and native paper liquidation monitoring continue. Resume immediately refreshes the UI.
+- Completed long history ranges are retained; routine refreshes fetch the newest five-hour page and keep the existing bounded targeted gap repair. Failed trading-variable imports are attempted at most once per minute, or on an explicit reload. Empty successful trader snapshots are accepted as synchronized.
+- Deterministic regression covers incremental candle equivalence, history/zoom cache invalidation, independent loading tasks, native history/backfill/market-switch deltas, all-market quotes and ledger-cache invalidation. A 40-market × 101-candle fixture reduced native bridge JSON from 308,596 to 1,455 bytes; this measures payload size, not device FPS.
+- VersionCode 31 / versionName 0.31.0 uses the preserved rebuilt-release signing certificate. Physical-device and funded live-trade testing remain outstanding.
+
+
+## Version 0.32.0 — Stop recurring progress overlays
+- Startup history and the first trader snapshot show progress once. Automatic snapshot refreshes, reconnects, retained-history refreshes, gap retries and app-resume refreshes cannot start or update the overlay.
+- Explicit market/range changes show history progress; the Reload traders action shows trader progress. Failed automatic retries retain existing chart data without flashing the bar.
+- Removed a stale undeclared variable from the Reload traders handler so the action runs reliably.
+- Regression tests exercise multiple background history/snapshot refreshes and failed retries, followed by explicit history/manual trader loads. Chromium checks that background refreshes keep the overlay hidden and the Reload action still displays it.
+- VersionCode 32 / versionName 0.32.0 retains the existing signing certificate and all v0.31.0 performance improvements.
+
+## Version 0.33.0 — Combined BTC 500× and own liquidation lines
+
+- The BTC chart offers up to the discovered BTC/BTCDEGEN leverage cap, restoring 500× when available. Orders above the regular BTC market cap execute on BTCDEGEN (pair 300), using its independent fresh price, market fees and execution limits. The regular BTC execution cap is not raised.
+- BTCDEGEN positions appear alongside BTC in the position list, chart, PnL and current-coin close controls. Execution-market labels distinguish BTCDEGEN orders and positions.
+- Own entry and liquidation levels participate in chart scaling, keeping paper and live liquidation lines visible even outside the candle range or with public overlays disabled. Public levels do not expand the scale.
+- JavaScript and native regression tests verify actual pair routing, stale execution quote rejection, dynamic caps, fee labels, own paper/live liquidation labels and combined close behavior. Chromium and Android 15 lifecycle checks gate release publication. No funded live trade or physical-device testing was performed.
+- VersionCode 33 / versionName 0.33.0 retains the signing certificate and quiet background progress behavior.
+
+## Version 0.34.0 — 500× holding costs and offscreen chart levels
+
+- New paper orders await their execution market’s pending holding-rate request before saving cost assumptions. BTC 500× uses BTCDEGEN’s independent long/short rates; requests coalesce, preserve precision, and reject null/missing rate fields. Execution quotes and order context are checked again after loading. Explicit offline paper assumptions remain available and labeled.
+- Order previews calculate each side’s hourly cost/credit as collateral × leverage × (borrowing + side funding) / 100, displaying dollar and collateral-percent rates. Positions show their saved hourly cost and source. Existing paper assumptions remain unchanged; live settlement remains contract-derived, while current market previews are estimates.
+- All valid public positions, including sub-cent collateral, contribute entry and liquidation strokes even outside the visible plot. Canvas clipping hides only offscreen pixels; levels are retained for panning. Exact-entry grouping and public-overlay controls remain available.
+- Vertical panning now offsets both scale bounds by the same saved span. Previously the second bound used an already shifted first bound, shrinking or reversing the range and making distant levels inaccessible. Offscreen labels appear when their levels enter view.
+- Regression coverage verifies 500× long holding cost, short credit, native settlement/cash parity, fresh rate loading, duplicate prevention, malformed rates, stale quotes/context changes, and 80 distant retained trades appearing after panning without a feed reload. Chromium and Android lifecycle checks gate publication. No funded live trade or physical-device test was performed.
+- VersionCode 34 / versionName 0.34.0 retains the existing update signing certificate.
+
+Live borrowing now includes both the legacy borrowing component and v10 borrowing returned by the Polygon contracts, avoiding understated BTCDEGEN holding costs. If a component is unavailable, live PnL remains unknown rather than treating it as zero.
+
+Detailed order estimates scroll inside a bounded area. Landscape order controls stay visible beneath the estimates instead of being pushed beyond the viewport.
+
+## Version 0.35.0 — Public execution sounds and replacing event banner
+
+- Six unique short audio patterns distinguish public OPEN L/S, CLOSE L/S and LIQ L/S. The sound preview includes all six. Audio unlocks after touch/key input and obeys mute; text remains visible when muted.
+- The latest public execution replaces a single banner at the same chart-top position as loading progress, showing market, network, action, side, leverage, collateral and price when available. A new event replaces the expiry timer; the banner hides after 4.5 seconds, never moves chart geometry, and never changes loading task state. Switching charts clears the previous banner.
+- Alerts follow the current chart, including BTCDEGEN on BTC, and exclude the loaded wallet’s own trades. Startup/history queries and periodic snapshots are silent. A bounded 3,000-position notification registry deduplicates backend and Polygon contract reports.
+- Polygon MarketExecuted and LimitExecuted supply authoritative action types. LIQ_CLOSE (pending order type 6) means liquidation; TP/SL and market closes use close sounds. A liquidation-price field by itself never means the position liquidated. Snapshot disappearance no longer generates inferred LIQ alerts.
+- Backend register/unregister updates also notify. Unknown-reason unregister closes wait 700 ms to allow an authoritative execution to classify the event first. Confirmed execution envelopes or explicit TradeClosedLIQ metadata use LIQ immediately. Plain unregister falls back to CLOSE, without claiming liquidation.
+- JavaScript regressions cover the six patterns, replacing timer, mute, own/chart/history filtering, duplicate reports, backend/Polygon execution paths, TP versus LIQ and progress independence. Chromium checks actual audio-context unlock, banner coordinates through repeated rotations, mute and expiry. Android startup/app-switch/recreation checks gate publication. No funded live trade or physical-device test was performed.
+- VersionCode 35 / versionName 0.35.0 keeps the existing signing certificate and all v0.34.0 holding/panning fixes.
+
+Android startup QA waits for the current process to initialize (up to 46 seconds), retries transient UI inspector failures three times, and still requires visible trading UI and no app-process crash for cold launch, app switching and recreation.
+
+
+## Version 0.36.0 — Persistent latest trade and verified live line changes
+
+- The latest public trade message stays in its chart-top box until the next eligible execution replaces it. It survives rotation, chart selection and saved-session recreation without replaying audio. Loading completion does not hide or erase it.
+- New opens add entry and liquidation overlays; updates change existing positions; close/LIQ removes both overlays. Closed-position tombstones prevent stale snapshots from restoring removed lines. The three real socket callbacks are exercised with new trades, duplicate deliveries and stale snapshots.
+- Six distinct public OPEN/CLOSE/LIQ long/short sounds remain enabled after user audio unlock, with mute respected. Closed-position notification metadata cannot suppress a later valid OPEN.
+- Regression validation checks six distinct tone patterns, audio context unlock in Chromium, message persistence past the old timeout and recreation, actual canvas entry/LIQ label addition and removal on Polygon/Arbitrum/Base, and contract close/liquidation classification. Read-only live trade capture validation is reported in release notes; no funded transaction is submitted.
+- VersionCode 36 / versionName 0.36.0 retains the existing release signing certificate.
+- Live observation found current backend envelopes `liveEvent` with `returnValues` (including ABI tuple arrays) and top-level `new-trade-history`, not only plural `liveEvents`. Both current formats now drive position state and execution alerts. Confirmed history rows also populate the global feed accurately.
+- Read-only live captures on Polygon/Arbitrum/Base received real trade updates and new opens. Replaying captured production frames through the application's actual socket callbacks accepted new entry overlays and execution messages; no wallet or funded transaction was used.
+
+
+## Version 0.37.0 — Always-visible all-market executions
+
+- Public OPEN/CLOSE/LIQ messages and the six side/action sounds cover all markets across Polygon, Arbitrum and Base. Each message names its market/network. The selected chart still draws only that market's positions (including BTCDEGEN on BTC), with entry/LIQ lines added and removed by confirmed state changes.
+- Live executions do not wait for candle or trader-snapshot readiness. Historical RPC backfill is silent per event, so an in-progress historical query cannot mute live sockets on any chain. Quiet historical notification metadata cannot consume a subsequent live alert.
+- Startup shows connection/waiting status instead of an empty box. Confirmed history loads automatically and supplies a timestamped “Last confirmed” execution silently, without modifying position state. A newer live message or saved execution cannot be overwritten by older history. Unknown-market history can still display its explicit market name.
+- Global history refresh preserves newly streamed rows instead of overwriting them with an older HTTP response. All-market messages persist across chart switches, rotation and recreation; restored history/live timestamps are preserved. Mute and duplicate-report suppression remain active.
+- Validation covers live alerts before readiness, off-chart events, historical-to-live dedupe, silent startup history, history/live response races, chart isolation and the six audio patterns. VersionCode 37 / versionName 0.37.0 retains the release signing certificate.
+
+## Version 0.38.0 — Selected-market trade alerts
+
+- OPEN/CLOSE/LIQ text and sounds match the selected chart, including BTCDEGEN on BTC. Other markets cannot replace the box or play sounds.
+- Startup history selects the latest matching confirmed trade. Switching charts restores that market’s latest event silently; saved sessions validate market identity and discard older unscoped messages.
+- Live processing remains active before chart readiness. Entry and liquidation lines retain selected-market filtering and confirmed close removal.
+- Regression covers off-chart isolation, startup history, chart switching, persistence, six sound patterns and live protocol deliveries.
+
+## v0.39.0 — Full market leverage ranges
+
+- Exact numeric leverage entry accepts all supported values to 0.001× precision, including 1.1×. A separate quick selector includes the actual min/max and useful presets (150×, 250×, 500×, 1000× where allowed).
+- Bounds are market-specific: bundled defaults are replaced by live Polygon group minimums and pair maximum overrides. The selected range refreshes after discovery and market changes. In-progress typing is preserved between renders; invalid orders are rejected.
+- Browser accounting, live order routing, and native paper accounting enforce both bounds and precision. Native caps include unavailable markets to prevent stale bundled limits from reopening delisted markets.
+- Combined BTC routes to the actual supported BTC/BTCDEGEN pair with its own prices and fees. Fractional leverage below 10× is displayed precisely so 1.1× does not appear as 1×. Existing compact high-leverage labels remain.
+- Tests cover every bundled market endpoint, fractional entry, group minimums, changing caps, unavailable markets, Android native validation, and mobile/landscape control layout.
+
+## v0.40.0 — Exact allowance verification and replacement reconciliation
+
+- Before a live open, an existing USDC allowance that differs from the order collateral is replaced with the exact six-decimal collateral amount. The confirmed allowance is read back and must equal that amount before simulation or order submission.
+- A post-approval mismatch is journaled as `Approval mismatch · order not submitted`; no open transaction is sent. Approval timeouts or unknown receipts remain uncertain and still block unsafe retries through the existing durable journal.
+- When an approval transaction is replaced, the confirmed replacement transaction hash replaces the original hash in the journal so later receipt reconciliation watches the mined transaction.
+- Regression tests execute oversized-allowance reduction, signer connection, replacement-hash persistence, exact read-back verification and mismatch rejection before submission. VersionCode 40 / versionName 0.40.0 retains the private rebuilt-release signing certificate.
+
+## v0.41.0 — Chart long/short ratios
+Above the chart, public open positions for the selected market show total and nonempty leverage tiers: <10, 10–<25, 25–<50, 50–<75, 75–<100, 100–<150, 150–<200, 200–<500, 500–<1000 and 1000+. BTC includes BTCDEGEN. Trade count is the default; Position $ weights by USD collateral × leverage. Each row shows L/(L+S) and S/(L+S), rounded to two decimals with complementary rounding so they sum to 100%, plus underlying L:S counts or dollar values. Empty totals show unavailable percentages rather than a false 50/50. Closed positions are excluded. The display uses all tracked public positions, independent of line filtering/grouping, and refreshes on events, snapshots, market switches and leverage/size updates. Cached data remains during feed delays; it is a tracked snapshot, not a claim of complete exchange coverage.
+
+## v0.42.0 — Synchronized live order frames
+
+- Live opens and closes require both mark and index prices to be fresh and their timestamps to be no more than 1,000 ms apart. Individually fresh values from different oracle frames are rejected with an explicit synchronization message.
+- The coherence check runs before showing the order review and again immediately before contract simulation/submission. A feed split while the wallet is waiting for an approval confirmation therefore stops before the trading transaction is sent.
+- Regression tests cover skew in either timestamp direction and a split introduced during approval confirmation. The JavaScript/native suites, APK packaging, signature, alignment, browser controls/rotation and Android lifecycle checks gate release publication.
+- VersionCode 42 / versionName 0.42.0 retains the private rebuilt-release certificate. No funded transaction or physical-device test was performed; quote coherence does not guarantee external service availability or exchange execution.
+
+## 0.43.0 chart time scale and range
+- Always-visible readout reports requested time range, effective candle interval (including Auto), zoom relative to the default 75-minute range, latest/past offset, actual loaded candle time bounds, local timezone.
+- Bottom axis places non-overlapping time/date ticks at their actual candle centers, including intraday and midnight transitions. Dates stay visible across hour/day/week views.
+- Wheel/pinch zoom and completed pans request missing retained history through the existing bounded Gains history loader. History remains Gains oracle data with explicit amber gap placeholders; timestamps never invent candles or substitute exchange prices for execution prices.
+- Chart time scale regression and phone rotation browser checks accompany all existing source/Android/release gates.
+
+## 0.44.0 chart details dialog
+- Move the range, effective interval, zoom, past offset and visible candle dates/timezone into a modal dialog opened by Chart beside Stats.
+- Opening, closing or refreshing the dialog does not move or resize the chart. Escape/back and the Close button dismiss it.
+- Keep candle time/date labels at the bottom of the chart and preserve zoom/pan/history behavior.
+
+## 0.44.0 audio recovery
+- Android WebView allows automatic audio playback; app resume restores an enabled audio context without changing saved event/tick mute preferences.
+- Recover suspended/interrupted contexts, recreate closed contexts, and handle rejected resume promises without an unhandled rejection.
+- Settings show event/tick preferences and audio engine state, with Enable sounds + test. Enabling from the mute button plays confirmation and identifies current preferences through its accessible label.
+- Retain all six public OPEN/CLOSE/LIQ L/S patterns and existing own-position/price/candle sounds. Device media volume and output routing remain controlled by Android.
+
+## 0.45.0 long/short ratios dialog
+- Move the total and leverage-tier L/S ratios into a modal opened by L/S directly beside Stats. Retain trade-count and position-value bases and live market-scoped updates.
+- Ratios use a responsive grid inside the scrollable dialog. Close with ×, Escape or Android Back. Opening and closing does not change chart geometry.
+- The separate Chart range/zoom dialog and bottom time/date labels remain available. Preserve the v0.44.0 audio recovery and sound controls.
+
+## 0.46.0 frequent sounds and competing-app audio recovery
+Every nonzero selected-market price change produces the existing directional/mood tone pattern, subject to the existing 90ms limiter. The 0.004% filter no longer silences normal small updates. Unchanged quotes remain silent; selected-market public event filtering remains in effect.
+
+Android tones now use a bounded native PCM mixer instead of Chromium WebAudio. Bursts request transient audio focus with ducking, release it after idle, discard interrupted notes, and reacquire after permanent focus loss on the next new sound. Transient loss waits for focus gain. Pause/mute destroys pending playback; resume allows fresh sounds without replaying missed alerts. Short native tones use a low start threshold where supported, prime older-device buffers when needed, and drain queued PCM before releasing the track. The browser HTML retains WebAudio. System media volume and audio routing remain under user control.
+
+Regression coverage includes tiny up/down changes, unchanged quotes, native bridge routing and mute, plus signed Android instrumentation with a separate app that actually plays PCM while taking permanent and transient focus. Playback-head advancement is checked for a 50ms tone and before and after interruption, and mute is checked. The instrumentation fixture is signed with the existing release certificate and source-bound by SHA256SUMS; no private key is committed.
+
+## 0.47.0 chart navigation
+- Reserve 40–80 CSS pixels of empty space after the latest candle, before the price scale, across zoom levels and rotation. Time ticks use the same candle geometry.
+- Horizontal dragging moves the chart with the finger: drag right to reveal older candles; drag left to return toward latest. Clamp at the history and latest boundaries.
+
+## 0.48.0 receipt fallback reconciliation
+- Every live-open journal row records the exact pair, side, leverage, six-decimal collateral units and pre-submit trade indexes before approval or submission.
+- If a confirmed transaction receipt cannot be decoded into an oracle order ID, later wallet refreshes reconcile an open only when exactly one new live position matches every recorded field. Multiple or partial matches remain unresolved and continue blocking duplicate submission.
+- A confirmed close with an undecodable order ID reconciles only after its exact trade index is absent from the authoritative live-position set. Failed receipts remain failed; ordinary decoded order-ID reconciliation is unchanged.
+- Regression tests cover exact open matching, ambiguous open rejection and exact close disappearance. VersionCode 48 / versionName 0.48.0 retains the private release certificate. No funded transaction or physical-device test was performed.
+
+## 0.49.0 — trade-stream reconnect ownership
+
+- Polygon, Arbitrum and Base trade-stream retries belong to the connection attempt that scheduled them. Replacing a connection invalidates its queued retries, including retries after a WebSocket constructor failure. Closing an old socket synchronously cannot schedule another replacement.
+- Messages from obsolete Polygon sockets cannot reset retry backoff or inflate feed byte counters. Current connection messages and reconnect behavior remain active; reconnect generations are independent across networks.
+- Deterministic tests run the actual three network connection handlers through delayed-close retries, manual replacement, repeated retry callbacks, constructor failures and cross-network recovery. All 23 JavaScript suites pass locally. Full native/browser and release checks are tracked in CI.
+- The original private release signing key was restored for v0.49.0; this release includes the reconnect fix with signing continuity verified against v0.48.0. The key remains excluded from the repository and source ZIP.
+
+### Next development backlog
+
+- Verify sustained background operation on a physical Android device under screen-off, battery restrictions and Wi-Fi/mobile handoffs.
+- Verify connection diagnostics during real endpoint outages and network handoffs on physical Android hardware.
+- Evaluate an optional paper-only signal/replay panel using Rough Path Alpha’s tested indicator and simulation behavior, without changing normal order controls or enabling automatic live execution.
+
+## 0.49.0 — native background recovery
+
+- Reference reviewed: the owner’s Crypto Pulse Audio native foreground monitoring/price transport. Twintrade retains its existing native candle store, paper liquidation checks, foreground notification, partial wake lock and explicit keep-alive/stop controls. No reference repository was modified.
+- Background transport has one fixed-delay watchdog. Android elapsedRealtime deadlines include sleep and cannot be moved by clock corrections. A connecting or silent connection expires after 20 seconds without an accepted usable price frame; heartbeats, invalid frames and stale timestamps cannot renew health. Existing timestamp/price validation remains authoritative.
+- Failed attempts retry after 1, 2, 4, 8, 16 then at most 30 seconds, plus watchdog scheduling granularity. Only accepted prices reset backoff. Manual reconnect remains available and repeated requests within one second are coalesced. Old connection generations cannot ingest data, modify status, schedule history or trigger retries, including synchronous close callbacks.
+- A STOP command immediately closes transport, terminates scheduled jobs, saves the native store and releases the wake lock before service destruction. A sticky restart checks the saved keep-alive preference before starting network work. History workers check shutdown before importing late responses. Android force-stop and system battery restrictions remain subject to platform behavior; continuous operation cannot be promised after force-stop.
+- Validation: all 23 JavaScript suites and six native JVM suites, including deterministic background timeout/backoff/late-callback/stop tests. Current Android source compiled, dexed and packaged; CI now performs that source compilation independently of stored release APK checks. Signed release integrity and certificate continuity are checked when preparing this version. Physical-device screen-off/battery-restriction behavior has not been tested.
+
+## 0.50.0 — holding fees, sound tuning and true background activity
+
+- Holding-rate responses combine side-specific legacy borrowing (already percent/hour) with v2 borrowing (fraction/hour × 100). Funding remains independently signed per side; a negative value is a credit. Parser precision and null validation are retained. The same Polygon chain ID is used for trade/dev backend mirrors; another network’s rates never substitute for Polygon’s. Reference: https://docs.gains.trade/developer/api-reference/endpoint/holding-rates.md
+- Exact live borrowing, funding, realized trading/PnL and closing-fee reads are isolated. A failed liquidation view cannot erase fees. Partial failures preserve each last confirmed component and expose incomplete/stale status; an unknown component is never presented as zero or a complete net estimate.
+- Paper positions opened with unavailable market rates can recover once rates become available. Before switching, accrued borrowing and signed funding are checkpointed using the old assumptions; the newly obtained side-specific rate applies only going forward. Browser and native settlement/liquidation calculations share this checkpoint convention. Already valid saved rates and closed receipts are preserved. No historical rate is invented or backdated. Other paper positions retain their saved fixed-rate estimate.
+- Open-market rates refresh independently from the order form. The native service retries recovery for up to three fallback-position markets per minute while hidden, rotating through larger sets. Paper rows and receipts carry distinct borrowing/funding values; sub-cent amounts show up to six decimals instead of appearing stuck at $0.00.
+- Eligible changed quotes retain the 90ms cadence. Micro moves produce one short tick/tock pulse rather than overlapping two-note directional phrases. One/two small retracements do not immediately flip the motif; sustained/meaningful reversals do. State resets on market switch or a long feed gap. Mood is scoped to the selected chart’s positions, including profitable shorts; larger moves and event cues remain distinct.
+- The palette replaces sharp square/sawtooth cues with triangle/sine waves, caps peaks and uses soft limiting to reduce clipping when notes overlap. Existing mute, audio focus recovery and system volume/routing remain in force.
+- The foreground service owns an independent native audio engine while the Activity is hidden. It continues selected-market price/candle sonification and paper liquidation monitoring without WebView timers. Native read-only Polygon/Arbitrum/Base execution streams supply public open/close/LIQ sounds and retain the latest matching event for the resumed page. Snapshots are silent, event identities are deduplicated, and retry/stop generation guards remain active. Background live-position sound mood uses the last confirmed wallet fee snapshot; authoritative wallet refresh happens on resume and no automated funded trades are introduced.
+- The Activity hands off selected market, sound flags, mode and minimal live position context through private preferences. Foreground ownership suppresses the background player and hidden-page playback, so returning does not duplicate/replay notes. Home, another app and dismissing the Activity task do not constitute confirmed Exit. Explicit Stop monitoring or confirmed full Exit shuts down native jobs/connections/audio. The ongoing notification displays current market activity. Android force-stop, OS restrictions, denied notification/audio focus and media volume remain platform-controlled.
+- Validation: 24 JavaScript suites and nine native JVM suites, Android compile/dex/signature/package checks and a rebuilt source-bound instrumentation APK. Android CI additionally exercises native PCM after Home and screen-off, mute and foreground ownership handoff, alongside startup/recreation, competing-app focus and mobile browser rotation. Synthetic fixtures are used for accounting/audio; no funded transactions or physical-device battery/OEM tests are claimed.
+
+## 0.51.0 — per-stream connection diagnostics
+
+- The Stats panel now contains an optional, collapsed connection diagnostics section. It reports the Gains price oracle separately from Polygon, Arbitrum and Base public trade streams, so a healthy quote path is not conflated with a quiet or reconnecting trade stream.
+- A stream is marked live only after TwinTrade parses valid data from its current socket. The panel shows last valid-data age, current connecting/open/live/retry state, retry count and the active retry countdown. Invalid price frames do not reset price retry backoff or claim health.
+- Reconnect history is memory-only and capped at 32 state transitions. It records connection state and reason without socket payloads, wallet addresses, keys or user data. Existing generation guards, retry delays, public-position snapshots, order controls and live execution behavior are unchanged.
+- This advance follows the owner’s Rough Path Alpha emphasis on observable transport health while retaining TwinTrade’s existing transport and safety boundaries. No reference repository was modified and no third-party source was copied.
+- Validation includes the complete JavaScript/native regression suite, deterministic per-stream state/recovery/log-cap tests, mobile browser layout coverage, Android source compilation, package alignment/signature checks and certificate continuity against v0.50.0. No funded transaction or physical-device network-handoff test was performed.
+
+## 0.52.0 — cohesive sound palette and background burst control
+
+- WebAudio and Android native PCM now support `warm` and `chime` additive timbres. Both combine bounded sine harmonics with the existing attack/release envelope and soft limiter; no sampled media or new dependency is added. Unsupported browser periodic-wave implementations fall back to sine without disabling audio.
+- Owner and public long/short opens, closes and liquidations use distinct three-note phrases with lower peaks and short non-overlapping offsets. Owner closes distinguish profitable from losing settlement when the confirmed value is available. Entry/LIQ crossings remain distinct. Existing event/tick toggles, global mute, Android media routing and transient ducking audio focus are preserved.
+- Foreground and native background public execution palettes now use the same pitches, timbres, durations and gains. Background bursts within 240 ms suppress equal/lower-priority repeats; close replaces open, and liquidation replaces either, clearing pending lower-priority notes first. Execution banners and event state still update even when a sound is suppressed.
+- Micro quote pulses retain the established adaptive-noise hysteresis and position-direction mood. Their minimum cadence is 130 ms instead of 90 ms; ordinary moves use 105 ms and meaningful moves retain 90 ms. This reduces repetitive tick/tock chatter without delaying meaningful direction changes. One/two small counter-moves still cannot flip the motif; sustained or large reversals can.
+- The release workflow reconstructs any intentionally omitted standalone HTML from that release's own source ZIP and verifies its declared SHA-256 before release validation. This prevents a newer build from being substituted into an older release directory.
+- Validation uses synthetic/paper fixtures: 25 JavaScript suites, ten native JVM suites, mobile Chromium audio/layout checks, Android source compilation, APK signature/alignment/package integrity and Android 15 background/audio-focus instrumentation. No funded transaction or physical-device listening/battery test is claimed.

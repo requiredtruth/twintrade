@@ -55,6 +55,7 @@ public final class NativeAudio {
    }catch(RuntimeException error){release();state="retry on next sound";}
   });
  }
+ public void clearPending(){handler.post(()->notes.clear());}
  private void pump(){
   pumping=false;if(track==null||!focused||!foreground||!enabled)return;
   if(notes.isEmpty()){
@@ -66,7 +67,7 @@ public final class NativeAudio {
   for(int i=0;i<BLOCK;i++){
    long frame=cursor+i;double sum=0;
    for(Note n:notes){if(frame<n.start||frame>=n.end)continue;double elapsed=(frame-n.start)/(double)RATE,phase=elapsed*n.frequency;double wave;
-    switch(n.type){case "square":wave=Math.sin(phase*2*Math.PI)>=0?1:-1;break;case "triangle":wave=2/Math.PI*Math.asin(Math.sin(phase*2*Math.PI));break;case "sawtooth":wave=2*(phase-Math.floor(phase+.5));break;default:wave=Math.sin(phase*2*Math.PI);}
+    switch(n.type){case "square":wave=Math.sin(phase*2*Math.PI)>=0?1:-1;break;case "triangle":wave=2/Math.PI*Math.asin(Math.sin(phase*2*Math.PI));break;case "sawtooth":wave=2*(phase-Math.floor(phase+.5));break;case "warm":wave=(Math.sin(phase*2*Math.PI)+.18*Math.sin(phase*4*Math.PI)+.06*Math.sin(phase*6*Math.PI))/1.24;break;case "chime":wave=(Math.sin(phase*2*Math.PI)+.28*Math.sin(phase*4*Math.PI)+.12*Math.sin(phase*6*Math.PI)+.04*Math.sin(phase*8*Math.PI))/1.44;break;default:wave=Math.sin(phase*2*Math.PI);}
     double total=(n.end-n.start)/(double)RATE,attack=Math.min(.015,total/2),envelope=elapsed<attack?.0001*Math.pow(Math.max(.001,n.gain)/.0001,elapsed/attack):Math.max(.001,n.gain)*Math.pow(.0001/Math.max(.001,n.gain),(elapsed-attack)/(total-attack));sum+=wave*envelope;
    }
    // Soft limiting avoids harsh clipping when several event notes overlap.
