@@ -1,7 +1,7 @@
-# TwinTrade 0.57.0 specification
+# TwinTrade 0.58.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 57, versionName 0.57.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 58, versionName 0.58.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -354,3 +354,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - Preview phrases are spaced 560 ms apart, longer than the longest bundled phrase, so liquidation and event tails finish before the next example. A busy guard disables the button during playback and ignores a second invocation, preventing concurrent preview loops and audio spam.
 - The final movement examples use gentle two-note warm/chime phrases below 700 Hz instead of the former isolated 880 Hz full-gain sine. The selected sound character and level still transform every preview; the original event/tick enable preferences are restored in a `finally` path and status is refreshed even if playback is interrupted.
 - Regression coverage verifies current P&L routing, removal of obsolete cue names, bounded preview pitch, spacing and duplicate-run suppression alongside all existing audio, accounting and transport suites. Mobile browser, Android compilation, signing, alignment and package-integrity checks passed before publication. Holding/funding logic and trading behavior are unchanged.
+
+
+## 0.58.0 — bounded warm/chime movement phrases
+
+- Foreground web and native Android background directional ticks now share a 220–1080 Hz comfort band. The previous large-move calculation could multiply an already elevated second note by two, exceeding 2 kHz in profitable upward moves; all micro, directional and accent frequencies are now bounded before synthesis.
+- Micro movement uses short chime pulses for favorable direction and warm pulses for unfavorable direction. Larger moves use a warm first note, a chime rise or warm fall, and at most one accent. Direction, adaptive noise, reversal hysteresis, meaningful-move detection and 90–130 ms cadence remain unchanged.
+- Big-move and profitable-position accents no longer stack into a four-note burst. They share one bounded third-note slot, reducing density and clipping risk while retaining stronger feedback for meaningful movement. Existing sound level, mute, audio focus, event arbitration and background ownership behavior remain authoritative.
+- Tests cover the frequency bounds, maximum three-note phrase, warm/chime-only production waveforms, profitable-short mood, cooldown, hysteresis, quiet-window recovery and native/web clamp parity alongside all accounting and transport regressions. Mobile browser, Android compilation, signing, alignment and package-integrity checks passed before publication. Holding/funding and trading logic are unchanged.

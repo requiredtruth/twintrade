@@ -84,16 +84,16 @@ function tone(freq,dur=0.12,type='sine',gain=0.12,when=0){if(!soundOn&&!tickOn||
 /* Small quote changes use a short tick/tock pulse. A confirmed reversal changes
  * direction; the pulse cadence stays active through tiny back-and-forth moves. */
 let tickMotionState=null,tickBeat=false,priceSoundSuppressedUntil=0;
+function softTickFrequency(f){return Math.max(220,Math.min(1080,f));}
 function onTick(prev,next){if(!tickOn||!(prev>0&&next>0)||prev===next)return;const now=Date.now(),motion=Engine.tickMotion(tickMotionState,prev,next,now,pair),pct=(next-prev)/prev*100,abs=Math.abs(pct),micro=abs<.005,cooldown=motion.major?90:micro?130:105;tickMotionState=motion.state;if(now-lastTickAt<cooldown)return;lastTickAt=now;tickBeat=!tickBeat;
  if(now<priceSoundSuppressedUntil)return;
  const up=motion.direction>0,big=abs>=.05;
  try{const ps=myPositions();let total=0,count=0,exposure=0;for(const p of ps){const px=refPrice(p.pair);if(!px)continue;const v=p.kind==='paper'?Engine.value(p,px).net:liveValue(p);if(Number.isFinite(v)){total+=v;count++;}exposure+=(p.long?1:-1)*p.amount*p.lev/p.entry;}
  const inPos=count>0,avg=inPos?total/count:0,favorable=!inPos||exposure===0?up:motion.direction*exposure>0,base=inPos?(avg>0?760:avg<0?420:620):620,g=Math.min(.14,.045+abs*1.1);
- if(micro){tone(base*(favorable?1.04:.96)*(tickBeat?1.015:.985),.035,favorable?'sine':'triangle',g);return;}
+ if(micro){tone(softTickFrequency(base*(favorable?1.04:.96)*(tickBeat?1.015:.985)),.035,favorable?'chime':'warm',g);return;}
  const span=1+Math.min(abs,.5)*.9,f1=base*(up?span:1/span),f2=f1*(up?1.26:.79),dur=big?.13:.07;
- tone(f1,dur,up?'sine':'triangle',g);tone(f2,dur+.02,up?'sine':'triangle',g*.9,.07);
- if(big)tone(f2*2,.1,'sine',g*.5,.13);
- if(inPos&&avg>5)tone(f2*1.5,.1,'sine',g*.7,.15);
+ tone(softTickFrequency(f1),dur,'warm',g);tone(softTickFrequency(f2),dur+.02,up?'chime':'warm',g*.9,.07);
+ if(big||inPos&&avg>5)tone(softTickFrequency(f2*(big?1.4:1.25)),.09,up?'chime':'warm',g*(big?.45:.55),.14);
  }catch{}}
 let lastCandleSoundAt=0,lastCrossAt=0;
 let bigEvT=0;

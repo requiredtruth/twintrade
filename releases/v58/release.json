@@ -1,0 +1,13 @@
+{
+  "tag": "v0.58.0",
+  "title": "TwinTrade 0.58.0 \u2014 bounded movement sonification",
+  "sequence": 42,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "7dac259f69ef5d3ff60f0a29ccf42e59373ca4ebee0785326e195850e7885f5c",
+    "TwinTrade.html": "83ce18acd0e785dd76a7c33f106b3e75af21c8493e155cc46697b7011013dd91",
+    "TwinTrade-source.zip": "e98e87d0babd920fd8f015af24dc7ad536e5c9760e93e4750cacddd0b00f1ebf",
+    "spec.md": "da6d4b4f8a68d7b6f9a3e4ee39a10082aa5618a182ca6862325211bb493e5d9f",
+    "SHA256SUMS": "f5c9ba169c0d3175807ced621c083fee9d420929954725498098b4d7deed6a85"
+  }
+}
