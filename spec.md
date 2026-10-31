@@ -270,5 +270,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 
 - Polygon, Arbitrum and Base trade-stream retries belong to the connection attempt that scheduled them. Replacing a connection invalidates its queued retries, including retries after a WebSocket constructor failure. Closing an old socket synchronously cannot schedule another replacement.
 - Messages from obsolete Polygon sockets cannot reset retry backoff or inflate feed byte counters. Current connection messages and reconnect behavior remain active; reconnect generations are independent across networks.
-- Deterministic tests run the actual three network connection handlers through delayed-close retries, manual replacement, repeated retry callbacks, constructor failures and cross-network recovery. All 25 JavaScript suites pass locally. Full native/browser and release checks are tracked in CI.
+- Deterministic tests run the actual three network connection handlers through delayed-close retries, manual replacement, repeated retry callbacks, constructor failures and cross-network recovery. All 23 JavaScript suites pass locally. Full native/browser and release checks are tracked in CI.
 - No new APK is bundled with this source change: the original private release signing key is unavailable in this development environment. Restore it through the existing private backup process before packaging the next matching version; never rotate the update certificate to bypass this blocker.
+
+### Next development backlog
+
+- Package this reconnect fix with the preserved release signing key, matching HTML/source/spec and verified checksums.
+- Add optional connection diagnostics that distinguish healthy prices from each network’s trade stream, with bounded reconnect logs.
+- Evaluate an optional paper-only signal/replay panel using Rough Path Alpha’s tested indicator and simulation behavior, without changing normal order controls or enabling automatic live execution.
