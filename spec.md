@@ -1,7 +1,7 @@
-# TwinTrade 0.54.0 specification
+# TwinTrade 0.55.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 54, versionName 0.54.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 55, versionName 0.55.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -330,3 +330,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - The tick-motion state, adaptive noise estimate, confirmed direction and cooldown clock continue updating during the quiet window. The next eligible post-event quote therefore reflects current market direction instead of replaying or reacting to stale movement. Event banners, ledger state and market processing remain independent of audio arbitration.
 - Background public execution bursts retain the existing open/close/liquidation priority gate. A suppressed duplicate does not disturb a phrase already playing. An accepted close or liquidation clears movement notes, reserves the movement quiet window, and then uses the selected Gentle, Warm or Minimal event character. Native paper liquidation also preempts queued movement audio.
 - Tests cover foreground tick/candle suppression and resumption, native queued-note clearing through the private bridge, background movement suppression, direction-state continuity, existing reversal hysteresis, mute/audio focus, all event profiles, accounting and transport regressions. No funded transaction or physical-device listening test is claimed.
+
+
+## 0.55.0 — consistent sound-level control
+
+- Settings add one compact Sound level selector: Soft (45%), Balanced (70%) and Full (100%). Full is the backward-compatible default. Unknown or malformed saved values fall back to Full; the choice persists locally alongside the existing event profile and mute preferences.
+- The selected level scales event, price, candle, preview, crossing and liquidation gains before foreground WebAudio or native PCM playback. It is included in the existing private Android audio-state handoff, so the background service applies the same level to directional ticks, minute candle cues, public execution phrases and paper liquidation cues.
+- Android media volume, output routing, transient ducking focus and the independent event/tick enable flags remain authoritative. Sound level changes no market, wallet, fee, position or transaction data. Gentle, Warm and Minimal keep their pitch/timbre behavior; event-priority arbitration and reversal hysteresis remain unchanged.
+- Tests cover persistence and invalid-value recovery, foreground gain scaling, native bridge gain scaling, background tick scaling, all existing audio routing/hysteresis/arbitration behavior, accounting and transport regressions. No funded transaction or physical-device listening test is claimed.

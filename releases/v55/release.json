@@ -1,0 +1,13 @@
+{
+  "tag": "v0.55.0",
+  "title": "TwinTrade 0.55.0 \u2014 consistent sound-level control",
+  "sequence": 39,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "1b502d702cb03c28ec59287ba53ecb87aa2476176d82e877ed835aa36e20e4fe",
+    "TwinTrade.html": "fbf44b220fb9fea3349a18ac56f7ae305205369de4cc150f6f26436afa3c449c",
+    "TwinTrade-source.zip": "b9e6aa27aa9d8df919ec7c9ccd5ece3090bb5e9fbd808f8562c0fbb5c7c76765",
+    "spec.md": "46fadf6a968fa6afc113e6e81950d0ae14ef3b959176688d1dcd22eb65c2203d",
+    "SHA256SUMS": "da8a51d7f96f625852b0810230b5ad2259743b12d603d6568f41514f9bc0ea9f"
+  }
+}
