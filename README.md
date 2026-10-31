@@ -1,8 +1,10 @@
-# TwinTrade 0.48.0
+# TwinTrade 0.49.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
 ## Releases
+
+- v0.49.0: native background recovery uses usable price frames, elapsed-time deadlines, capped outage backoff and obsolete-callback protection; stopping monitoring shuts down immediately. Includes the three-network trade-stream reconnect fix.
 
 - [Original source beta](https://github.com/requiredtruth/twintrade/releases/tag/v0.3.0-beta): supplied source ZIP preserved unchanged.
 - [Supplied v17](https://github.com/requiredtruth/twintrade/releases/tag/v0.17.0-supplied): original APK preserved unchanged, exact extracted web assets and native dissection.

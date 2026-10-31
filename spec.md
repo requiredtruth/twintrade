@@ -266,15 +266,23 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - A confirmed close with an undecodable order ID reconciles only after its exact trade index is absent from the authoritative live-position set. Failed receipts remain failed; ordinary decoded order-ID reconciliation is unchanged.
 - Regression tests cover exact open matching, ambiguous open rejection and exact close disappearance. VersionCode 48 / versionName 0.48.0 retains the private release certificate. No funded transaction or physical-device test was performed.
 
-## Unreleased — trade-stream reconnect ownership
+## 0.49.0 — trade-stream reconnect ownership
 
 - Polygon, Arbitrum and Base trade-stream retries belong to the connection attempt that scheduled them. Replacing a connection invalidates its queued retries, including retries after a WebSocket constructor failure. Closing an old socket synchronously cannot schedule another replacement.
 - Messages from obsolete Polygon sockets cannot reset retry backoff or inflate feed byte counters. Current connection messages and reconnect behavior remain active; reconnect generations are independent across networks.
 - Deterministic tests run the actual three network connection handlers through delayed-close retries, manual replacement, repeated retry callbacks, constructor failures and cross-network recovery. All 23 JavaScript suites pass locally. Full native/browser and release checks are tracked in CI.
-- No new APK is bundled with this source change: the original private release signing key is unavailable in this development environment. Restore it through the existing private backup process before packaging the next matching version; never rotate the update certificate to bypass this blocker.
+- The original private release signing key was restored for v0.49.0; this release includes the reconnect fix with signing continuity verified against v0.48.0. The key remains excluded from the repository and source ZIP.
 
 ### Next development backlog
 
-- Package this reconnect fix with the preserved release signing key, matching HTML/source/spec and verified checksums.
+- Verify sustained background operation on a physical Android device under screen-off, battery restrictions and Wi-Fi/mobile handoffs.
 - Add optional connection diagnostics that distinguish healthy prices from each network’s trade stream, with bounded reconnect logs.
 - Evaluate an optional paper-only signal/replay panel using Rough Path Alpha’s tested indicator and simulation behavior, without changing normal order controls or enabling automatic live execution.
+
+## 0.49.0 — native background recovery
+
+- Reference reviewed: the owner’s Crypto Pulse Audio native foreground monitoring/price transport. Twintrade retains its existing native candle store, paper liquidation checks, foreground notification, partial wake lock and explicit keep-alive/stop controls. No reference repository was modified.
+- Background transport has one fixed-delay watchdog. Android elapsedRealtime deadlines include sleep and cannot be moved by clock corrections. A connecting or silent connection expires after 20 seconds without an accepted usable price frame; heartbeats, invalid frames and stale timestamps cannot renew health. Existing timestamp/price validation remains authoritative.
+- Failed attempts retry after 1, 2, 4, 8, 16 then at most 30 seconds, plus watchdog scheduling granularity. Only accepted prices reset backoff. Manual reconnect remains available and repeated requests within one second are coalesced. Old connection generations cannot ingest data, modify status, schedule history or trigger retries, including synchronous close callbacks.
+- A STOP command immediately closes transport, terminates scheduled jobs, saves the native store and releases the wake lock before service destruction. A sticky restart checks the saved keep-alive preference before starting network work. History workers check shutdown before importing late responses. Android force-stop and system battery restrictions remain subject to platform behavior; continuous operation cannot be promised after force-stop.
+- Validation: all 23 JavaScript suites and six native JVM suites, including deterministic background timeout/backoff/late-callback/stop tests. Current Android source compiled, dexed and packaged; CI now performs that source compilation independently of stored release APK checks. Signed release integrity and certificate continuity are checked when preparing this version. Physical-device screen-off/battery-restriction behavior has not been tested.

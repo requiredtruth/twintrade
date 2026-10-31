@@ -56,3 +56,6 @@ No live-money transaction is submitted as part of verification. A successful bui
 
 ## v0.47.0
 Latest-candle right spacing and natural horizontal drag direction.
+
+## 0.49.0
+Native background price recovery with usable-frame health, elapsed-time watchdog, capped outage retry, obsolete-callback exclusion and immediate stop. Includes Polygon/Arbitrum/Base trade-stream reconnect ownership fixes. Matching APK/HTML/source/spec/checksums use the preserved release certificate.

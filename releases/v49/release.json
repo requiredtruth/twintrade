@@ -1,0 +1,13 @@
+{
+  "tag": "v0.49.0",
+  "title": "TwinTrade 0.49.0 \u2014 reliable native background recovery",
+  "sequence": 33,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "d4fbf2e963a34f7eca794415234e1b6906958983e284df00eee6b306ddf45ebf",
+    "TwinTrade.html": "0f1f7d9284bd866b52f26ec6e397e9291156669a88dcb85bdc6569e46844e0aa",
+    "TwinTrade-source.zip": "b614c2db62b651d18a3e86dd1fcc177b6aaac53c872a94930a5ebfaa350b86b9",
+    "spec.md": "005d3c267dd5b85306b3b11363e424775bb2fd422bcc78bfcfa0037657536ba6",
+    "SHA256SUMS": "53226581523b689cfb7bab64e0e5edd6ab27f19aba1fa46e78bde210772fa8d2"
+  }
+}
