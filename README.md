@@ -1,8 +1,10 @@
-# TwinTrade 0.53.0
+# TwinTrade 0.54.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
 ## Releases
+
+- v0.54.0: execution and liquidation phrases now preempt queued price/candle tones and reserve a short quiet window, preventing category overlap while direction state continues updating.
 
 - v0.53.0: optional Gentle, Warm and Minimal event-sound characters persist across sessions and remain consistent between foreground WebAudio/native PCM and Android background playback.
 

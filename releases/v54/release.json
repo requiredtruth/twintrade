@@ -1,0 +1,13 @@
+{
+  "tag": "v0.54.0",
+  "title": "TwinTrade 0.54.0 \u2014 event-priority audio arbitration",
+  "sequence": 38,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "0d56bb0f6f146fe5a9417559938addfdf5e1806bbbe2d35e41da6e3068cb7087",
+    "TwinTrade.html": "720796e31aa39c39e58f2d3220e35c8bd3313dcd64531332f960329836d6aa27",
+    "TwinTrade-source.zip": "f94906af9d3ca6dc04364015726f3632f7841eac05dc6617b24fc7d4b40e21cc",
+    "spec.md": "00599211b72b822638ab070408e4c5c276d401271a3273107dffc254e0019848",
+    "SHA256SUMS": "f26982c49878af1cbbb28d27b8d3451a456e1937e627b6b5bd5c9959d0fcacc8"
+  }
+}

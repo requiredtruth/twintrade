@@ -1,7 +1,7 @@
-# TwinTrade 0.53.0 specification
+# TwinTrade 0.54.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 53, versionName 0.53.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 54, versionName 0.54.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -322,3 +322,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - The profile applies only to execution/crossing phrases. Existing directional price ticks and candle cues keep their tested movement, profit/loss mood, hysteresis and cooldown behavior. Event sounds and price/candle sounds remain independently enabled; the global mute remains unchanged.
 - `soundProfile` is a backward-compatible local preference with `gentle` as the default and validation back to `gentle` for unknown saved values. The selected value is included in the existing private native audio-state handoff, so Android background public execution cues match foreground playback. No wallet, transaction or user data is added.
 - Native and browser tests cover phrase counts, pitch/timbre/gain transforms, persistence, invalid-profile fallback, mute/audio recovery and the existing six distinct side/action routes. The complete accounting, transport and lifecycle regressions remain enabled. No funded transaction or physical-device listening test is claimed.
+
+
+## 0.54.0 — event-priority audio arbitration
+
+- Execution, crossing and liquidation phrases now take priority over price and candle sonification. In the Android foreground and native background service, an accepted event clears queued movement notes before its phrase begins. Web playback suppresses new movement cues for the same bounded 520 ms phrase window.
+- The tick-motion state, adaptive noise estimate, confirmed direction and cooldown clock continue updating during the quiet window. The next eligible post-event quote therefore reflects current market direction instead of replaying or reacting to stale movement. Event banners, ledger state and market processing remain independent of audio arbitration.
+- Background public execution bursts retain the existing open/close/liquidation priority gate. A suppressed duplicate does not disturb a phrase already playing. An accepted close or liquidation clears movement notes, reserves the movement quiet window, and then uses the selected Gentle, Warm or Minimal event character. Native paper liquidation also preempts queued movement audio.
+- Tests cover foreground tick/candle suppression and resumption, native queued-note clearing through the private bridge, background movement suppression, direction-state continuity, existing reversal hysteresis, mute/audio focus, all event profiles, accounting and transport regressions. No funded transaction or physical-device listening test is claimed.

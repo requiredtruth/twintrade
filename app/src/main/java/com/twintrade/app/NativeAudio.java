@@ -55,7 +55,7 @@ public final class NativeAudio {
    }catch(RuntimeException error){release();state="retry on next sound";}
   });
  }
- public void clearPending(){handler.post(()->notes.clear());}
+ @JavascriptInterface public void clearPending(){handler.post(()->notes.clear());}
  private void pump(){
   pumping=false;if(track==null||!focused||!foreground||!enabled)return;
   if(notes.isEmpty()){

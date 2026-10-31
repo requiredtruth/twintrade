@@ -83,8 +83,9 @@ function click(){if(!soundOn)return;tone(700,0.05,'sine',0.05);}
 function tone(freq,dur=0.12,type='sine',gain=0.12,when=0){if(!soundOn&&!tickOn||document.hidden)return;type=type==='square'?'triangle':type==='sawtooth'?'sine':type;gain=Math.min(.095,gain);try{ensureAudio();if(window.NativeAudio){NativeAudio.tone(freq,dur,type,gain,when);return;}if(!audioCtx)return;const t=audioCtx.currentTime+when,o=audioCtx.createOscillator(),g=audioCtx.createGain();if((type==='warm'||type==='chime')&&audioCtx.createPeriodicWave&&o.setPeriodicWave){const real=new Float32Array(5),imag=new Float32Array(5);imag[1]=1;imag[2]=type==='chime'?.28:.18;imag[3]=type==='chime'?.12:.06;imag[4]=type==='chime'?.04:0;o.setPeriodicWave(audioCtx.createPeriodicWave(real,imag,{disableNormalization:false}));}else o.type=type==='warm'||type==='chime'?'sine':type;o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.001,gain),t+Math.min(.018,dur*.35));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.05);}catch{}}
 /* Small quote changes use a short tick/tock pulse. A confirmed reversal changes
  * direction; the pulse cadence stays active through tiny back-and-forth moves. */
-let tickMotionState=null,tickBeat=false;
+let tickMotionState=null,tickBeat=false,priceSoundSuppressedUntil=0;
 function onTick(prev,next){if(!tickOn||!(prev>0&&next>0)||prev===next)return;const now=Date.now(),motion=Engine.tickMotion(tickMotionState,prev,next,now,pair),pct=(next-prev)/prev*100,abs=Math.abs(pct),micro=abs<.005,cooldown=motion.major?90:micro?130:105;tickMotionState=motion.state;if(now-lastTickAt<cooldown)return;lastTickAt=now;tickBeat=!tickBeat;
+ if(now<priceSoundSuppressedUntil)return;
  const up=motion.direction>0,big=abs>=.05;
  try{const ps=myPositions();let total=0,count=0,exposure=0;for(const p of ps){const px=refPrice(p.pair);if(!px)continue;const v=p.kind==='paper'?Engine.value(p,px).net:liveValue(p);if(Number.isFinite(v)){total+=v;count++;}exposure+=(p.long?1:-1)*p.amount*p.lev/p.entry;}
  const inPos=count>0,avg=inPos?total/count:0,favorable=!inPos||exposure===0?up:motion.direction*exposure>0,base=inPos?(avg>0?760:avg<0?420:620):620,g=Math.min(.14,.045+abs*1.1);
@@ -109,7 +110,7 @@ function myAvgEntry(){let w=0,s=0;for(const p of myPositions()){const n=(p.amoun
 function myTotalNet(targetPair=null){let s=0,n=0;for(const p of myPositions()){if(targetPair!==null&&!(targetPair===pair?chartPair(p):p.pair===targetPair))continue;if(!refPrice(p.pair))continue;const v=p.kind==='paper'?Engine.value(p,refPrice(p.pair)).net:liveValue(p);if(Number.isFinite(v)){s+=v;n++;}}return n?{total:s,count:n}:null;}
 /* Chart candle-close sound: fires regardless of positions; brighter when
  * average open P&L is positive, darker when negative. */
-function onCandleClose(c){if(!tickOn)return;const now=Date.now();if(now-lastCandleSoundAt<1500)return;lastCandleSoundAt=now;try{const up=c.c>=c.o,mood=positionMood();
+function onCandleClose(c){if(!tickOn)return;const now=Date.now();if(now<priceSoundSuppressedUntil||now-lastCandleSoundAt<1500)return;lastCandleSoundAt=now;try{const up=c.c>=c.o,mood=positionMood();
 if(up){if(mood==='positive'){tone(523,0.12,'triangle',0.1);tone(659,0.14,'triangle',0.1,0.1);}else if(mood==='negative')tone(440,0.12,'triangle',0.06);else tone(520,0.16,'triangle',0.09);}
 else{if(mood==='negative'){tone(392,0.12,'triangle',0.1);tone(311,0.16,'triangle',0.1,0.1);}else if(mood==='positive')tone(349,0.12,'triangle',0.06);else tone(350,0.16,'triangle',0.09);}}catch{}}
 const EVENT_SOUND_PALETTE={
@@ -130,7 +131,7 @@ const EVENT_SOUND_PALETTE={
  'liq-touch':[[247,.13,'warm',.06,0],[185,.18,'sine',.055,.13]]
 };
 function profiledEventNotes(notes){const selected=soundProfile==='minimal'&&notes.length>2?[notes[0],notes.at(-1)]:notes;return selected.map(([freq,dur,type,gain,when],i)=>soundProfile==='warm'?[freq*.88,dur,type==='chime'?'warm':type,gain*.9,when]:soundProfile==='minimal'?[freq,dur*.9,type,gain*.85,i?Math.min(when,.11):0]:[freq,dur,type,gain,when]);}
-function eventSound(kind){if(!soundOn)return;try{if(EVENT_SOUND_PALETTE[kind]){for(const notes of profiledEventNotes(EVENT_SOUND_PALETTE[kind]))tone(...notes);return;}
+function eventSound(kind){if(!soundOn)return;try{priceSoundSuppressedUntil=Date.now()+520;window.NativeAudio?.clearPending?.();if(EVENT_SOUND_PALETTE[kind]){for(const notes of profiledEventNotes(EVENT_SOUND_PALETTE[kind]))tone(...notes);return;}
 if(kind==='other-long'){tone(660,0.09,'triangle',0.09);}
 else if(kind==='other-short'){tone(392,0.09,'triangle',0.09);}
 else if(kind==='other-liq'){tone(196,0.25,'sawtooth',0.1);}
