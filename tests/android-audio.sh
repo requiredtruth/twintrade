@@ -15,7 +15,7 @@ if [ ! -f build/signing.jks ]; then
  echo 'Audio instrumentation requires the private target signing key' >&2
  exit 1
 fi
-"$bt/apksigner" sign --ks build/signing.jks --ks-pass pass:android --out tests/android-audio/test.apk build/audio-test/aligned.apk
+"$bt/apksigner" sign --v4-signing-enabled false --ks build/signing.jks --ks-pass pass:android --out tests/android-audio/test.apk build/audio-test/aligned.apk
  sha256sum app/src/main/java/com/twintrade/app/NativeAudio.java tests/android-audio/*.java tests/android-audio/AndroidManifest.xml tests/android-audio/test.apk > tests/android-audio/SHA256SUMS
  exit 0
 fi

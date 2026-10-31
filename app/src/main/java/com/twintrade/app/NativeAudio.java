@@ -69,7 +69,8 @@ public final class NativeAudio {
     switch(n.type){case "square":wave=Math.sin(phase*2*Math.PI)>=0?1:-1;break;case "triangle":wave=2/Math.PI*Math.asin(Math.sin(phase*2*Math.PI));break;case "sawtooth":wave=2*(phase-Math.floor(phase+.5));break;default:wave=Math.sin(phase*2*Math.PI);}
     double total=(n.end-n.start)/(double)RATE,attack=Math.min(.015,total/2),envelope=elapsed<attack?.0001*Math.pow(Math.max(.001,n.gain)/.0001,elapsed/attack):Math.max(.001,n.gain)*Math.pow(.0001/Math.max(.001,n.gain),(elapsed-attack)/(total-attack));sum+=wave*envelope;
    }
-   pcm[i]=(short)(Math.max(-1,Math.min(1,sum))*32767);
+   // Soft limiting avoids harsh clipping when several event notes overlap.
+   pcm[i]=(short)(Math.tanh(sum*.85)*32767);
   }
   try{
    int written=track.write(pcm,0,pcm.length,AudioTrack.WRITE_BLOCKING);
@@ -83,5 +84,6 @@ public final class NativeAudio {
  private void finishBurst(){updateHead();if(track!=null&&lastHead<cursor&&SystemClock.uptimeMillis()<drainDeadline){handler.postDelayed(idle,50);return;}release();}
  private void stopTrack(){updateHead();handler.removeCallbacks(pump);handler.removeCallbacks(idle);pumping=false;if(track!=null){try{track.pause();track.flush();track.release();}catch(RuntimeException ignored){}track=null;}cursor=0;}
  private void release(){stopTrack();notes.clear();manager.abandonAudioFocusRequest(focus);focused=false;waiting=false;state=enabled?"ready":"muted";}
+ // Foreground means the current audio owner: Activity while visible, service while background.
  public void close(){handler.post(()->{foreground=false;release();thread.quitSafely();});}
 }

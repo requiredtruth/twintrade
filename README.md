@@ -1,8 +1,10 @@
-# TwinTrade 0.49.0
+# TwinTrade 0.50.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
 ## Releases
+
+- v0.50.0: correct side-specific legacy + v2 borrowing estimates, separate funding/borrowing amounts, forward recovery of paper fallback rates, independent live fee reads; softer tick/tock micro-move sounds and native background audio/execution activity until Stop/Exit.
 
 - v0.49.0: native background recovery uses usable price frames, elapsed-time deadlines, capped outage backoff and obsolete-callback protection; stopping monitoring shuts down immediately. Includes the three-network trade-stream reconnect fix.
 

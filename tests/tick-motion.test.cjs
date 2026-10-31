@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),E=require('../app/src/main/assets/engine.js');
+let state,now=0,prev=100;const pulse=(next,key=0,gap=100)=>{now+=gap;const r=E.tickMotion(state,prev,next,now,key);state=r.state;prev=next;return r;};
+assert.equal(pulse(100.001).direction,1);
+assert.equal(pulse(100.000).direction,1,'one small retreat keeps directional motif');
+assert.equal(pulse(100.001).direction,1);
+assert.equal(pulse(100.000).direction,1);
+assert.equal(pulse(100.001).direction,1);
+assert.equal(pulse(100.000).direction,1);assert.equal(pulse(99.999).direction,1);
+assert.equal(pulse(99.998).direction,-1,'sustained reversal changes direction');
+assert.equal(pulse(100.01).direction,1,'larger reversal is immediate');
+assert.equal(pulse(100.009,1).direction,-1,'market switch resets trend');
+assert.equal(pulse(100.008,1,3000).direction,-1,'resume seeds from current movement');
+const unchanged=E.tickMotion(state,prev,prev,now,1);assert.equal(unchanged.changed,false);
+console.log('PASS: every micro quote remains eligible, one/two-quote retreats keep motif, genuine reversals and market/resume resets.');

@@ -1,6 +1,7 @@
 package com.twintrade.app;
 import android.app.*;import android.os.*;import android.webkit.*;import android.view.*;import android.content.*;import android.security.keystore.*;import android.util.Base64;import java.security.*;import javax.crypto.*;import javax.crypto.spec.GCMParameterSpec;import java.io.*;
 public class MainActivity extends Activity {
+ public static volatile boolean visible=false;
  private NativeAudio audio;private WebView web;private boolean resumed=false,pageReady=false;
  @Override public void onCreate(Bundle state){super.onCreate(state);MarketStore.init(this);audio=new NativeAudio(this);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setStatusBarColor(0xff171e27);getWindow().setNavigationBarColor(0xff151c25);// Insets belong on the native parent: WebView padding does not reliably shrink its HTML viewport.
  if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
@@ -27,13 +28,14 @@ public class MainActivity extends Activity {
  // Keep the existing WebView when returning from another app. Never navigate/reload on resume.
  private void resumePage(){if(web!=null&&pageReady){web.evaluateJavascript("if(typeof onAppResume==='function')onAppResume();",null);new Handler(getMainLooper()).postDelayed(()->{if(resumed&&audio!=null)android.util.Log.i("TwinTrade","Audio engine: "+audio.status());},500);}}
  private void startMonitor(String action){runOnUiThread(()->{if(!resumed||isFinishing()||isDestroyed())return;try{Intent request=new Intent(this,PriceMonitorService.class);if(action!=null)request.setAction(action);startForegroundService(request);}catch(RuntimeException e){MarketStore.running=false;MarketStore.status="Background monitor unavailable · foreground prices active";android.util.Log.w("TwinTrade","Monitor start rejected",e);}});}
- @Override protected void onResume(){super.onResume();resumed=true;audio.foreground(true);if(web!=null){web.onResume();resumePage();}if(getSharedPreferences("market",0).getBoolean("keepAlive",true))startMonitor(null);}
- @Override protected void onPause(){resumed=false;audio.foreground(false);if(web!=null){if(pageReady)web.evaluateJavascript("if(typeof checkpointSession==='function')checkpointSession();",null);web.onPause();}super.onPause();}
+ @Override protected void onResume(){super.onResume();resumed=true;visible=true;PriceMonitorService.visibilityChanged();audio.foreground(true);if(web!=null){web.onResume();resumePage();}if(getSharedPreferences("market",0).getBoolean("keepAlive",true))startMonitor(null);}
+ @Override protected void onPause(){resumed=false;visible=false;audio.foreground(false);PriceMonitorService.visibilityChanged();if(web!=null){if(pageReady)web.evaluateJavascript("if(typeof checkpointSession==='function')checkpointSession();",null);web.onPause();}super.onPause();}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);}
  @Override protected void onDestroy(){if(audio!=null)audio.close();if(web!=null){web.removeJavascriptInterface("NativeAudio");web.removeJavascriptInterface("Vault");web.removeJavascriptInterface("Feed");web.destroy();web=null;}super.onDestroy();}
  @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('ratiosDialog').open)document.getElementById('ratiosDialog').close();else if(document.getElementById('chartInfoDialog').open)document.getElementById('chartInfoDialog').close();else if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
 
  public class Feed {
+  @JavascriptInterface public void audioState(String raw){if(raw==null||raw.length()>200000)return;try{org.json.JSONObject state=new org.json.JSONObject(raw);int selected=state.getInt("pair");if(selected<0||selected>1000)return;getSharedPreferences("market",0).edit().putString("audioState",raw).apply();PriceMonitorService.visibilityChanged();}catch(Exception ignored){}}
   @JavascriptInterface public void updateCaps(String raw){MarketStore.updateCaps(raw);}
   @JavascriptInterface public void exitApp(){
    getSharedPreferences("market",0).edit().putBoolean("keepAlive",false).apply();
@@ -42,12 +44,14 @@ public class MainActivity extends Activity {
   }
   @JavascriptInterface public int acceptPriceFrame(String raw){return PriceFeed.ingest(raw,System.currentTimeMillis());}
   @JavascriptInterface public void reconnect(){startMonitor("RECONNECT");}
+  @JavascriptInterface public String backgroundEvent(){return getSharedPreferences("market",0).getString("backgroundTradeEvent","{}");}
   @JavascriptInterface public String snapshot(){return MarketStore.snapshot();}
   @JavascriptInterface public String snapshotFor(int pair,long revision){return MarketStore.snapshotFor(pair,revision);}
   @JavascriptInterface public void seed(String raw){MarketStore.seed(raw);}
   @JavascriptInterface public String paper(){return MarketStore.book();}
   @JavascriptInterface public String open(int pair,boolean isLong,double percent,double lev,String cost){return MarketStore.open(pair,isLong,percent,lev,cost);}
   @JavascriptInterface public String close(String id){return MarketStore.close(id);}
+  @JavascriptInterface public int recoverHoldingRates(int pair,double borrowLong,double borrowShort,double fundLong,double fundShort){return MarketStore.recoverHoldingRates(pair,borrowLong,borrowShort,fundLong,fundShort,System.currentTimeMillis());}
   @JavascriptInterface public void reset(){MarketStore.reset();}
   @JavascriptInterface public void keepAlive(boolean enabled){getSharedPreferences("market",0).edit().putBoolean("keepAlive",enabled).apply();if(enabled)startMonitor(null);else stopService(new Intent(MainActivity.this,PriceMonitorService.class));}
   @JavascriptInterface public void batterySettings(){runOnUiThread(()->{try{startActivity(new Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));}catch(Exception ignored){}});}

@@ -59,3 +59,6 @@ Latest-candle right spacing and natural horizontal drag direction.
 
 ## 0.49.0
 Native background price recovery with usable-frame health, elapsed-time watchdog, capped outage retry, obsolete-callback exclusion and immediate stop. Includes Polygon/Arbitrum/Base trade-stream reconnect ownership fixes. Matching APK/HTML/source/spec/checksums use the preserved release certificate.
+
+## 0.50.0
+Holding/funding fee fixes, side-specific legacy borrowing, saved fallback-rate recovery, smoother tick/tock sounds and native background sound/execution activity. Signed update retains the existing certificate; release includes APK, standalone HTML, matching source/spec and checksums.

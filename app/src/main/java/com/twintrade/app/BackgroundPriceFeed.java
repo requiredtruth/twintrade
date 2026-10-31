@@ -22,7 +22,8 @@ public final class BackgroundPriceFeed {
  private int failures=0;
  private boolean stopped=false,attempted=false;
 
- public BackgroundPriceFeed(Runnable connected,LongSupplier elapsedTime) {
+ public BackgroundPriceFeed(Runnable connected,LongSupplier elapsedTime) {this(connected,elapsedTime,raw->PriceFeed.ingest(raw,System.currentTimeMillis()));}
+ public BackgroundPriceFeed(Runnable connected,LongSupplier elapsedTime,ToIntFunction<String> consume) {
   this(elapsedTime,events->{
    WebSocketClient client=new WebSocketClient(new URI("wss://backend-pricing.eu.gains.trade/v4")) {
     public void onOpen(ServerHandshake handshake){events.open();}
@@ -32,7 +33,7 @@ public final class BackgroundPriceFeed {
    };
    client.setConnectionLostTimeout(15);
    return new Transport(){public void connect(){client.connect();}public void close(){client.closeConnection(1000,"Monitor reconnect/stop");}};
-  },raw->PriceFeed.ingest(raw,System.currentTimeMillis()),s->MarketStore.status=s,connected);
+  },consume,s->MarketStore.status=s,connected);
  }
  public BackgroundPriceFeed(LongSupplier clock,Factory factory,ToIntFunction<String> ingest,Consumer<String> status,Runnable connected) {
   this.clock=clock;this.factory=factory;this.ingest=ingest;this.status=status;this.connected=connected;
