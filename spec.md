@@ -1,7 +1,7 @@
-# TwinTrade 0.52.0 specification
+# TwinTrade 0.53.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 52, versionName 0.52.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 53, versionName 0.53.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -315,3 +315,10 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - Micro quote pulses retain the established adaptive-noise hysteresis and position-direction mood. Their minimum cadence is 130 ms instead of 90 ms; ordinary moves use 105 ms and meaningful moves retain 90 ms. This reduces repetitive tick/tock chatter without delaying meaningful direction changes. One/two small counter-moves still cannot flip the motif; sustained or large reversals can.
 - The release workflow reconstructs any intentionally omitted standalone HTML from that release's own source ZIP and verifies its declared SHA-256 before release validation. This prevents a newer build from being substituted into an older release directory.
 - Validation uses synthetic/paper fixtures: 25 JavaScript suites, ten native JVM suites, mobile Chromium audio/layout checks, Android source compilation, APK signature/alignment/package integrity and Android 15 background/audio-focus instrumentation. No funded transaction or physical-device listening/battery test is claimed.
+
+## 0.53.0 — optional event sound character
+
+- Settings now expose one compact Event sound character selector. Gentle retains the full v0.52 three-note phrases. Warm transposes event cues down by 12%, replaces brighter chime partials with the warm harmonic timbre and reduces phrase gain by 10%. Minimal retains the first and resolving note, shortens them by 10%, caps their separation at 110 ms and reduces gain by 15%.
+- The profile applies only to execution/crossing phrases. Existing directional price ticks and candle cues keep their tested movement, profit/loss mood, hysteresis and cooldown behavior. Event sounds and price/candle sounds remain independently enabled; the global mute remains unchanged.
+- `soundProfile` is a backward-compatible local preference with `gentle` as the default and validation back to `gentle` for unknown saved values. The selected value is included in the existing private native audio-state handoff, so Android background public execution cues match foreground playback. No wallet, transaction or user data is added.
+- Native and browser tests cover phrase counts, pitch/timbre/gain transforms, persistence, invalid-profile fallback, mute/audio recovery and the existing six distinct side/action routes. The complete accounting, transport and lifecycle regressions remain enabled. No funded transaction or physical-device listening test is claimed.
