@@ -4,6 +4,17 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  // Valid empty trader snapshots prevent unrelated offline retry notices from racing timer assertions.
  await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
  await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);
+ // Legend shares every chart line style and stays reachable in both orientations.
+ for(const viewport of [{width:393,height:852},{width:852,height:393}]){
+  await page.setViewportSize(viewport);await page.click('#legendOpen');
+  assert(await page.locator('#legendDialog').isVisible());
+  assert.equal(await page.locator('.legend-row').count(),14);
+  assert(await page.evaluate(()=>Object.values(LINE_STYLE).every((style,i)=>{const line=document.querySelectorAll('.legend-row line')[i];return line.getAttribute('stroke')===style.color&&line.getAttribute('stroke-dasharray')===style.dash.join(' ')})));
+  assert((await page.locator('#legendRows').textContent()).includes('Public short average liquidation'));
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.click('#closeLegend');assert(!(await page.locator('#legendDialog').isVisible()));
+ }
+ await page.setViewportSize({width:393,height:852});
  assert.equal(await page.locator('#price').textContent(),'$84610.00');await page.click('#long');await page.waitForTimeout(300);assert((await page.locator('#positions').textContent()).includes('L'));
  // Exact leverage entry and quick limits across crypto, commodities, stocks and forex.
  for(const [pi,max,min] of [[2,150,1.1],[90,250,1.1],[58,4,1.1],[21,1000,10],[0,500,1.1]]){await page.evaluate(pi=>{pair=pi;render()},pi);assert.equal(await page.locator('#lev').getAttribute('max'),String(max));assert.equal(await page.locator('#lev').getAttribute('min'),String(min));const choices=await page.locator('#levPresets option').evaluateAll(os=>os.map(o=>o.value));assert(choices.includes(String(max)));assert(choices.includes(String(min)));await page.selectOption('#levPresets',String(max));assert.equal(await page.inputValue('#lev'),String(max));}

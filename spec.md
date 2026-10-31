@@ -1,7 +1,7 @@
-# TwinTrade 0.61.0 specification
+# TwinTrade 0.62.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 61, versionName 0.61.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 62, versionName 0.62.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -386,3 +386,9 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - Preemption retains the acquired transient ducking focus and immediately creates a clean stream for the following phrase. It does not replay the interrupted note. The existing 520 ms event and 140 ms candle quiet windows keep direction/hysteresis state current and prevent movement audio from restarting beneath the replacement phrase.
 - Foreground WebAudio routing, native background ownership, mute, saved level/character, Android media routing and focus-loss recovery remain unchanged. Trading, settlement and holding/funding behavior are unchanged.
 - Android instrumentation starts a two-second native tone, verifies that it stops advancing after priority preemption, then verifies fresh PCM playback recovers immediately. The complete JavaScript/native suite, mobile browser, Android source compilation, signing/alignment/package and lifecycle/audio-focus gates remain required. No funded transaction or physical-device listening/battery test is claimed.
+
+## v0.62.0 — Chart legend
+- Legend sits beside Stats, L/S and Chart. It opens a scrollable mobile dialog with fourteen visual samples, exact color codes and solid/dotted/dashed descriptions.
+- Chart and legend share LINE_STYLE, including the previously inline public average entry and liquidation styles. Rendering colors, widths and dash arrays are unchanged.
+- Explains own/public entries, duplicate groups, notional-weighted averages, liquidation estimates, nearest leverage bands, BTCDEGEN labels and missing-history candles. Does not advertise unimplemented projections or protective exits.
+- Browser coverage opens/closes the dialog at 393×852 and 852×393, verifies every sample against the chart definition and checks horizontal overflow. Existing native/browser regression gates remain required. No physical-device background endurance result is claimed.

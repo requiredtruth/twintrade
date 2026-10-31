@@ -1,0 +1,13 @@
+{
+  "tag": "v0.62.0",
+  "title": "TwinTrade 0.62.0 \u2014 chart line legend",
+  "sequence": 46,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "e88eaccf34d6ac999d0ddb127d2f2492b4f0403071417c1ed31bde98f50ec471",
+    "TwinTrade.html": "3ccfea4ab58b6f6c06a041479673616d95c71ad0778190f388a74e7f5aeadb30",
+    "TwinTrade-source.zip": "80b588a6d9d3c258ced85016b4efbab520d3a3e157c1926f2bb1ad8ac0e81857",
+    "spec.md": "c06972fd774afbb8b73dfaf367fb647b0416eaa990c5371dbc3d764cfeea7e6d",
+    "SHA256SUMS": "021fb04653f8c3c197e82eedd6b57d6d7786535cf9d3c1b7b6a3154d3eb533e7"
+  }
+}
