@@ -1,0 +1,13 @@
+{
+  "tag": "v0.51.0",
+  "title": "TwinTrade 0.51.0 \u2014 per-stream connection diagnostics",
+  "sequence": 35,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "03b8b643b9611c7b8c7d2f77d395dda3b87b2156fa523d1ae8c41d2d50ce096e",
+    "TwinTrade.html": "d75337ac88078c2fa1fb6fbc8a1a505bb175ecd59223628500719149f81bcb28",
+    "TwinTrade-source.zip": "a457f2d093411ef506dfae80b09685a8ea2738191d7b2cab50f7c702e160fe6e",
+    "spec.md": "365a63ff559f3bdcd59a9b89ec128f664ceb16d489be82d1ff20132a3dd43fc8",
+    "SHA256SUMS": "93d5c3109d2cb1c41506ce28e01fccf61485aaa8073804fe626f3bd2aee6b715"
+  }
+}

@@ -1,7 +1,7 @@
-# TwinTrade 0.50.0 specification
+# TwinTrade 0.51.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 50, versionName 0.50.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 51, versionName 0.51.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -276,7 +276,7 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 ### Next development backlog
 
 - Verify sustained background operation on a physical Android device under screen-off, battery restrictions and Wi-Fi/mobile handoffs.
-- Add optional connection diagnostics that distinguish healthy prices from each network’s trade stream, with bounded reconnect logs.
+- Verify connection diagnostics during real endpoint outages and network handoffs on physical Android hardware.
 - Evaluate an optional paper-only signal/replay panel using Rough Path Alpha’s tested indicator and simulation behavior, without changing normal order controls or enabling automatic live execution.
 
 ## 0.49.0 — native background recovery
@@ -298,3 +298,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - The foreground service owns an independent native audio engine while the Activity is hidden. It continues selected-market price/candle sonification and paper liquidation monitoring without WebView timers. Native read-only Polygon/Arbitrum/Base execution streams supply public open/close/LIQ sounds and retain the latest matching event for the resumed page. Snapshots are silent, event identities are deduplicated, and retry/stop generation guards remain active. Background live-position sound mood uses the last confirmed wallet fee snapshot; authoritative wallet refresh happens on resume and no automated funded trades are introduced.
 - The Activity hands off selected market, sound flags, mode and minimal live position context through private preferences. Foreground ownership suppresses the background player and hidden-page playback, so returning does not duplicate/replay notes. Home, another app and dismissing the Activity task do not constitute confirmed Exit. Explicit Stop monitoring or confirmed full Exit shuts down native jobs/connections/audio. The ongoing notification displays current market activity. Android force-stop, OS restrictions, denied notification/audio focus and media volume remain platform-controlled.
 - Validation: 24 JavaScript suites and nine native JVM suites, Android compile/dex/signature/package checks and a rebuilt source-bound instrumentation APK. Android CI additionally exercises native PCM after Home and screen-off, mute and foreground ownership handoff, alongside startup/recreation, competing-app focus and mobile browser rotation. Synthetic fixtures are used for accounting/audio; no funded transactions or physical-device battery/OEM tests are claimed.
+
+## 0.51.0 — per-stream connection diagnostics
+
+- The Stats panel now contains an optional, collapsed connection diagnostics section. It reports the Gains price oracle separately from Polygon, Arbitrum and Base public trade streams, so a healthy quote path is not conflated with a quiet or reconnecting trade stream.
+- A stream is marked live only after TwinTrade parses valid data from its current socket. The panel shows last valid-data age, current connecting/open/live/retry state, retry count and the active retry countdown. Invalid price frames do not reset price retry backoff or claim health.
+- Reconnect history is memory-only and capped at 32 state transitions. It records connection state and reason without socket payloads, wallet addresses, keys or user data. Existing generation guards, retry delays, public-position snapshots, order controls and live execution behavior are unchanged.
+- This advance follows the owner’s Rough Path Alpha emphasis on observable transport health while retaining TwinTrade’s existing transport and safety boundaries. No reference repository was modified and no third-party source was copied.
+- Validation includes the complete JavaScript/native regression suite, deterministic per-stream state/recovery/log-cap tests, mobile browser layout coverage, Android source compilation, package alignment/signature checks and certificate continuity against v0.50.0. No funded transaction or physical-device network-handoff test was performed.

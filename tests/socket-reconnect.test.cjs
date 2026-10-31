@@ -6,7 +6,7 @@ function fixture(){
   const env={setTimeout(f,ms){timers.push({f,ms});},WebSocket:class{
     constructor(){if(fail)throw Error('blocked');sockets.push(this);}
     close(){this.onclose?.();}
-  },loadPublicSnapshot(){snapshots++;},tradeFeedStatus(){},applyBackendChange(){},pushGlobalLive(){},queuePublicReload(){},discoverAssets(){},$:()=>({}),JSON,Math};
+  },loadPublicSnapshot(){snapshots++;},tradeFeedStatus(){},applyBackendChange(){},pushGlobalLive(){},queuePublicReload(){},discoverAssets(){},noteConnection(){},touchConnection(){},$:()=>({}),JSON,Math};
   vm.createContext(env);
   vm.runInContext('let publicBackendGeneration=0,publicSocket=null,publicRetry=0,rxBytes=0,rxWindow=0,publicVars=null,publicRefreshTimer=0;let netSockets={},netSocketGenerations={};',env);
   for(const name of ['setupPublicBackend','connectNetLive'])vm.runInContext(source.split('\n').find(l=>l.startsWith('function '+name+'(')),env);
