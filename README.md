@@ -1,8 +1,11 @@
-# TwinTrade 0.62.0
+# TwinTrade 0.64.0
 
 Android and standalone browser trading terminal reconstructed from the supplied v17 APK. Paper mode is the default; Android live trading uses Polygon native USDC and requires POL for gas.
 
 ## Releases
+
+- v0.64.0: durable paper execution queue for opens, individual/bulk closes and liquidations; independently persisted 3–10 second delays with a 5% 30-second outlier, reserved collateral, duplicate guards, visible countdowns and execution-time pricing. Live Polygon timing is unchanged.
+- v0.63.0: idempotent timestamped background candle replay and selected-market native catch-up.
 
 - v0.62.0: chart Legend beside Stats/L/S/Chart with actual line colors, patterns, entry/liquidation meanings and nearest leverage-band definitions.
 - v0.61.0: high-priority event and candle cues now flush already-buffered native movement PCM before starting, eliminating residual overlap tails.

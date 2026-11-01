@@ -9,10 +9,12 @@ env.window=env;vm.createContext(env);const run=code=>vm.runInContext(code,env);
 const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
 (async()=>{
  await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(run('paperDelayMs(()=>0)'),30000);assert.equal(run('paperDelayMs((()=>{const v=[.1,0];return()=>v.shift()})())'),3000);assert.equal(run('paperDelayMs((()=>{const v=[.1,.99999];return()=>v.shift()})())'),10000);
  // A second close of the same paper order must never credit the balance twice.
  run('setPrice(0,100,Date.now());');await run('sendOrder(true)');
- const p=run('book.positions[0]');run('closePaper(book.positions[0])');const balance=run('book.cash');
- env.oldPosition=p;assert.throws(()=>run('closePaper(oldPosition)'),/already closed/);assert.equal(run('book.cash'),balance);
+ assert.equal(run('book.positions.length'),0);assert.equal(run('book.pending.length'),1);assert.equal(run('book.cash'),90);run('render()');assert(node('positions').innerHTML.includes('sampled once'));assert(node('positions').innerHTML.includes('execution-time market price'));
+ assert.equal(JSON.parse(stored.paper).pending[0].due,run('book.pending[0].due'));run('setPrice(0,105,Date.now());processBrowserPaper(Date.now()+31000)');const p=run('book.positions[0]');assert.equal(p.entry,run('105*(1+book.positions[0].cost.slip/100)'));run('closePaper(book.positions[0])');const deadline=run('book.pending[0].due');run('closePaper(book.positions[0])');assert.equal(run('book.pending[0].due'),deadline);
+ run('setPrice(0,110,Date.now());processBrowserPaper(Date.now()+62000)');assert.equal(run('book.history[0].exit'),110);const balance=run('book.cash');env.oldPosition=p;assert.throws(()=>run('closePaper(oldPosition)'),/already closed/);assert.equal(run('book.cash'),balance);
  // Delayed BTC history cannot get assigned to ETH after selection changes.
  let resolveBtc,resolveEth;env.fetchHistoryChain=async(chain,sym)=>new Promise(resolve=>{if(sym==='BTC-USD')resolveBtc=resolve;else resolveEth=resolve});
  const btc=run('loadHistory(0)');run('pair=1');const ether=run('loadHistory(1)');

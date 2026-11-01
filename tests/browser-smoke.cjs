@@ -3,7 +3,7 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  const errors=[];const page=await browser.newPage({viewport:{width:393,height:852}});page.on('pageerror',e=>errors.push(e.message));
  // Valid empty trader snapshots prevent unrelated offline retry notices from racing timer assertions.
  await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
- await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);
+ await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);await page.evaluate(()=>paperDelayMs=()=>0);
  // Legend shares every chart line style and stays reachable in both orientations.
  for(const viewport of [{width:393,height:852},{width:852,height:393}]){
   await page.setViewportSize(viewport);await page.click('#legendOpen');

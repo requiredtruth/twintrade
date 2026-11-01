@@ -1,0 +1,13 @@
+{
+  "tag": "v0.64.0",
+  "title": "TwinTrade 0.64.0 \u2014 persistent paper execution queue",
+  "sequence": 48,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "27a733573cc260d94bc2d0ca99764d5f1188d63913ac0d570d2afb3f7ff4aaeb",
+    "TwinTrade.html": "5407b99439508b076ecf1e5cf741443e4abd93aa1c7161493cb5ef14f2b38449",
+    "TwinTrade-source.zip": "d035c518b5d57bafeada41ef2f5375230ea087b5156ad10d94245a7d3aec7867",
+    "spec.md": "adf374e499551ccc780cd7aa43d2588a1b5bd21ceec5e6f18368bb591f7bd0f8",
+    "SHA256SUMS": "0496530c6dfb5013a330bf1c9b8bb20b4554cb94277f6b4ece1d0848fcbd8cb5"
+  }
+}

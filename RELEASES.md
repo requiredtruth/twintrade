@@ -62,3 +62,7 @@ Native background price recovery with usable-frame health, elapsed-time watchdog
 
 ## 0.50.0
 Holding/funding fee fixes, side-specific legacy borrowing, saved fallback-rate recovery, smoother tick/tock sounds and native background sound/execution activity. Signed update retains the existing certificate; release includes APK, standalone HTML, matching source/spec and checksums.
+
+
+## 0.64.0
+Persistent paper execution queue for market opens, individual and bulk closes, and simulated liquidations. Every operation samples and saves an independent 3–10 second delay, with a 5% chance of a 30-second total delay; pending opens reserve collateral and settlement uses the fresh execution-time market price. Duplicate submissions cannot double-settle, and live Polygon execution is unchanged. Matching signed APK, standalone HTML, source, spec and checksums retain the existing update certificate.

@@ -1,0 +1,5 @@
+Paper market opens, individual and bulk closes, and simulated liquidations now use one durable execution queue. Each action independently saves a 3–10 second deadline, with a 5% chance of a 30-second total delay. Pending opens reserve collateral, duplicate actions cannot double-settle, pending rows show countdowns, and fills use the fresh market price available at execution time. Stale or unavailable prices leave work pending.
+
+This artificial latency applies only to paper simulation. Polygon live execution remains unchanged. The queue is the persistence and precedence foundation for the requested open-position stop-loss/take-profit and Chandelier features, which are not part of this release.
+
+Validated with deterministic delay-bound/outlier tests, deadline persistence, execution-price movement, duplicate opens/closes, bulk closes, delayed liquidation, holding/fee regression coverage, the complete JavaScript/native suite, Android compilation, signature/alignment/package checks and browser checks. Physical-device background endurance and funded execution were not tested.

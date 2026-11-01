@@ -7,6 +7,7 @@ const node=id=>nodes[id]??={id,value:({amount:'10',lev:'10'})[id]||'',options:[]
 const env={console,document:{getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:(f,ms)=>{timeouts.set(++nextTimer,{f,ms});return nextTimer},clearTimeout(id){timeouts.delete(id)},setInterval:(f,ms)=>{intervals.push({f,ms});return intervals.length},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(url){this.url=url;this.readyState=1;}close(){this.readyState=3}},ethers:{utils:eth.utils,providers:{JsonRpcProvider:class{constructor(){this.connection={url:'fixture'}}async getNetwork(){throw Error('offline fixture')}}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline fixture')},GABI:[]};
 env.window=env;vm.createContext(env);const run=code=>vm.runInContext(code,env);
 const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
+run('paperDelayMs=()=>0');
 (async()=>{
  await new Promise(resolve=>setImmediate(resolve));
  const E=env.Engine,now=Date.now(),cost={fee:.035,slip:0,borrow:.07,funding:0,liq:90};
@@ -16,8 +17,8 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  assert(Math.abs(run('book.cash')-125.96)<.001);assert(node('settlementDialog').open);assert(node('settlementRows').innerHTML.includes('Holding cost deducted'));assert(node('settlementRows').innerHTML.includes('$14.00'));assert(node('settlementRows').innerHTML.includes('Opening fee deducted'));assert(node('settlementTotal').textContent.includes('$125.96'));assert.throws(()=>run('closePaper(fixture)'),/already closed/);
  node('dismissSettlement').onclick();assert(!node('settlementDialog').open);
  // Native close uses its saved receipt, even when the browser quote differs.
- const settled={...p,net:r.net,settlement:r,exit:100.2698,closed:now,status:'Closed'};env.nativeBook={cash:0,positions:[p],history:[]};env.Feed={paper:()=>JSON.stringify(env.nativeBook),close:()=>{env.nativeBook={cash:r.payout,positions:[],history:[settled]};return 'OK'}};
- run('book=JSON.parse(Feed.paper());prices[0]=999;closePaper(book.positions[0])');assert(node('settlementRows').innerHTML.includes('+$25.96'));assert(!node('settlementRows').innerHTML.includes('179'));node('dismissSettlement').onclick();delete env.Feed;
+ const settled={...p,net:r.net,settlement:r,exit:100.2698,closed:now,status:'Closed'};env.nativeBook={cash:0,positions:[p],history:[],pending:[]};env.Feed={paper:()=>JSON.stringify(env.nativeBook),close:()=>{env.nativeBook={cash:r.payout,positions:[],history:[settled],pending:[]};return 'PENDING:'+(Date.now()+3000)}};
+ run('book=JSON.parse(Feed.paper());prices[0]=999;closePaper(book.positions[0]);showPaperClose(book.history[0])');assert(node('settlementRows').innerHTML.includes('+$25.96'));assert(!node('settlementRows').innerHTML.includes('179'));node('dismissSettlement').onclick();delete env.Feed;
  // Signed holding credits and capped liquidation losses reconcile.
  const credit=E.settle({...p,cost:{...cost,borrow:0,fundingSide:-.07}},100,now);assert(Math.abs(credit.net)<1e-9);assert(Math.abs(credit.hold+14)<1e-9);
  const loss=E.settle(p,90,now);assert.equal(loss.net,-100);assert.equal(loss.payout,0);assert(loss.lossLimitAdjustment>0);
