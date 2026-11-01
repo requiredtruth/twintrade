@@ -1,0 +1,13 @@
+{
+  "tag": "v0.63.0",
+  "title": "TwinTrade 0.63.0 \u2014 background candle catch-up",
+  "sequence": 47,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "e1100849a5edaa1aa3fa84cc3adcd020ad136ff694101a17c1ce02d82de10ebf",
+    "TwinTrade.html": "3ccfea4ab58b6f6c06a041479673616d95c71ad0778190f388a74e7f5aeadb30",
+    "TwinTrade-source.zip": "8f3f9781a1c25d505220cc47a91038c9d38b06a20aea86dd096cd0db802bb968",
+    "spec.md": "d4e15f404a35c39c899ba5482169d46befc878f8cef43003ae15924ccf1db9cf",
+    "SHA256SUMS": "c5c5c9f674349214cf9443764661a7a55bebf9416f3ca2f687e6ecace1f64f06"
+  }
+}

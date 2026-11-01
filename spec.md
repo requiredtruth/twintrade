@@ -392,3 +392,11 @@ Regression coverage includes tiny up/down changes, unchanged quotes, native brid
 - Chart and legend share LINE_STYLE, including the previously inline public average entry and liquidation styles. Rendering colors, widths and dash arrays are unchanged.
 - Explains own/public entries, duplicate groups, notional-weighted averages, liquidation estimates, nearest leverage bands, BTCDEGEN labels and missing-history candles. Does not advertise unimplemented projections or protective exits.
 - Browser coverage opens/closes the dialog at 393×852 and 852×393, verifies every sample against the chart definition and checks horizontal overflow. Existing native/browser regression gates remain required. No physical-device background endurance result is claimed.
+
+
+## 0.63.0 — idempotent background candle catch-up
+
+- Native background history now includes the currently selected configured market in addition to BTC, ETH and their DEGEN variants. The private selected pair/symbol handoff is normalized to the Gains candle route and strictly validated before use; unknown or unsafe symbols are ignored.
+- Replayed native history is compared after timestamp normalization, chronological sorting, gap reconstruction and retention. A byte-equivalent catch-up no longer advances the candle revision, so foreground resume receives only the active tail instead of repeatedly merging the complete retained window. A real historical correction still advances the revision and transfers the corrected multi-bar snapshot.
+- Synthetic native regression feeds four one-minute candles in reverse order, repeats the same batch, revises one historical bar and verifies distinct chronological buckets, stable revision/tail transfer for the duplicate, and a full corrected snapshot for the material change. Existing stale/future executable-price rejection is unchanged; untimestamped legacy arrays remain receipt-time live quotes and are not fabricated into historical bars.
+- Validation covers the complete JavaScript/native regression suite, current Android source compilation, browser portrait/landscape checks, signed APK alignment/package/signature continuity and Android lifecycle instrumentation. Physical-device screen-off, vendor battery restriction and network-handoff endurance remain device-specific limitations. No funded transaction is performed.
