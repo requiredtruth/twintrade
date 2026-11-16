@@ -25,6 +25,7 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  const state={approvals:0,opens:0,allowance:eth.utils.parseUnits('1000',6),approvalApplies:true,desyncAfterApproval:false,loseApprovalResponse:true};
  const requests=new Map();
  const rpc={
+   async getFeeData(){return {maxFeePerGas:eth.utils.parseUnits('31.5','gwei'),maxPriorityFeePerGas:eth.utils.parseUnits('1.5','gwei')};},
    async send(method,[signed]){
      assert.equal(method,'eth_sendRawTransaction');
      const hash=eth.utils.keccak256(signed);
@@ -51,7 +52,7 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
    async balanceOf(){return eth.utils.parseUnits('100',6)}
    async allowance(){return state.allowance}
  };
- env.fixtureWallet={address:'0x1111111111111111111111111111111111111111',provider:rpc,connect(){return this},async populateTransaction(req){return req},async signTransaction(req){state.prepared=req;return req.kind==='approve'?'0x01':'0x02'}};
+ env.fixtureWallet={address:'0x1111111111111111111111111111111111111111',provider:rpc,connect(){return this},async populateTransaction(req){assert.equal(eth.utils.formatUnits(req.maxPriorityFeePerGas,'gwei'),'25.0');assert.equal(eth.utils.formatUnits(req.maxFeePerGas,'gwei'),'55.0');return req},async signTransaction(req){state.prepared=req;return req.kind==='approve'?'0x01':'0x02'}};
  run("wallet=fixtureWallet;liveBalance=100;mode='live';pair=0;setPrice(0,100,Date.now());indexPrices[0]=100;indexTimes[0]=Date.now();");
  await run('sendOrder(true)');assert.equal(state.approvals,0);assert.equal(state.opens,0);
  env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);assert(state.allowance.eq(eth.utils.parseUnits('10',6)));assert.equal(run('pending[0].approvalHash'),eth.utils.keccak256('0x01'));assert.equal(state.approvals,1,'ambiguous approval is never repeated');assert(!stored.liveErrors.includes('PRIVATE_TOKEN'));assert(stored.liveErrors.includes('RPC lost response'));state.loseApprovalResponse=false;
@@ -86,5 +87,17 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  // An unresolved submission prevents both another open and duplicate close.
  await run('sendOrder(false)');assert.equal(state.opens,1);
  env.position={pair:0,index:1,long:true,lev:10};await run('closeLive(position)');assert.equal(state.opens,1);assert(node('toast').textContent.includes('pending'));
+ run("pending=[{id:'older',owner:wallet.address,action:'open',pair:0,long:true,leverage:100,collateralUnits:'5353748',created:Date.now()-1000,approvalHash:'0x42',status:'Submission uncertain · check chain'}];liveErrors=[{time:new Date().toISOString(),stage:'USDC approval · Broadcasting signed transaction',rpcCode:'-32000',reason:'transaction gas price below minimum: gas tip cap 1500000000, minimum needed 25000000000',pair:0,side:'long',leverage:100,collateralUnits:'5353748'}];recoverRejectedApprovals();render()");
+ assert.equal(run('pending[0].status'),'Approval rejected · order not submitted');
+ assert(node('positions').innerHTML.includes('data-dismiss-order="older"'));
+ node('positions').onclick({target:{dataset:{dismissOrder:'older'}}});
+ assert.equal(JSON.parse(stored.pending)[0].dismissed,true);
+ assert(!node('positions').innerHTML.includes('Approval rejected'));
+ run("pending=[];indexTimes[0]=Date.now()");
+ state.allowance=eth.utils.parseUnits('1000',6);
+ rpc.send=async()=>{throw Object.assign(Error('processing response error'),{error:{code:-32000,message:'transaction gas price below minimum: gas tip cap 25000000000, minimum needed 30000000000'}});};
+ await run('sendOrder(true)');
+ assert.equal(run('pending[0].status'),'Failed · order not submitted');
+ assert.equal(run('pending[0].approvalHash'),undefined);
  console.log('PASS: duplicate paper settlement, market-switch history race, rejected review, signer-bound approval and pending-order exclusion.');
 })().catch(e=>{console.error(e);process.exit(1)});

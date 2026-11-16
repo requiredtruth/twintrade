@@ -468,3 +468,5 @@ Landscape grid now explicitly places both account metrics and selected-market P&
 ### Live order diagnostics
 
 Settings and Stats export a local UTF-8 text report through the Android file picker or a browser download. It includes recent live order failure stages and sanitized RPC codes and reasons. Open and approval transaction hashes are journaled before broadcast. If the RPC response is lost, the app waits for the known Polygon receipt without broadcasting a second transaction. An open still checks its confirmed USDC allowance, simulates and rechecks the reviewed quote before broadcasting.
+
+Polygon EIP-1559 approval, open and close transactions use at least 25 gwei priority fee and retain the RPC estimate's base-fee headroom. The explicit minimum-tip rejection is reported as a rejected broadcast. Other ambiguous broadcast outcomes retain receipt reconciliation. Dismissing an error only hides its Positions row and preserves diagnostics and transaction tracking.

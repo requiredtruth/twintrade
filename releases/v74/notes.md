@@ -1,0 +1,3 @@
+- Uses Polygon's minimum 25 gwei priority fee while retaining the RPC's estimated base-fee headroom.
+- Treats explicit minimum-tip rejection as a rejected broadcast and clears the matching stale approval block from v0.73.0.
+- Adds an × to dismiss failed or uncertain order rows while retaining the transaction journal and diagnostics.

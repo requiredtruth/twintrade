@@ -1,0 +1,13 @@
+{
+  "tag": "v0.74.0",
+  "title": "TwinTrade 0.74.0 \u2014 Polygon gas and dismissible errors",
+  "sequence": 58,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "ee029dabb91d022d19c29b67f08ca84d247c7da53882bbe222daaf73053fbe04",
+    "TwinTrade.html": "03b708f10167fdfc9c5037383e4e212ab40e2636aed5b078e744d03ad7274c2d",
+    "TwinTrade-source.zip": "49dece4e935cecddc6e6f333c41a9c3beaf76fd8d4caae5cf42363c07e1fca6c",
+    "spec.md": "bece612c6028a91011cbe61044d9749c825092622fae97079ea311425c93c5da",
+    "SHA256SUMS": "83b25f49df831e4030a1547e61b63f62802b94d6abdbbe3a71c7815cebff0387"
+  }
+}

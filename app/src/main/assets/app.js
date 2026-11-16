@@ -383,7 +383,7 @@ async function saveLiveExit(p,kind){
   const signer=c.connect(wallet.connect(provider));
   const args=[p.index,priceUnit(value)];
   await signer.callStatic[method](...args);
-  const tx=await signer[method](...args);
+  const tx=await signer[method](...args,await polygonFeeOverrides(provider));
   await waitReceipt(tx);
   $('exitStatus').textContent=kind+' confirmed on Polygon.';
   await refreshWallet();
@@ -451,7 +451,7 @@ let ps=mode==='paper'?book.positions:livePositions,net=0,unknownNet=false;for(co
 renderAccountMetrics(ps,net);
 try{$('net').textContent=money(net);$('net').className=net>=0?'positive':'negative';$('positionsTab').className=history?'':'active';$('historyTab').className=history?'active':'';}catch{}
 renderPositionPnl(ps);
-let list=history?(mode==='paper'?book.history:liveHistory.filter(p=>wallet&&p.owner?.toLowerCase()===wallet.address.toLowerCase())):ps;let html='';if(!history&&mode==='live')for(const p of pending.filter(x=>wallet&&x.owner===wallet.address))html+=`<div class="position">${esc(p.label)} <b>${esc(p.status)}</b><small>${esc(p.hash||p.error||'')}</small></div>`;if(!history&&mode==='paper')for(const q of book.pending||[]){const seconds=Math.max(0,Math.ceil((q.due-Date.now())/1000));html+=`<div class="position"><b>${q.action==='open'?(q.long?'L':'S'):'CLOSE'}</b><span>${q.lev?levLabel(q.lev)+'×':''}</span><span>${q.amount?cashLabel(q.amount):''}</span><b>${seconds}s</b><small>Paper ${esc(q.action)} pending · sampled once · fills at available execution-time market price${q.reason?' · '+esc(q.reason):''}</small></div>`;}
+let list=history?(mode==='paper'?book.history:liveHistory.filter(p=>wallet&&p.owner?.toLowerCase()===wallet.address.toLowerCase())):ps;let html='';if(!history&&mode==='live')for(const p of pending.filter(x=>wallet&&x.owner===wallet.address&&!x.dismissed))html+=`<div class="position">${esc(p.label)} <b>${esc(p.status)}</b>${canDismissOrder(p)?`<button data-dismiss-order="${esc(p.id)}" aria-label="Dismiss order error">×</button>`:''}<small>${esc(p.error||p.hash||'')}</small></div>`;if(!history&&mode==='paper')for(const q of book.pending||[]){const seconds=Math.max(0,Math.ceil((q.due-Date.now())/1000));html+=`<div class="position"><b>${q.action==='open'?(q.long?'L':'S'):'CLOSE'}</b><span>${q.lev?levLabel(q.lev)+'×':''}</span><span>${q.amount?cashLabel(q.amount):''}</span><b>${seconds}s</b><small>Paper ${esc(q.action)} pending · sampled once · fills at available execution-time market price${q.reason?' · '+esc(q.reason):''}</small></div>`;}
 for(const p of list.filter(chartPair)){let v=history?p.net:p.kind==='paper'?Engine.value(p,refPrice(p.pair)||p.entry).net:liveValue(p);let cost=p.kind==='paper'?(history?paperReceipt(p):Engine.value(p,refPrice(p.pair)||p.entry)):null;const holdCls=cost?(cost.hold>0.0000005?'negative':cost.hold<-0.0000005?'positive':''):((p.holdingTime||p.feeTime)&&liveHolding(p)>0.0000005?'negative':(p.holdingTime||p.feeTime)&&liveHolding(p)<-0.0000005?'positive':'');const holdTxt=cost?`Hold ${cost.hold<0?'gain':'loss'} <b class="${holdCls}">${feeMoney(cost.hold)}</b> (${Math.abs(cost.holdRate).toFixed(6)}% notional/h · ${money(Math.abs(p.amount*p.lev*cost.holdRate/100))}/h ${cost.holdRate<0?'earned':'paid'}) · Borrow <b class="negative">${feeMoney(cost.borrow)}</b> · Funding <b class="${cost.funding<0?'positive':'negative'}">${feeMoney(cost.funding)}</b> ${cost.funding<0?'earned':'paid'}`:(p.holdingTime||p.feeTime)?`Hold ${Number.isFinite(liveHolding(p))?(liveHolding(p)<0?'gain':'loss'):'unavailable'} <b class="${holdCls}">${feeMoney(liveHolding(p))}</b> · Borrow <b class="${(p.borrow||0)>0.0000005?'negative':(p.borrow||0)<-0.0000005?'positive':''}">${feeMoney(p.borrow)}</b> · Funding <b class="${(p.funding||0)>0.0000005?'negative':(p.funding||0)<-0.0000005?'positive':''}">${feeMoney(p.funding)}</b> ${p.funding<0?'earned':'paid'}`:'';html+=`<div class="position"><b class="${p.long?'long':'short'}">${p.long?'L':'S'}</b><span>${levLabel(p.lev)}×</span><span>${cashLabel(p.amount)}</span><b class="${v>=0?'positive':'negative'}">${money(v)} <small>(${pnlPercentText(Engine.pnlPercent(v,p.amount))})</small></b>${!history?`<button data-exits="${esc(p.id)}">Exits</button><button data-close="${esc(p.id)}">×</button>`:''}<small>${p.pair===300&&pair===0?'BTCDEGEN · ':''}${esc(p.status)} · Entry ${money(p.entry)}${history&&p.kind==='paper'?' · '+esc(paperReceiptText(p)):cost?' · Open fee '+money(cost.openFee)+' · Close est. '+money(cost.closeFee)+' · '+holdTxt+' · holding + fees included in net · '+esc(p.cost.holdingSource||'Saved paper assumptions')+' · frozen-rate paper estimate':(p.holdingTime||p.feeTime)?' · Trading paid '+money(p.trading)+' · Close base est. '+money(p.closeEstimate)+' · '+holdTxt+' · '+(p.hourRate===undefined?'rate unavailable':(p.hourRate>=0?'+':'')+p.hourRate.toFixed(5)+'%/h')+' · '+esc(p.holdingError||p.feeError||'net estimate'):' · '+esc(p.holdingError||p.feeError||'Net costs unavailable')}</small></div>`}
 try{setHTML('positions',html||'<p class="muted" style="padding:0 15px">'+(history?'No closed trades.':'No positions in this market.')+'</p>');}catch{}
 try{$('costbadge').textContent=mode==='paper'?'Paper costs: estimates':'Net P&L: estimate';}catch{}
@@ -600,14 +600,48 @@ function recordLiveError(stage,error,row){
 }
 function exportLiveErrors(){
   const legacy=pending.filter(row=>row.error&&!row.errorLogged).slice(-20).map(row=>({status:row.status,...safeOrderError({reason:row.error})}));
-  const report=['TwinTrade v0.73.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
+  const report=['TwinTrade v0.74.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
   if(window.Feed?.saveErrorReport){Feed.saveErrorReport(report);return;}
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain'}));const link=document.createElement('a');link.href=url;link.download='TwinTrade-errors.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+function canDismissOrder(row){return !!row.error||/^(Failed|Approval failed|Approval mismatch|Submission uncertain)/.test(row.status);}
+function dismissOrderError(id){
+  const row=pending.find(item=>item.id===id&&item.owner===wallet?.address);
+  if(!row||!canDismissOrder(row))return;
+  row.dismissed=true;
+  persist();render();
+}
+function polygonTipRejected(reason){
+  return /transaction gas price below minimum:\s*gas tip cap \d+, minimum needed \d+/i.test(reason);
+}
+function recoverRejectedApprovals(){
+  let changed=false;
+  for(const error of liveErrors){
+    if(error.stage!=='USDC approval · Broadcasting signed transaction'||error.rpcCode!=='-32000'||!polygonTipRejected(error.reason))continue;
+    const time=Date.parse(error.time);
+    const rows=pending.filter(row=>row.action==='open'&&row.pair===error.pair&&row.collateralUnits===error.collateralUnits&&row.leverage===error.leverage&&(row.long?'long':'short')===error.side&&row.created<=time&&time-row.created<=120000);
+    if(rows.length!==1)continue;
+    const [row]=rows;
+    if(!row.approvalHash||row.hash||row.approvalConfirmed||!/^Submission uncertain/.test(row.status))continue;
+    row.status='Approval rejected · order not submitted';
+    row.error='USDC approval · '+error.reason;
+    changed=true;
+  }
+  if(changed)persist();
+}
+async function polygonFeeOverrides(rpc){
+  const fees=await rpc.getFeeData();
+  const minimum=ethers.utils.parseUnits('25','gwei');
+  if(!fees.maxFeePerGas||!fees.maxPriorityFeePerGas)throw Error('Polygon RPC did not provide EIP-1559 gas estimates');
+  const tip=fees.maxPriorityFeePerGas.lt(minimum)?minimum:fees.maxPriorityFeePerGas;
+  const cap=fees.maxFeePerGas.add(tip.sub(fees.maxPriorityFeePerGas));
+  return {type:2,maxPriorityFeePerGas:tip,maxFeePerGas:cap.lt(tip)?tip:cap};
+}
+recoverRejectedApprovals();
 async function submitTracked(signer,request,row,field,setStage,beforeBroadcast=()=>{}){
   setStage('Preparing transaction and estimating POL gas');
-  const prepared=await signer.populateTransaction(await request);
   const rpc=signer.provider;
+  const prepared=await signer.populateTransaction({...await request,...await polygonFeeOverrides(rpc)});
   const price=prepared.maxFeePerGas??prepared.gasPrice;
   if(price&&prepared.gasLimit&&(await rpc.getBalance(signer.address)).lt(prepared.gasLimit.mul(price)))throw Error('Insufficient POL for estimated gas');
   const signed=await signer.signTransaction(prepared);
@@ -619,6 +653,11 @@ async function submitTracked(signer,request,row,field,setStage,beforeBroadcast=(
     const returned=await rpc.send('eth_sendRawTransaction',[signed]);
     if(typeof returned!=='string'||returned.toLowerCase()!==hash)throw Error('RPC returned an unexpected transaction hash');
   }catch(error){
+    const details=safeOrderError(error);
+    if(details.rpcCode==='-32000'&&polygonTipRejected(details.reason)){
+      delete row[field];
+      throw error;
+    }
     row.error=recordLiveError(row.stage,error,row);row.errorLogged=true;persist();
     // The node may have accepted the transaction before losing the response.
     // Look up the locally computed hash and never resend from this path.
@@ -670,7 +709,7 @@ pendingRow.status='Pending oracle execution';delete pendingRow.error;persist();r
 async function waitReceipt(tx){let timer;const receipt=tx.wait(1).catch(e=>{if(e.code==='TRANSACTION_REPLACED'&&!e.cancelled&&e.receipt?.status===1)return e.receipt;throw e});try{return await Promise.race([receipt,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Receipt timeout · submission uncertain; reconciliation continues')),60000)})]);}finally{clearTimeout(timer)}}
 function captureOrder(receipt,p,c){for(const log of receipt.logs){try{let ev=c.interface.parseLog(log);if(ev.name==='MarketOrderInitiated')p.orderId=N(ev.args.orderId.index);if(ev.name==='PendingOrderStored'){p.orderId=N(ev.args.pendingOrder.index);p.tradeIndex=N(ev.args.pendingOrder.trade.index)}}catch{}}}
 function reconcileConfirmedState(row,positions){if(row.orderId!==undefined)return false;if(row.action==='close'&&Number.isInteger(row.tradeIndex)&&!positions.some(p=>p.index===row.tradeIndex)){row.status='Closed';return true}if(row.action!=='open'||!Array.isArray(row.tradeIndexesBefore))return false;const before=new Set(row.tradeIndexesBefore.map(Number)),units=Number(row.collateralUnits),matches=positions.filter(p=>!before.has(p.index)&&p.pair===row.pair&&p.long===row.long&&Math.abs(p.lev-row.leverage)<1e-9&&Number.isFinite(units)&&Math.abs(p.amount*1e6-units)<.5);if(matches.length!==1)return false;row.tradeIndex=matches[0].index;row.status='Open';return true}
-async function closeLive(p,reviewed=false,manual=true){if(busy)return false;busy=true;let row;try{if(!wallet)throw Error('Load the position wallet first');if(pending.some(x=>x.owner===wallet.address&&/Sending|Pending|uncertain|Order resolved/.test(x.status)))throw Error('An order is still pending. Wait for reconciliation before closing.');liveQuote(p.pair);if(!reviewed&&!confirm(`Close LIVE ${p.long?'long':'short'} ${levLabel(p.lev)}× position ${p.index}?`))return false;if(manual)closeRequestCue(liveValue(p));const c=await chain(),s=c.connect(wallet.connect(provider));row={created:Date.now(),id:'c'+Date.now(),owner:wallet.address,action:'close',tradeIndex:p.index,label:'Close '+p.index,status:'Sending'};pending.push(row);persist();let expected=priceUnit(liveQuote(p.pair));await s.callStatic.closeTradeMarket(p.index,expected);let tx=await s.closeTradeMarket(p.index,expected);row.hash=tx.hash;persist();let r=await waitReceipt(tx);row.hash=r.transactionHash||row.hash;captureOrder(r,row,c);row.status='Pending oracle close';persist();if(!reviewed)showPaperClose({...p,status:'Close submitted · awaiting oracle settlement'},'Close submitted');refreshWallet();return true;}catch(e){if(row){row.status=e.receipt?.status===0?'Failed on-chain':row.hash?'Submission uncertain · check chain':'Failed';row.error=recordLiveError('Live close',e,row);row.errorLogged=true;persist()}toast(row?.error||recordLiveError('Live close preflight',e));return false;}finally{busy=false}}
+async function closeLive(p,reviewed=false,manual=true){if(busy)return false;busy=true;let row;try{if(!wallet)throw Error('Load the position wallet first');if(pending.some(x=>x.owner===wallet.address&&/Sending|Pending|uncertain|Order resolved/.test(x.status)))throw Error('An order is still pending. Wait for reconciliation before closing.');liveQuote(p.pair);if(!reviewed&&!confirm(`Close LIVE ${p.long?'long':'short'} ${levLabel(p.lev)}× position ${p.index}?`))return false;if(manual)closeRequestCue(liveValue(p));const c=await chain(),signer=wallet.connect(provider),s=c.connect(signer);row={created:Date.now(),id:'c'+Date.now(),owner:wallet.address,action:'close',tradeIndex:p.index,label:'Close '+p.index,status:'Sending'};pending.push(row);persist();const expected=priceUnit(liveQuote(p.pair));await s.callStatic.closeTradeMarket(p.index,expected);const r=await submitTracked(signer,s.populateTransaction.closeTradeMarket(p.index,expected),row,'hash',label=>{row.stage='Close trade · '+label;row.status='Sending · '+row.stage;persist();},()=>{if(wallet?.address!==signer.address||mode!=='live')throw Error('Live wallet or mode changed. Review again.');liveQuote(p.pair);});captureOrder(r,row,c);row.status='Pending oracle close';persist();if(!reviewed)showPaperClose({...p,status:'Close submitted · awaiting oracle settlement'},'Close submitted');refreshWallet();return true;}catch(e){if(row){row.status=e.receipt?.status===0?'Failed on-chain':row.hash?'Submission uncertain · check chain':'Failed';row.error=recordLiveError(row.stage||'Live close simulation',e,row);row.errorLogged=true;persist()}toast(row?.error||recordLiveError('Live close preflight',e));return false;}finally{busy=false}}
 
 function applyPublicChange(p){const previous=publicTrades.find(x=>x.id===p.id);if(p.isOpen)p={...previous,...p,liq:p.liq>0?p.liq:previous?.liq};publicRevision++;publicChanges.set(p.id,{revision:publicRevision,p:p.isOpen?p:null,eventKey:p.eventKey});missingPublic.delete(p.id);const old=publicTrades.find(x=>x.id===p.id);publicTrades=publicTrades.filter(x=>x.id!==p.id);if(p.isOpen)publicTrades.push({...old,...p,liq:p.liq>0?p.liq:old?.liq});snapId++;renderPublic();}
 function applyBackendChange(msg,net){try{if(msg.name==='liveEvents'||msg.name==='liveEvent'){applyBackendExecution(msg,net);return;}if(msg.name==='new-trade-history'){applyBackendHistory(msg,net);return;}if(msg.name==='deepReorg'){for(const id of publicChanges.keys())if(id.startsWith(net+':'))publicChanges.delete(id);missingPublic.clear();return;}const raw=msg.value?.trade?msg.value:msg.value?.user?{trade:msg.value}:null;if(!raw?.trade?.user||raw.trade.index===undefined)return;const id=net+':'+raw.trade.user.toLowerCase()+':'+N(raw.trade.index),old=publicTrades.find(p=>p.id===id)||knownPublic.get(id)||publicNoticeState.get(id)?.p;if(msg.name==='unregisterTrade'){applyPublicChange({id,isOpen:false});if(old){const action=publicAction(msg);if(action==='liq')notifyPublicTrade(old,action,quietEvents);else deferPublicClose(old,quietEvents);}return;}if(!['registerTrade','updateTrade','updateLeverage','updatePositionSize'].includes(msg.name))return;const merged={...old?.container,...raw,trade:{...old?.raw,...raw.trade,isOpen:true}};if(merged.trade.openPrice===undefined||merged.trade.pairIndex===undefined)return;const p=sdkPublic(merged,old,net);if(p){applyPublicChange(p);if(msg.name==='registerTrade')notifyPublicTrade(p,'open',quietEvents);}}catch{}}
@@ -711,7 +750,7 @@ try{$('chartInfoOpen').onclick=()=>{click();chartDetails(chartBars());if(!$('cha
 try{$('statsOpen').onclick=()=>{hideAll();syncNative();$('statsPanel').hidden=false;$('shade').hidden=false;renderStats();};$('closeStats').onclick=hideAll;}catch{}
 try{$('long').onclick=()=>{ensureAudio();return sendOrder(true)};}catch{}
 try{$('short').onclick=()=>{ensureAudio();return sendOrder(false)};}catch{}
-try{$('positions').onclick=e=>{if(bulkCloseBusy)return;const edit=e.target.dataset.exits,id=edit||e.target.dataset.close;if(!id)return;const p=(mode==='paper'?book.positions:livePositions).find(x=>x.id===id);if(p){if(edit){editExits(p);return;}if(mode==='paper'){try{closePaper(p)}catch(e){toast(e.message)}}else closeLive(p)}};}catch{}
+try{$('positions').onclick=e=>{if(bulkCloseBusy)return;const dismissal=e.target.dataset.dismissOrder;if(dismissal){dismissOrderError(dismissal);return;}const edit=e.target.dataset.exits,id=edit||e.target.dataset.close;if(!id)return;const p=(mode==='paper'?book.positions:livePositions).find(x=>x.id===id);if(p){if(edit){editExits(p);return;}if(mode==='paper'){try{closePaper(p)}catch(e){toast(e.message)}}else closeLive(p)}};}catch{}
 try{$('menu').onclick=()=>{click();renderMarketList();$('drawer').hidden=false;$('shade').hidden=false;};}catch{}
 try{$('traders').onclick=()=>{ensureAudio();click();renderPublic();$('tradersPanel').hidden=false;$('shade').hidden=false;};}catch{}
 try{$('global').onclick=()=>{openGlobal();};}catch{}
