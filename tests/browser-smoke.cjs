@@ -4,6 +4,15 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  // Valid empty trader snapshots prevent unrelated offline retry notices from racing timer assertions.
  await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;setTimeout(()=>this.onopen?.({}),0);if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
  await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);await page.evaluate(()=>paperDelayMs=()=>0);
+ await page.fill('#dollars','2.123456');
+ assert((await page.locator('#quote').textContent()).includes('$2.123456 collateral'));
+ await page.locator('#sizeSlider').evaluate(el=>{el.value='12.5';el.dispatchEvent(new Event('input'));});
+ assert.equal(await page.inputValue('#dollars'),'');
+ assert((await page.locator('#sizeReadout').textContent()).includes('12.5%'));
+ await page.locator('#levSlider').evaluate(el=>{el.value='250.125';el.dispatchEvent(new Event('input'));});
+ assert.equal(await page.inputValue('#lev'),'250.125');
+ await page.selectOption('#amount','10');
+ await page.fill('#lev','200');
  // Legend shares every chart line style and stays reachable in both orientations.
  for(const viewport of [{width:393,height:852},{width:852,height:393}]){
   await page.setViewportSize(viewport);await page.click('#legendOpen');

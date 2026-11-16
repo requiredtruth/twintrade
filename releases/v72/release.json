@@ -1,0 +1,13 @@
+{
+  "tag": "v0.72.0",
+  "title": "TwinTrade 0.72.0 \u2014 live order ticket and quote recovery",
+  "sequence": 56,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "b66e488731e06dd8d3ee23de664cab9eb3389148d321417fa06c65e7b26b61ad",
+    "TwinTrade.html": "9f1cdadf0bb685ea51ac689cb71ba4b50ee400ad4a7f925451a94a39fed6e28d",
+    "TwinTrade-source.zip": "ca2c656c89b579090d2a40143cb7ffbbcb8f1910f981a65425f9131d5250b8c0",
+    "spec.md": "25241b6e70e690b6ffb019358ce17a25cf0f15b459dfba28a0092d583420a875",
+    "SHA256SUMS": "7674db700e6051783af15b7245a0117558e4c2259b663ef7491eb56467ceb901"
+  }
+}

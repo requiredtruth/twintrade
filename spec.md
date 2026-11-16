@@ -222,7 +222,7 @@ Above the chart, public open positions for the selected market show total and no
 
 ## v0.42.0 — Synchronized live order frames
 
-- Live opens and closes require both mark and index prices to be fresh and their timestamps to be no more than 1,000 ms apart. Individually fresh values from different oracle frames are rejected with an explicit synchronization message.
+- Live opens and closes require a fresh execution quote for the exact market. A flat Gains stream frame supplies the pair reference. On split object frames only explicit index updates qualify. Chart snapshots, mark-only object frames and heartbeats cannot refresh the execution quote. The live open confirmation pins the reviewed price and maximum slippage through simulation and submission. The ticket shows collateral, leverage, notional, oracle reference, base fee estimate when available, and maximum slippage above the order buttons. Collateral can be set by preset, percentage slider or exact dollars.
 - The coherence check runs before showing the order review and again immediately before contract simulation/submission. A feed split while the wallet is waiting for an approval confirmation therefore stops before the trading transaction is sent.
 - Regression tests cover skew in either timestamp direction and a split introduced during approval confirmation. The JavaScript/native suites, APK packaging, signature, alignment, browser controls/rotation and Android lifecycle checks gate release publication.
 - VersionCode 42 / versionName 0.42.0 retains the private rebuilt-release certificate. No funded transaction or physical-device test was performed; quote coherence does not guarantee external service availability or exchange execution.

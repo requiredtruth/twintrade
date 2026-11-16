@@ -1,0 +1,3 @@
+- Fixes Android live-order quote ingestion for the flat Gains websocket frames used in production.
+- Adds exact dollar collateral, draggable collateral and leverage sliders, and an order estimate above Long and Short.
+- Pins the reviewed execution reference and slippage through simulation and submission. Stale execution quotes still block live orders.
