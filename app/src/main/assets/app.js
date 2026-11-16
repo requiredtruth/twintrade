@@ -579,8 +579,8 @@ async function refreshLivePositionFees(c,addr,p,curr){
 async function refreshWallet(){if(!wallet||refreshBusy)return false;const syncWallet=wallet,syncRpc=cfg.rpc;const sameWallet=()=>wallet===syncWallet&&cfg.rpc===syncRpc;refreshBusy=true;const prevLive=new Map();try{for(const p of livePositions){const v=liveValue(p);prevLive.set(p.id,{position:{...p},label:`${p.long?'L':'S'} ${levLabel(p.lev)}×`,v});}}catch{}try{const c=await chain(),addr=wallet.address;let collateral=await c.getCollateral(3);if(!collateral.isActive)throw Error('Polygon USDC collateral inactive');if(collateral.collateral.toLowerCase()!==NETWORK.usdc.toLowerCase())throw Error('Native USDC address mismatch');let token=new ethers.Contract(collateral.collateral,['function balanceOf(address) view returns(uint256)'],provider);liveBalance=usdc(await token.balanceOf(addr));let raw=await c.getTrades(addr);if(!sameWallet())return false;const old=livePositions;livePositions=raw.filter(t=>t.isOpen&&N(t.tradeType)===0&&listedPair(N(t.pairIndex))&&N(t.collateralIndex)===3).map(t=>({...old.find(p=>p.id===t.user.toLowerCase()+':'+N(t.index)),...normalize(t)}));
 for(const p of livePositions){if(!priceOf(p.pair))continue;await refreshLivePositionFees(c,addr,p,priceUnit(priceOf(p.pair)));}
 
-for(const row of pending.filter(p=>p.owner===addr&&p.approvalHash&&!p.hash&&!p.approvalConfirmed&&p.status!=='Approval rejected · order not submitted')){const receipt=await provider.getTransactionReceipt(row.approvalHash);if(receipt){row.status=receipt.status===0?'Approval failed on-chain':'Approval complete · order not submitted';}}
-for(const row of pending.filter(p=>p.owner===addr&&p.hash&&p.orderId===undefined)){const receipt=await provider.getTransactionReceipt(row.hash);if(receipt){if(receipt.status===0)row.status='Failed on-chain';else{captureOrder(receipt,row,c);if(!reconcileConfirmedState(row,livePositions))row.status='Pending oracle execution'}}}let pend=await c.getPendingOrders(addr);const active=new Set(pend.filter(p=>p.isOpen).map(p=>String(N(p.index))));for(const p of pending.filter(p=>p.owner===addr&&p.orderId!==undefined)){if(!active.has(String(p.orderId))){if(p.action==='open'&&livePositions.some(t=>t.index===p.tradeIndex))p.status='Open';else if(p.action==='close'&&!livePositions.some(t=>t.index===p.tradeIndex))p.status='Closed';else p.status='Order resolved · check chain';}}
+for(const row of pending.filter(p=>p.owner===addr&&p.approvalHash&&!p.hash&&!p.approvalConfirmed&&p.status!=='Approval rejected · order not submitted')){const receipt=await readPolygonReceipt(provider,row.approvalHash);if(receipt){row.status=receipt.status===0?'Approval failed on-chain':'Approval complete · order not submitted';}}
+for(const row of pending.filter(p=>p.owner===addr&&p.hash&&p.orderId===undefined)){const receipt=await readPolygonReceipt(provider,row.hash);if(receipt){if(receipt.status===0)row.status='Failed on-chain';else{captureOrder(receipt,row,c);if(!reconcileConfirmedState(row,livePositions))row.status='Pending oracle execution'}}}let pend=await c.getPendingOrders(addr);const active=new Set(pend.filter(p=>p.isOpen).map(p=>String(N(p.index))));for(const p of pending.filter(p=>p.owner===addr&&p.orderId!==undefined)){if(!active.has(String(p.orderId))){if(p.action==='open'&&livePositions.some(t=>t.index===p.tradeIndex))p.status='Open';else if(p.action==='close'&&!livePositions.some(t=>t.index===p.tradeIndex))p.status='Closed';else p.status='Order resolved · check chain';}}
 if(!sameWallet())return false;pending=pending.filter(p=>!['Open','Closed'].includes(p.status));persist();
 try{for(const [id,info] of prevLive){if(!livePositions.some(x=>x.id===id)){const p=info.position;if(liveExitRules.delete(id))saveLiveExitRules();if(!liveHistory.some(x=>x.id===id&&x.owner===addr))liveHistory.unshift({...p,owner:addr,net:null,closed:Date.now(),status:'Closed · settlement unavailable'});persist();pushEvent(`CLOSED ${info.label} ${fmtPnl(info.v)}`,'');showBigEvent(`CLOSED ${fmtPnl(info.v)}`,info.v>=0?'big-win':'big-loss');}}}catch{}try{$('walletStatus').textContent=addr+' · '+money(liveBalance)+' USDC';}catch{}return true;}catch(e){try{$('walletStatus').textContent='Wallet sync unavailable: '+(e.reason||e.message)}catch{}return false;}finally{refreshBusy=false}}
 let liveErrors=load('liveErrors',[]);
@@ -600,7 +600,7 @@ function recordLiveError(stage,error,row){
 }
 function exportLiveErrors(){
   const legacy=pending.filter(row=>row.error&&!row.errorLogged).slice(-20).map(row=>({status:row.status,...safeOrderError({reason:row.error})}));
-  const report=['TwinTrade v0.74.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
+  const report=['TwinTrade v0.75.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
   if(window.Feed?.saveErrorReport){Feed.saveErrorReport(report);return;}
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain'}));const link=document.createElement('a');link.href=url;link.download='TwinTrade-errors.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
@@ -638,6 +638,42 @@ async function polygonFeeOverrides(rpc){
   return {type:2,maxPriorityFeePerGas:tip,maxFeePerGas:cap.lt(tip)?tip:cap};
 }
 recoverRejectedApprovals();
+async function readPolygonReceipt(rpc,hash){
+  const raw=await rpc.send('eth_getTransactionReceipt',[hash]);
+  if(raw===null)return null;
+  const receipt=rpc.formatter.receipt(raw);
+  if(receipt.transactionHash.toLowerCase()!==hash.toLowerCase()||![0,1].includes(receipt.status)||!Number.isInteger(receipt.blockNumber))throw Error('Invalid Polygon receipt');
+  return receipt;
+}
+async function pollPolygonReceipt(rpc,hash){
+  const deadline=Date.now()+60000;
+  // Keep broadcasts on the selected RPC. A second public Polygon endpoint
+  // can independently confirm a receipt when the default RPC is lagging.
+  const url=rpc.connection?.url;
+  const backupUrl=url===NETWORK.httpsRpc?NETWORK.httpsFallback:url===NETWORK.httpsFallback?NETWORK.httpsRpc:null;
+  const readers=[Promise.resolve(rpc)];
+  if(backupUrl){
+    const backup=new ethers.providers.JsonRpcProvider({url:backupUrl,timeout:8000},NETWORK.chainId);
+    readers.push(backup.getNetwork().then(network=>{
+      if(network.chainId!==NETWORK.chainId)throw Error('Receipt backup is not Polygon');
+      return backup;
+    }));
+  }
+  let lastError;
+  do{
+    try{
+      return await Promise.any(readers.map(async source=>{
+        const reader=await source;
+        const receipt=await readPolygonReceipt(reader,hash);
+        if(!receipt)throw null;
+        return receipt;
+      }));
+    }catch(error){lastError=error.errors?.find(Boolean)||lastError;}
+    if(Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,1250));
+  }while(Date.now()<deadline);
+  if(lastError)throw lastError;
+  return null;
+}
 async function submitTracked(signer,request,row,field,setStage,beforeBroadcast=()=>{}){
   setStage('Preparing transaction and estimating POL gas');
   const rpc=signer.provider;
@@ -663,7 +699,7 @@ async function submitTracked(signer,request,row,field,setStage,beforeBroadcast=(
     // Look up the locally computed hash and never resend from this path.
   }
   setStage('Waiting for Polygon receipt');
-  const receipt=await rpc.waitForTransaction(hash,1,60000);
+  const receipt=await pollPolygonReceipt(rpc,hash);
   if(!receipt)throw Error('Receipt unavailable · check Polygon transaction status');
   if(receipt.status!==1)throw Object.assign(Error('Transaction reverted on Polygon'),{receipt});
   return receipt;

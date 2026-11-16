@@ -4,7 +4,7 @@ const eth=require('../app/src/main/assets/ethers.js');
 const nodes={},stored={},intervals=[],timeouts=[];
 const ctx2d=new Proxy({measureText:s=>({width:s.length*6})},{get:(o,k)=>o[k]||(()=>{})});
 const node=id=>nodes[id]??={id,value:({amount:'10',lev:'10'})[id]||'',options:[],checked:true,hidden:true,textContent:'',innerHTML:'',className:'',dataset:{},getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx2d,addEventListener(){},showModal(){this.open=true},close(){this.open=false}};
-const env={console,document:{getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:(f,ms)=>{timeouts.push({f,ms});return timeouts.length},clearTimeout(){},setInterval:(f,ms)=>{intervals.push({f,ms});return intervals.length},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(url){this.url=url;this.readyState=1;}close(){this.readyState=3}},ethers:{utils:eth.utils,providers:{JsonRpcProvider:class{constructor(){this.connection={url:'fixture'}}async getNetwork(){throw Error('offline fixture')}}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline fixture')},GABI:[]};
+const env={console,document:{getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:(f,ms)=>{timeouts.push({f,ms});if(ms===1250)queueMicrotask(f);return timeouts.length},clearTimeout(){},setInterval:(f,ms)=>{intervals.push({f,ms});return intervals.length},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(url){this.url=url;this.readyState=1;}close(){this.readyState=3}},ethers:{utils:eth.utils,providers:{JsonRpcProvider:class{constructor(){this.connection={url:'fixture'}}async getNetwork(){throw Error('offline fixture')}}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline fixture')},GABI:[]};
 env.window=env;Object.assign(env,{URL,clearInterval:()=>{}});vm.createContext(env);const run=code=>vm.runInContext(code,env);
 const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','market-data.js','routing.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
 (async()=>{
@@ -27,6 +27,12 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  const rpc={
    async getFeeData(){return {maxFeePerGas:eth.utils.parseUnits('31.5','gwei'),maxPriorityFeePerGas:eth.utils.parseUnits('1.5','gwei')};},
    async send(method,[signed]){
+     if(method==='eth_getTransactionReceipt'){
+       assert(requests.has(signed));
+       if(!state.receiptErrors){state.receiptErrors=1;throw Error('bad response');}
+       if(requests.get(signed)==='approve'&&state.desyncAfterApproval)run('indexTimes[0]=Date.now()-5001');
+       return {transactionHash:signed,blockNumber:100,logs:[],status:1};
+     }
      assert.equal(method,'eth_sendRawTransaction');
      const hash=eth.utils.keccak256(signed);
      assert.equal(run(state.prepared.kind==='approve'?'pending[0].approvalHash':'pending[0].hash'),hash,'hash persisted before broadcast');
@@ -38,12 +44,7 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
      }else state.opens++;
      return hash;
    },
-   async waitForTransaction(hash){
-     assert(requests.has(hash));
-     if(state.missingReceipt)return null;
-     if(requests.get(hash)==='approve'&&state.desyncAfterApproval)run('indexTimes[0]=Date.now()-5001');
-     return {transactionHash:hash,logs:[],status:1};
-   }
+   formatter:{receipt:value=>value}
  };
  env.chain=async()=>({connect(){return this},getTradingActivated:async()=>0,getCollateral:async()=>({isActive:true,collateral:run('NETWORK.usdc')}),pairTotalPositionSizeFeeP:async()=>0,pairs:async()=>({from:'BTC',to:'USD'}),callStatic:{openTrade:async()=>{}},populateTransaction:{openTrade:async()=>({kind:'open'})},interface:{parseLog(){throw Error('no logs')}}});
  env.ethers.Contract=class{
@@ -55,7 +56,7 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  env.fixtureWallet={address:'0x1111111111111111111111111111111111111111',provider:rpc,connect(){return this},async populateTransaction(req){assert.equal(eth.utils.formatUnits(req.maxPriorityFeePerGas,'gwei'),'25.0');assert.equal(eth.utils.formatUnits(req.maxFeePerGas,'gwei'),'55.0');return req},async signTransaction(req){state.prepared=req;return req.kind==='approve'?'0x01':'0x02'}};
  run("wallet=fixtureWallet;liveBalance=100;mode='live';pair=0;setPrice(0,100,Date.now());indexPrices[0]=100;indexTimes[0]=Date.now();");
  await run('sendOrder(true)');assert.equal(state.approvals,0);assert.equal(state.opens,0);
- env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);assert(state.allowance.eq(eth.utils.parseUnits('10',6)));assert.equal(run('pending[0].approvalHash'),eth.utils.keccak256('0x01'));assert.equal(state.approvals,1,'ambiguous approval is never repeated');assert(!stored.liveErrors.includes('PRIVATE_TOKEN'));assert(stored.liveErrors.includes('RPC lost response'));state.loseApprovalResponse=false;
+ env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);assert(state.allowance.eq(eth.utils.parseUnits('10',6)));assert.equal(run('pending[0].approvalHash'),eth.utils.keccak256('0x01'));assert.equal(state.approvals,1,'ambiguous approval is never repeated');assert.equal(state.receiptErrors,1,'approval recovered after a transient receipt error');assert(!stored.liveErrors.includes('PRIVATE_TOKEN'));assert(stored.liveErrors.includes('RPC lost response'));state.loseApprovalResponse=false;
  // An oversized pre-existing allowance is reduced to the exact order amount. A token that
  // does not apply that change must stop before simulation or submission and journal the reason.
  run('pending=[]');state.allowance=eth.utils.parseUnits('1000',6);state.approvalApplies=false;const opened=state.opens;
@@ -69,11 +70,11 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  run("$('dollars').value='';$('amount').value='custom';$('sizeSlider').value='12.5'");assert.equal(run('orderSize(100).amount'),12.5);
  run("$('amount').value='10'");
  state.desyncAfterApproval=false;run('indexTimes[0]=Date.now();pending=[{owner:wallet.address,status:"Pending oracle execution"}]');assert.equal(run('liveQuote(0)'),100);
- run('pending=[]');state.missingReceipt=true;state.allowance=eth.utils.parseUnits('1000',6);
+ run('pending=[]');const receiptPoll=run('pollPolygonReceipt');env.pollPolygonReceipt=async()=>null;state.allowance=eth.utils.parseUnits('1000',6);
  await run('sendOrder(false)');assert.equal(state.approvals,4);assert.equal(state.opens,opened);
  assert.equal(run('pending[0].status'),'Submission uncertain · check chain');
  await run('sendOrder(false)');assert.equal(state.approvals,4,'uncertain transaction blocks duplicate submission');
- state.missingReceipt=false;
+ env.pollPolygonReceipt=receiptPoll;
  // If a confirmed receipt cannot be decoded into an oracle order ID, exact submitted
  // metadata and the pre-submit index set safely reconcile the resulting state. Ambiguous
  // matches remain blocked instead of guessing.

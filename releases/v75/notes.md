@@ -1,0 +1,3 @@
+- Polls Polygon receipts directly by hash, tolerating transient errors and using a verified alternate public Polygon RPC for reads when using the defaults.
+- Continues a reviewed live order after confirmed approval and allowance checks, subject to the existing quote and slippage checks.
+- Never rebroadcasts an approval or order as part of receipt recovery.
