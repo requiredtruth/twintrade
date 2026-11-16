@@ -1,0 +1,13 @@
+/* Closed-trade analytics. Ratios are unannualized, per-trade collateral returns. */
+(function(root){'use strict';
+function calculate(history,{now=Date.now(),days=0}={}){
+ const since=days>0?now-days*86400000:0,seen=new Set(),rows=[];let excluded=0;
+ for(const p of history||[]){if(!Number.isFinite(p.closed)||p.closed<=0||p.closed>now||p.closed<since)continue;const key=p.id?String(p.owner||'')+':'+p.id:null;if(key&&seen.has(key))continue;if(key)seen.add(key);if(!Number.isFinite(p.net)){excluded++;continue;}rows.push(p);}
+ rows.sort((a,b)=>a.closed-b.closed);const count=rows.length,wins=rows.filter(p=>p.net>0),losses=rows.filter(p=>p.net<0),grossProfit=wins.reduce((s,p)=>s+p.net,0),grossLoss=-losses.reduce((s,p)=>s+p.net,0),net=grossProfit-grossLoss,returns=rows.filter(p=>Number.isFinite(p.amount)&&p.amount>0).map(p=>p.net/p.amount),returnCount=returns.length,mean=returnCount?returns.reduce((s,r)=>s+r,0)/returnCount:NaN,variance=returnCount>1?returns.reduce((s,r)=>s+(r-mean)**2,0)/(returnCount-1):NaN,downside=returnCount?Math.sqrt(returns.reduce((s,r)=>s+Math.min(0,r)**2,0)/returnCount):NaN;
+ let cumulative=0,peak=0,drawdown=0,winStreak=0,lossStreak=0,maxWins=0,maxLosses=0;const curve=[{at:rows[0]?.closed??now,net:0}];
+ for(const p of rows){cumulative+=p.net;peak=Math.max(peak,cumulative);drawdown=Math.max(drawdown,peak-cumulative);curve.push({at:p.closed,net:cumulative});winStreak=p.net>0?winStreak+1:0;lossStreak=p.net<0?lossStreak+1:0;maxWins=Math.max(maxWins,winStreak);maxLosses=Math.max(maxLosses,lossStreak);}
+ const durations=rows.filter(p=>Number.isFinite(p.opened)&&p.opened>0&&p.opened<=p.closed).map(p=>p.closed-p.opened);
+ return {count,returnCount,excluded,wins:wins.length,losses:losses.length,breakeven:count-wins.length-losses.length,net,grossProfit,grossLoss,winRate:count?wins.length/count*100:NaN,profitFactor:grossLoss>0?grossProfit/grossLoss:NaN,averageWin:wins.length?grossProfit/wins.length:NaN,averageLoss:losses.length?-grossLoss/losses.length:NaN,expectancy:count?net/count:NaN,averageReturn:mean*100,sharpe:returnCount>1&&variance>0?mean/Math.sqrt(variance):NaN,sortino:returnCount>1&&downside>0?mean/downside:NaN,maxDrawdown:drawdown,best:count?Math.max(...rows.map(p=>p.net)):NaN,worst:count?Math.min(...rows.map(p=>p.net)):NaN,maxWins,maxLosses,averageHold:durations.length?durations.reduce((s,v)=>s+v,0)/durations.length:NaN,longs:rows.filter(p=>p.long).length,shorts:rows.filter(p=>!p.long).length,curve};
+}
+const api={calculate};root.TradePerformance=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof window==='undefined'?globalThis:window);

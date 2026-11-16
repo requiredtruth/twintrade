@@ -1,0 +1,5 @@
+Includes all 0.65.0 networking, fee-source validation, background reliability and account-summary improvements, without the Rough Path indicator or bot.
+
+Adds Profile beside Stats/L/S/Chart: cumulative closed-trade net P&L, date filters, wins/losses, win rate, profit factor, max drawdown, expectancy, average/best/worst trades, streaks, holding time, Sharpe and Sortino. Ratios use per-trade collateral returns, zero target and no annualization; undefined values show a dash. Confirmed dollar P&L remains visible when collateral is missing. The panel discloses the available 200-trade history limit.
+
+Top row shows net P&L percentages against account balance and active margin, active margin dollars, and open-trade count. Portrait/landscape controls and profile interactions are regression-tested. Same signing certificate/package, versionCode 66. Full JS/native/browser suites and Android build/signature checks passed; CI additionally gates publication on live prices and Android startup/app-switch/recreation. No funded trade or physical-device endurance test.

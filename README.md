@@ -111,3 +111,7 @@ Live opens reduce any different USDC allowance to the exact collateral amount, v
 ## 0.65.0
 
 Shared network failover and fee-source validation from Rough Path Alpha are integrated without its indicator or bot. Account-wide balance/margin P&L percentages, active margin and open-trade count sit under top net P&L. See [integration audit](MERGE-AUDIT.md).
+
+## 0.66.0
+
+Adds the Profile performance chart and closed-trade analytics, including Sharpe/Sortino, to the 0.65.0 integration. Ratio definitions and available-history limits are shown inside the panel.

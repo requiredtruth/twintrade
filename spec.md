@@ -1,7 +1,7 @@
 # TwinTrade 0.62.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 65, versionName 0.65.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 66, versionName 0.66.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -432,3 +432,12 @@ Compared TwinTrade `6a53a6ae679867e55d1614ccb4815476f6987b58` with Rough Path Al
 | Excluded Alpha components | Rough-path signatures, indicators, channels/projections, arrow bot, signal-driven Chandelier controls, optimizer/research/search UI and strategy backtests. These depend on the explicitly excluded Alpha subsystem. No Alpha engine or bot is loaded. |
 
 Verification: full JavaScript/native regression suites, routing lifecycle and primary recovery tests, source-date/fee-unit cases, P&L denominator/weighting tests, mobile Chromium interaction and rotation checks, Android release compilation, signature continuity and ZIP alignment. CI additionally runs the live oracle and Android 15 startup/app-switch/recreation gates before publishing. No funded trade or physical-device endurance test is performed.
+
+
+## v0.66.0 — trading Profile
+
+Profile is beside Stats/L/S/Chart/Legend. It provides an all-market cumulative closed-trade net P&L curve and 18 metrics: net P&L, trade count, wins/losses, breakeven, win rate, profit factor, Sharpe, Sortino, dollar maximum drawdown, expectancy, average win/loss, best/worst trade, average collateral return, win/loss streaks, long/short counts and average holding time. Filters: saved history, 7/30/90 days. Paper and live wallet history remain separate.
+
+Only known settled net values contribute dollar statistics; unknown collateral excludes a trade only from return ratios. Sharpe uses sample standard deviation of per-trade net/collateral returns. Sortino uses RMS negative returns with zero for nonnegative trades. Both have zero target, are unannualized, require at least two known returns and nonzero deviation. Missing or undefined statistics show a dash. Profit factor is unavailable without losses. Drawdown measures the dollar fall from a cumulative realized-P&L peak, not intratrade or equity drawdown. The panel explicitly discloses the retained 200-trade limit and incomplete remote history. No fabricated backfill or settlement values.
+
+Landscape grid now explicitly places both account metrics and selected-market P&L rows; controls stay clickable after adding Profile. Tested empty/partial history, exact ratios, duplicate exclusion, filtering, profile open/close, chart rendering and portrait/landscape layouts, plus the existing full regression suite.

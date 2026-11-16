@@ -1,0 +1,13 @@
+{
+  "tag": "v0.66.0",
+  "title": "TwinTrade 0.66.0 \u2014 trading profile and unified reliability",
+  "sequence": 50,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "d5b5cee3877aba865914892ae75029bb572e89082184d515ea5643144c1d6b80",
+    "TwinTrade.html": "5562f62f057581ac93f45abe961191adf6a9572f3c7559373ee595799e45dedf",
+    "TwinTrade-source.zip": "81d9ea259a56242dc2a9712977decb274a6abf5dee1e060ebbb0ed590060753a",
+    "spec.md": "c7d7105ad71ca9801667bbc93ac5902db1006840e4643b8200d9ae79a835a4db",
+    "SHA256SUMS": "9a2553ae00021a6c151a4c8ad250af355ca987547f182e8bd0e9f5b5586f4bec"
+  }
+}
