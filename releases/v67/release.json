@@ -1,0 +1,13 @@
+{
+  "tag": "v0.67.0",
+  "title": "TwinTrade 0.67.0 \u2014 price-feed recovery",
+  "sequence": 51,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "3ddc65ce40bc231e8de237aefc73ed4bac4125d07d7a2d238662835012c10427",
+    "TwinTrade.html": "20004aa33bbc01386e47ffcd9e5800d6ed7b7a8e54a01c76311a09250669654f",
+    "TwinTrade-source.zip": "e3e60487a9be759afaa28743e051918f75e830e2a7bdba2bc585b79eff580bd2",
+    "spec.md": "b8ccb8fe08bc8a1acd6064999ef9b1f0cc2a861b7eb79f2ce509e21c68d8f0ad",
+    "SHA256SUMS": "18b09388a985af37e2d3863506c62c66013b96316a744b263c425bde2496d747"
+  }
+}

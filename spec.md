@@ -1,7 +1,7 @@
 # TwinTrade 0.62.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 66, versionName 0.66.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 67, versionName 0.67.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -441,3 +441,8 @@ Profile is beside Stats/L/S/Chart/Legend. It provides an all-market cumulative c
 Only known settled net values contribute dollar statistics; unknown collateral excludes a trade only from return ratios. Sharpe uses sample standard deviation of per-trade net/collateral returns. Sortino uses RMS negative returns with zero for nonnegative trades. Both have zero target, are unannualized, require at least two known returns and nonzero deviation. Missing or undefined statistics show a dash. Profit factor is unavailable without losses. Drawdown measures the dollar fall from a cumulative realized-P&L peak, not intratrade or equity drawdown. The panel explicitly discloses the retained 200-trade limit and incomplete remote history. No fabricated backfill or settlement values.
 
 Landscape grid now explicitly places both account metrics and selected-market P&L rows; controls stay clickable after adding Profile. Tested empty/partial history, exact ratios, duplicate exclusion, filtering, profile open/close, chart rendering and portrait/landscape layouts, plus the existing full regression suite.
+
+## v0.67.0 — price-feed recovery
+
+- The Android monitor and foreground recovery socket connect directly to the production Gains v4 price feed. Chart-history failures no longer change the price socket host.
+- The foreground watchdog measures time since the last accepted price frame, so invalid or stale traffic cannot mask a stalled feed.
