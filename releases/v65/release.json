@@ -1,0 +1,13 @@
+{
+  "tag": "v0.65.0",
+  "title": "TwinTrade 0.65.0 \u2014 unified networking, fee validation and account returns",
+  "sequence": 49,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "8aa4b50beb373ddaae5075f02ee829fd996c155f17e8f9342653294c925f6b53",
+    "TwinTrade.html": "3a842e896af6c8b8995b5bc639487e71768d0dd9ca457a17c91a1a75cd8e7392",
+    "TwinTrade-source.zip": "d3651e7d0e9701d06d6f3939bd9891b8d051dc7b13e373a910ab84d21fdb50e2",
+    "spec.md": "9d5feb1e83dc82d5b197f622821166f51f461d1095ffa150ff8afd3af5ccda3c",
+    "SHA256SUMS": "fb3c323cfc90e72fe4312f7faf8828736532e68e07cb37abcb3d21f86aa20915"
+  }
+}

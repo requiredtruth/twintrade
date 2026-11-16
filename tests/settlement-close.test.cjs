@@ -5,8 +5,8 @@ const nodes={},stored={},intervals=[],timeouts=new Map();let nextTimer=0;
 const ctx2d=new Proxy({measureText:s=>({width:s.length*6})},{get:(o,k)=>o[k]||(()=>{})});
 const node=id=>nodes[id]??={id,value:({amount:'10',lev:'10'})[id]||'',options:[],checked:true,hidden:true,textContent:'',innerHTML:'',className:'',dataset:{},getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx2d,addEventListener(){},showModal(){this.open=true},close(){this.open=false}};
 const env={console,document:{getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:(f,ms)=>{timeouts.set(++nextTimer,{f,ms});return nextTimer},clearTimeout(id){timeouts.delete(id)},setInterval:(f,ms)=>{intervals.push({f,ms});return intervals.length},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(url){this.url=url;this.readyState=1;}close(){this.readyState=3}},ethers:{utils:eth.utils,providers:{JsonRpcProvider:class{constructor(){this.connection={url:'fixture'}}async getNetwork(){throw Error('offline fixture')}}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline fixture')},GABI:[]};
-env.window=env;vm.createContext(env);const run=code=>vm.runInContext(code,env);
-const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
+env.window=env;Object.assign(env,{URL,clearInterval:()=>{}});vm.createContext(env);const run=code=>vm.runInContext(code,env);
+const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','market-data.js','routing.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
 run('paperDelayMs=()=>0');
 (async()=>{
  await new Promise(resolve=>setImmediate(resolve));

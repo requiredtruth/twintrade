@@ -5,8 +5,8 @@ const nodes={},stored={},intervals=[],timeouts=[];
 const ctx2d=new Proxy({measureText:s=>({width:s.length*6})},{get:(o,k)=>o[k]||(()=>{})});
 const node=id=>nodes[id]??={id,value:({amount:'10',lev:'10'})[id]||'',options:[],checked:true,hidden:true,textContent:'',innerHTML:'',className:'',dataset:{},getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx2d,addEventListener(){},showModal(){this.open=true},close(){this.open=false}};
 const env={console,document:{getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:(f,ms)=>{timeouts.push({f,ms});return timeouts.length},clearTimeout(){},setInterval:(f,ms)=>{intervals.push({f,ms});return intervals.length},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(url){this.url=url;this.readyState=1;}close(){this.readyState=3}},ethers:{utils:eth.utils,providers:{JsonRpcProvider:class{constructor(){this.connection={url:'fixture'}}async getNetwork(){throw Error('offline fixture')}}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline fixture')},GABI:[]};
-env.window=env;vm.createContext(env);const run=code=>vm.runInContext(code,env);
-const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
+env.window=env;Object.assign(env,{URL,clearInterval:()=>{}});vm.createContext(env);const run=code=>vm.runInContext(code,env);
+const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['config.js','engine.js','trade-state.js','market-data.js','routing.js','app.js'])run(fs.readFileSync(path.join(assets,f),'utf8'));
 (async()=>{
  await Promise.resolve();await Promise.resolve();
  const make=(id,net='POLYGON',entry=100)=>({id:net+':user:'+id,user:'user',index:id,net,pair:0,isOpen:true,long:true,lev:100,amount:10,entry,liq:99,raw:{user:"user",index:id,pairIndex:0,isOpen:true,tradeType:0,long:true,leverage:100000,openPrice:entry*1e10,collateralAmount:10000000,collateralIndex:3}});env.make=make;

@@ -25,11 +25,12 @@ public final class BackgroundPriceFeed {
  public BackgroundPriceFeed(Runnable connected,LongSupplier elapsedTime) {this(connected,elapsedTime,raw->PriceFeed.ingest(raw,System.currentTimeMillis()));}
  public BackgroundPriceFeed(Runnable connected,LongSupplier elapsedTime,ToIntFunction<String> consume) {
   this(elapsedTime,events->{
-   WebSocketClient client=new WebSocketClient(new URI("wss://backend-pricing.eu.gains.trade/v4")) {
+   final String endpoint=GainsEndpoints.candidates("wss://backend-pricing.eu.gains.trade/v4",System.currentTimeMillis())[0];
+   WebSocketClient client=new WebSocketClient(new URI(endpoint)) {
     public void onOpen(ServerHandshake handshake){events.open();}
     public void onMessage(String raw){events.message(raw);}
-    public void onClose(int code,String reason,boolean remote){events.failed();}
-    public void onError(Exception error){events.failed();}
+    public void onClose(int code,String reason,boolean remote){GainsEndpoints.failure(endpoint,System.currentTimeMillis());events.failed();}
+    public void onError(Exception error){GainsEndpoints.failure(endpoint,System.currentTimeMillis());events.failed();}
    };
    client.setConnectionLostTimeout(15);
    return new Transport(){public void connect(){client.connect();}public void close(){client.closeConnection(1000,"Monitor reconnect/stop");}};

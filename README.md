@@ -106,3 +106,8 @@ Type an exact leverage (including 1.1×) or use Quick ×. The label shows the se
 ### 0.40.0 exact allowance verification
 
 Live opens reduce any different USDC allowance to the exact collateral amount, verify the confirmed on-chain allowance before simulation/submission, and stop without submitting an order if verification differs. Replacement approval transaction hashes are saved for reliable reconciliation.
+
+
+## 0.65.0
+
+Shared network failover and fee-source validation from Rough Path Alpha are integrated without its indicator or bot. Account-wide balance/margin P&L percentages, active margin and open-trade count sit under top net P&L. See [integration audit](MERGE-AUDIT.md).

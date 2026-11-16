@@ -4,7 +4,7 @@ const source=fs.readFileSync('app/src/main/assets/app.js','utf8');
 const lines=source.split('\n');
 const env={Date,Math,Object,connectionRows:{innerHTML:''},connectionLog:{textContent:''}};
 env.$=id=>id==='connectionDiagnostics'?{closest:()=>null}:env[id];
-vm.createContext(env);
+Object.assign(env,{URL,clearInterval:()=>{}});vm.createContext(env);
 vm.runInContext(lines.find(l=>l.startsWith('const connectionStreams=')),env);
 for(const name of ['connectionAge','renderConnectionDiagnostics','noteConnection','touchConnection']){
   vm.runInContext(lines.find(l=>l.startsWith('function '+name+'(')),env);
