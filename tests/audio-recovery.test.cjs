@@ -16,8 +16,8 @@ node('enableAudio').onclick();assert.equal(run('soundOn&&tickOn'),true);assert(s
 node('mute').onclick();assert.equal(run('soundOn||tickOn'),false);const muted=started;run("eventSound('public-open-long');onTick(100,101)");assert.equal(started,muted,'saved mute silences event and tick tones');node('mute').onclick();assert(started>muted,'unmute produces confirmation');
 run('priceSoundSuppressedUntil=0;lastTickAt=0');const small=started;run('onTick(100000,100000.1)');assert(started>small,'small real price moves produce tones');run('lastTickAt=0');const flat=started;run('onTick(100000,100000)');assert.equal(started,flat,'unchanged quotes remain silent');
 assert.equal(run('softTickFrequency(5000)'),1080);assert.equal(run('softTickFrequency(20)'),220);assert.equal(run('softTickFrequency(620)'),620);
-const gentle=run("soundProfile='gentle';profiledEventNotes(EVENT_SOUND_PALETTE['public-open-long'])"),warm=run("soundProfile='warm';profiledEventNotes(EVENT_SOUND_PALETTE['public-open-long'])"),minimal=run("soundProfile='minimal';profiledEventNotes(EVENT_SOUND_PALETTE['public-open-long'])");assert.equal(gentle.length,3);assert.equal(warm.length,3);assert.equal(minimal.length,2);assert(Math.abs(warm[0][0]/gentle[0][0]-.88)<.0001);assert(warm.every(n=>n[2]!=='chime'));assert(minimal.every(n=>n[3]<gentle[0][3]));run('soundLevel=.45;persist()');assert.equal(stored.soundProfile,'"minimal"','sound character persists');assert.equal(stored.soundLevel,'0.45','sound level persists');stored.soundLevel='2';const fallback=boot();assert.equal(fallback.run('soundLevel'),1,'invalid saved level falls back to full');stored.soundLevel='0.45';
-const preview=run('SOUND_PREVIEW_SEQUENCE.map(x=>x[0])');assert(preview.includes('pnl-profit')&&preview.includes('pnl-loss'),'preview routes current profit/loss crossing cues');assert(!preview.includes('cross-up')&&!preview.includes('cross-down'),'preview has no removed crossing names');assert.equal(run('SOUND_PREVIEW_GAP_MS'),560);const upPreview=run("EVENT_SOUND_PALETTE['preview-tick-up']"),downPreview=run("EVENT_SOUND_PALETTE['preview-tick-down']");assert(Math.max(...upPreview.concat(downPreview).map(n=>n[0]))<700,'preview movement cues avoid piercing test tones');run('soundPreviewBusy=true');const previewStarted=started;await node('previewSounds').onclick();assert.equal(started,previewStarted,'duplicate preview is ignored');run('soundPreviewBusy=false');
+const gentle=run("soundProfile='gentle';profiledEventNotes(EVENT_SOUND_PALETTE['public-open-long'])"),warm=run("soundProfile='warm';profiledEventNotes(EVENT_SOUND_PALETTE['public-open-long'])"),minimal=run("soundProfile='minimal';profiledEventNotes(EVENT_SOUND_PALETTE['public-open-long'])");assert.equal(gentle.length,3);assert.equal(warm.length,3);assert.equal(minimal.length,2);assert(Math.abs(warm[0][0]/gentle[0][0]-.88)<.0001);assert(warm.every(n=>n[2]!=='chime'));assert(minimal.every(n=>n[3]<gentle[0][3]));run('soundLevel=.45;persist()');assert.equal(stored.soundProfile,'"minimal"','sound character persists');assert.equal(stored.soundLevel,'0.45','sound level persists');
+const preview=run('SOUND_PREVIEW_SEQUENCE.map(x=>x[0])');assert(preview.includes('pnl-profit')&&preview.includes('pnl-loss'),'preview routes current profit/loss crossing cues');assert(!preview.includes('cross-up')&&!preview.includes('cross-down'),'preview has no removed crossing names');assert.equal(run('SOUND_PREVIEW_GAP_MS'),560);const upPreview=run("EVENT_SOUND_PALETTE['preview-tick-up']"),downPreview=run("EVENT_SOUND_PALETTE['preview-tick-down']");assert(Math.max(...upPreview.concat(downPreview).map(n=>n[0]))<700,'preview movement cues avoid piercing test tones');stored.soundLevel='2';const fallback=boot();assert.equal(fallback.run('soundLevel'),1,'invalid saved level falls back to full');stored.soundLevel='0.45';
 assert(preview.includes('my-liq-long')&&preview.includes('my-liq-short')&&!preview.includes('my-liq'),'preview exposes distinct owner liquidation sides');assert.notDeepEqual(run("EVENT_SOUND_PALETTE['my-liq-long']"),run("EVENT_SOUND_PALETTE['my-liq-short']"),'owner liquidation side phrases differ');
 run("soundProfile='gentle';lastTickAt=0;eventSound('public-open-long')");const eventCount=started;run('lastTickAt=0;onTick(100,101);onCandleClose({o:100,c:101})');assert.equal(started,eventCount,'event phrase suppresses overlapping tick and candle sounds');run('priceSoundSuppressedUntil=0;lastTickAt=0;onTick(101,102)');assert(started>eventCount,'movement sound resumes after the phrase');
 const candleTones=[];env.tone=(...args)=>candleTones.push(args);run(`priceSoundSuppressedUntil=0;lastCandleSoundAt=0;lastTickAt=0;tickOn=true;mode='paper';pair=0;book={cash:100,positions:[],history:[]};prices[0]=100;candles[0]=[{t:Math.floor(Date.now()/60000)*60000-60000,o:99,h:101,l:98,c:100,source:'gains-live'}];setPrice(0,100.1,Date.now())`);assert.equal(candleTones.length,2,'minute rollover plays one candle phrase instead of stacking a tick');assert(candleTones.every(n=>['warm','chime'].includes(n[2])&&n[0]>=220&&n[0]<=700&&n[3]<=.052),'foreground candle phrase is gentle and bounded');
@@ -36,7 +36,22 @@ const calls=[],bridge={enabled:v=>calls.push(['enabled',v]),status:()=> 'running
 const liquidation=apk.run("EVENT_SOUND_PALETTE['my-liq-long']");
 assert(liquidation.every(n=>n[2]==='buzzer'&&n[3]>.2)&&liquidation[0][0]>liquidation[1][0],'liquidation uses a loud descending buzzer');
 assert.equal(apk.run("EVENT_SOUND_PALETTE['my-close-loss'].length"),1);
-assert.equal(apk.run("EVENT_SOUND_PALETTE['my-close-win'].length"),4);
+assert.equal(apk.run("EVENT_SOUND_PALETTE['my-close-win'].length"),7);
+assert.equal(apk.run("eventCueDuration('my-liq-long')"),5);
+const cueTimers=[];
+apk.env.setTimeout=(callback,delay)=>cueTimers.push({callback,delay});
+calls.length=0;
+apk.run("soundOn=true;eventSound('my-close-win');eventSound('my-close-win');eventSound('my-close-win')");
+for(let count=1;count<=3;count++){
+ assert.equal(calls.filter(call=>call[0]==='tone').length,7*count,'one full fanfare per queued win');
+ const timer=cueTimers.shift();
+ assert(timer.delay>=990,'fanfares wait until the previous phrase ends');
+ timer.callback();
+}
+apk.run("closeRequestCue(10);closeRequestCue(-10)");
+assert.equal(calls.filter(call=>call[0]==='tone').at(-1)[3],'chime');
+cueTimers.shift().callback();
+assert.equal(calls.filter(call=>call[0]==='tone').at(-1)[3],'buzzer');
 assert.equal(apk.run("evaluateExit({pair:0,long:true,exits:{tp:110}},110,Date.now())"),'Take profit');
 assert.equal(apk.run("evaluateExit({pair:0,long:false,exits:{sl:110}},110,Date.now())"),'Stop loss');
 assert.equal(apk.run("evaluateExit({pair:0,long:true,exits:{trail:5,best:120}},113,Date.now())"),'Trailing exit');

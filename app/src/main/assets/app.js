@@ -81,7 +81,7 @@ function renderAudioStatus(){syncAudioState();try{if(window.NativeAudio)NativeAu
 /* Mobile browsers lock audio until a user gesture: unlock on any touch/key. */
 try{document.addEventListener('pointerdown',()=>{try{ensureAudio();}catch{}},{passive:true});document.addEventListener('keydown',()=>{try{ensureAudio();}catch{}});}catch{}
 function click(){if(!soundOn)return;tone(700,0.05,'sine',0.05);}
-function tone(freq,dur=0.12,type='sine',gain=0.12,when=0,peak=.095){if(!soundOn&&!tickOn||document.hidden)return;type=type==='square'?'triangle':type==='sawtooth'?'sine':type;gain=Math.min(peak,gain)*soundLevel;try{ensureAudio();if(window.NativeAudio){NativeAudio.tone(freq,dur,type,gain,when);return;}if(!audioCtx)return;const t=audioCtx.currentTime+when,o=audioCtx.createOscillator(),g=audioCtx.createGain();if((type==='warm'||type==='chime')&&audioCtx.createPeriodicWave&&o.setPeriodicWave){const real=new Float32Array(5),imag=new Float32Array(5);imag[1]=1;imag[2]=type==='chime'?.28:.18;imag[3]=type==='chime'?.12:.06;imag[4]=type==='chime'?.04:0;o.setPeriodicWave(audioCtx.createPeriodicWave(real,imag,{disableNormalization:false}));}else o.type=type==='buzzer'?'square':type==='warm'||type==='chime'?'sine':type;o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.001,gain),t+Math.min(.018,dur*.35));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.05);}catch{}}
+function tone(freq,dur=0.12,type='sine',gain=0.12,when=0,peak=.095){if(!soundOn&&!tickOn||document.hidden)return;type=type==='square'?'triangle':type==='sawtooth'?'sine':type;gain=Math.min(peak,gain)*soundLevel;try{ensureAudio();if(window.NativeAudio){NativeAudio.tone(freq,dur,type,gain,when);return;}if(!audioCtx)return;const t=audioCtx.currentTime+when,o=audioCtx.createOscillator(),g=audioCtx.createGain();if((type==='warm'||type==='chime')&&audioCtx.createPeriodicWave&&o.setPeriodicWave){const real=new Float32Array(5),imag=new Float32Array(5);imag[1]=1;imag[2]=type==='chime'?.28:.18;imag[3]=type==='chime'?.12:.06;imag[4]=type==='chime'?.04:0;o.setPeriodicWave(audioCtx.createPeriodicWave(real,imag,{disableNormalization:false}));}else o.type=type==='buzzer'?'square':type==='warm'||type==='chime'?'sine':type;o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.001,gain),t+Math.min(.018,dur*.35));if(type==='buzzer'){g.gain.setValueAtTime(Math.max(.001,gain),t+dur-.045);}g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.05);}catch{}}
 /* Small quote changes use a short tick/tock pulse. A confirmed reversal changes
  * direction; the pulse cadence stays active through tiny back-and-forth moves. */
 let tickMotionState=null,tickBeat=false,priceSoundSuppressedUntil=0;
@@ -98,7 +98,8 @@ function onTick(prev,next,silent=false){if(!tickOn||!(prev>0&&next>0)||prev===ne
  if(big||avg>5)tone(softTickFrequency(f2*(favor?(big?1.4:1.25):.79)),.09,favor?'chime':'warm',g*(big?.45:.55),.14);
  }catch{}}
 let lastCandleSoundAt=0,lastCrossAt=0;
-let bigEvT=0,liquidationCueUntil=0;
+let bigEvT=0,positionCueActive=false;
+const positionCueQueue=[];
 function showBigEvent(text,cls){try{const b=$('bigEvent');if(!b)return;b.textContent=text;b.className=cls||'';b.hidden=false;clearTimeout(bigEvT);bigEvT=setTimeout(()=>{b.hidden=true;},4000);}catch{}}
 /* Price crossing your entry/liq lines: unique sounds + feed cards. */
 function checkCrossings(prev,next){if(!soundOn||!fullyLoaded)return;const now=Date.now();if(now-lastCrossAt<600)return;try{const ps=mode==='paper'?book.positions:livePositions;for(const p of ps){if(p.pair!==pair)continue;if((now-(p._xAt||0))<2000)continue;const liq=p.kind==='paper'?safeLiq(p):p.liq;
@@ -142,21 +143,44 @@ const EVENT_SOUND_PALETTE={
  'public-liq-short':[[196,.11,'warm',.06,0],[247,.14,'warm',.055,.1],[330,.18,'sine',.045,.22]],
  'my-long':[[523,.08,'warm',.065,0],[659,.11,'chime',.07,.08],[784,.16,'chime',.055,.17]],
  'my-short':[[659,.08,'warm',.065,0],[494,.11,'warm',.07,.08],[392,.16,'chime',.055,.17]],
- 'my-close-win':[[523,.09,'chime',.08,0],[659,.09,'chime',.08,.085],[784,.1,'chime',.085,.17],[1047,.23,'chime',.085,.26]],
- 'my-close-loss':[[330,.22,'warm',.075,0]],
+ 'my-close-win':[[523,.09,'chime',.09,0],[659,.09,'chime',.09,.11],[784,.09,'chime',.09,.22],[1047,.12,'chime',.095,.33],[880,.09,'chime',.09,.48],[988,.09,'chime',.09,.59],[1175,.29,'chime',.095,.70]],
+ 'my-close-loss':[[147,.48,'buzzer',.15,0]],
  'my-close':[[587,.09,'warm',.055,0],[659,.14,'chime',.05,.09]],
- 'my-liq-long':[[175,.19,'buzzer',.22,0],[131,.32,'buzzer',.23,.19]],
- 'my-liq-short':[[196,.19,'buzzer',.22,0],[147,.32,'buzzer',.23,.19]],
+ 'my-liq-long':[[175,2,'buzzer',.23,0],[131,3,'buzzer',.23,2]],
+ 'my-liq-short':[[196,2,'buzzer',.23,0],[147,3,'buzzer',.23,2]],
+ 'close-request-win':[[659,.09,'chime',.08,0],[988,.15,'chime',.09,.10]],
+ 'close-request-loss':[[196,.22,'buzzer',.12,0]],
  'pnl-profit':[[523,.08,'warm',.052,0],[698,.13,'chime',.055,.09]],
  'pnl-loss':[[494,.08,'warm',.048,0],[370,.13,'warm',.05,.09]],
  'preview-tick-up':[[523,.06,'warm',.045,0],[659,.1,'chime',.05,.07]],
  'preview-tick-down':[[494,.06,'warm',.043,0],[392,.1,'warm',.047,.07]],
  'liq-touch':[[247,.13,'warm',.06,0],[185,.18,'sine',.055,.13]]
 };
-const SOUND_PREVIEW_SEQUENCE=[['my-long','my L'],['my-short','my S'],['public-open-long','public OPEN L'],['public-open-short','public OPEN S'],['my-close-win','my CLOSE profit'],['my-close-loss','my CLOSE loss'],['public-close-long','public CLOSE L'],['public-close-short','public CLOSE S'],['my-liq-long','my LIQ L'],['my-liq-short','my LIQ S'],['public-liq-long','public LIQ L'],['public-liq-short','public LIQ S'],['pnl-profit','entry → profit'],['pnl-loss','entry → loss'],['liq-touch','liq touch'],['danger','danger zone'],['respawn','respawn'],['preview-tick-up','tick up'],['preview-tick-down','tick down']];
+const SOUND_PREVIEW_SEQUENCE=[['my-long','my L'],['my-short','my S'],['public-open-long','public OPEN L'],['public-open-short','public OPEN S'],['close-request-win','close request · estimated profit'],['close-request-loss','close request · estimated loss'],['my-close-win','my CLOSE profit'],['my-close-loss','my CLOSE loss'],['public-close-long','public CLOSE L'],['public-close-short','public CLOSE S'],['my-liq-long','my LIQ L'],['my-liq-short','my LIQ S'],['public-liq-long','public LIQ L'],['public-liq-short','public LIQ S'],['pnl-profit','entry → profit'],['pnl-loss','entry → loss'],['liq-touch','liq touch'],['danger','danger zone'],['respawn','respawn'],['preview-tick-up','tick up'],['preview-tick-down','tick down']];
 const SOUND_PREVIEW_GAP_MS=560;
 function profiledEventNotes(notes){const selected=soundProfile==='minimal'&&notes.length>2?[notes[0],notes.at(-1)]:notes;return selected.map(([freq,dur,type,gain,when],i)=>soundProfile==='warm'?[freq*.88,dur,type==='chime'?'warm':type,gain*.9,when]:soundProfile==='minimal'?[freq,dur*.9,type,gain*.85,i?Math.min(when,.11):0]:[freq,dur,type,gain,when]);}
-function eventSound(kind){if(!soundOn)return;const now=Date.now(),liquidated=kind.startsWith('my-liq-');if(now<liquidationCueUntil&&!liquidated)return;if(liquidated)liquidationCueUntil=now+520;try{priceSoundSuppressedUntil=now+520;window.NativeAudio?.clearPending?.();if(EVENT_SOUND_PALETTE[kind]){const notes=EVENT_SOUND_PALETTE[kind];for(const note of liquidated||kind==='my-close-win'?notes:profiledEventNotes(notes))tone(...note,liquidated?.23:.095);return;}
+function eventCueDuration(kind){
+ return Math.max(...(EVENT_SOUND_PALETTE[kind]||[]).map(([,duration,,,delay])=>duration+delay),0);
+}
+function playNextPositionCue(){
+ const kind=positionCueQueue.shift();
+ if(!kind||!soundOn||document.hidden){positionCueActive=false;positionCueQueue.length=0;return;}
+ positionCueActive=true;
+ const duration=eventCueDuration(kind)*1000+65;
+ priceSoundSuppressedUntil=Date.now()+duration;
+ window.NativeAudio?.clearPending?.();
+ for(const note of EVENT_SOUND_PALETTE[kind])tone(...note,.23);
+ setTimeout(playNextPositionCue,duration);
+}
+function eventSound(kind){
+ if(!soundOn||document.hidden)return;
+ if(kind.startsWith('my-liq-')||kind.startsWith('my-close')||kind.startsWith('close-request-')){
+  positionCueQueue.push(kind);
+  if(!positionCueActive)playNextPositionCue();
+  return;
+ }
+ if(positionCueActive)return;
+ try{priceSoundSuppressedUntil=Date.now()+520;window.NativeAudio?.clearPending?.();if(EVENT_SOUND_PALETTE[kind]){for(const note of profiledEventNotes(EVENT_SOUND_PALETTE[kind]))tone(...note);return;}
 if(kind==='other-long'){tone(660,0.09,'triangle',0.09);}
 else if(kind==='other-short'){tone(392,0.09,'triangle',0.09);}
 else if(kind==='other-liq'){tone(196,0.25,'sawtooth',0.1);}
@@ -260,7 +284,7 @@ function checkLiveExits(){
    e.triggered=reason;
    saveLiveExitRules();
    toast(reason+' triggered · submitting live close');
-   void closeLive(p,true);
+   void closeLive(p,true,false);
    break;
   }
   if(before!==JSON.stringify(e))saveLiveExitRules();
@@ -362,7 +386,8 @@ async function closeMany(side=null,scope='all'){
 }
 try{$('dismissSettlement').onclick=()=>{$('settlementDialog').close();closeReceipts=[];};$('dismissCloseMenu').onclick=()=>$('closeMenuDialog').close();$('closeMenu').onclick=()=>{const rows=mode==='paper'?book.positions:livePositions;$('closeCurrentLabel').textContent='Current coin · '+marketLabel(pair);for(const [id,side,scope] of [['closeAll',null,'all'],['closeLongs',true,'all'],['closeShorts',false,'all'],['closeCurrentAll',null,'current'],['closeCurrentLongs',true,'current'],['closeCurrentShorts',false,'current']]){$(id).disabled=bulkCloseBusy||!rows.some(p=>(side===null||p.long===side)&&(scope!=='current'||chartPair(p)));}if(!$('closeMenuDialog').open)$('closeMenuDialog').showModal();};for(const [id,side,scope] of [['closeAll',null,'all'],['closeLongs',true,'all'],['closeShorts',false,'all'],['closeCurrentAll',null,'current'],['closeCurrentLongs',true,'current'],['closeCurrentShorts',false,'current']])$(id).onclick=()=>{$('closeMenuDialog').close();return closeMany(side,scope);};}catch{}
 
-function closePaper(p,reason='Closed',silent){if(!book.positions.some(x=>x.id===p.id))throw Error('Position already closed');requireFresh(p.pair);if(window.Feed){const result=Feed.close(p.id);if(!result.startsWith('PENDING:'))throw Error(result);book=JSON.parse(Feed.paper());persist();toast('Paper close pending · fills at the market price when its sampled delay expires');return}const q=queueBrowserClose(p,reason);processBrowserPaper(q.submitted);toast('Paper close pending · fills at the market price when its sampled delay expires')}
+function closeRequestCue(net){if(net>0)eventSound('close-request-win');else if(net<0)eventSound('close-request-loss');}
+function closePaper(p,reason='Closed',silent){if(!book.positions.some(x=>x.id===p.id))throw Error('Position already closed');requireFresh(p.pair);const net=Engine.settle(p,priceOf(p.pair),Date.now()).net;if(window.Feed){const result=Feed.close(p.id);if(!result.startsWith('PENDING:'))throw Error(result);closeRequestCue(net);book=JSON.parse(Feed.paper());persist();toast('Paper close pending · fills at the market price when its sampled delay expires');return}const q=queueBrowserClose(p,reason);closeRequestCue(net);processBrowserPaper(q.submitted);toast('Paper close pending · fills at the market price when its sampled delay expires')}
 
 let clusterCache={};
 function clusteredPublic(list){const key=[pair,selectedPublic,statsRevision,clusterOn,list.length].join(':');if(clusterCache.key===key)return clusterCache.value;if(!clusterOn)return {singles:list,groups:[]};try{const value=Engine.clusterEntries(list.filter(p=>p.isOpen),0.12);clusterCache={key,value};return value;}catch{return {singles:list,groups:[]};}}
@@ -524,7 +549,7 @@ let pendingRow={created:Date.now(),id:Date.now().toString(),owner:wallet.address
 async function waitReceipt(tx){let timer;const receipt=tx.wait(1).catch(e=>{if(e.code==='TRANSACTION_REPLACED'&&!e.cancelled&&e.receipt?.status===1)return e.receipt;throw e});try{return await Promise.race([receipt,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Receipt timeout · submission uncertain; reconciliation continues')),60000)})]);}finally{clearTimeout(timer)}}
 function captureOrder(receipt,p,c){for(const log of receipt.logs){try{let ev=c.interface.parseLog(log);if(ev.name==='MarketOrderInitiated')p.orderId=N(ev.args.orderId.index);if(ev.name==='PendingOrderStored'){p.orderId=N(ev.args.pendingOrder.index);p.tradeIndex=N(ev.args.pendingOrder.trade.index)}}catch{}}}
 function reconcileConfirmedState(row,positions){if(row.orderId!==undefined)return false;if(row.action==='close'&&Number.isInteger(row.tradeIndex)&&!positions.some(p=>p.index===row.tradeIndex)){row.status='Closed';return true}if(row.action!=='open'||!Array.isArray(row.tradeIndexesBefore))return false;const before=new Set(row.tradeIndexesBefore.map(Number)),units=Number(row.collateralUnits),matches=positions.filter(p=>!before.has(p.index)&&p.pair===row.pair&&p.long===row.long&&Math.abs(p.lev-row.leverage)<1e-9&&Number.isFinite(units)&&Math.abs(p.amount*1e6-units)<.5);if(matches.length!==1)return false;row.tradeIndex=matches[0].index;row.status='Open';return true}
-async function closeLive(p,reviewed=false){if(busy)return false;busy=true;let row;try{if(!wallet)throw Error('Load the position wallet first');if(pending.some(x=>x.owner===wallet.address&&/Sending|Pending|uncertain|Order resolved/.test(x.status)))throw Error('An order is still pending. Wait for reconciliation before closing.');requireFresh(p.pair);liveQuote(p.pair);if(!reviewed&&!confirm(`Close LIVE ${p.long?'long':'short'} ${levLabel(p.lev)}× position ${p.index}?`))return false;const c=await chain(),s=c.connect(wallet.connect(provider));row={created:Date.now(),id:'c'+Date.now(),owner:wallet.address,action:'close',tradeIndex:p.index,label:'Close '+p.index,status:'Sending'};pending.push(row);persist();let expected=priceUnit(liveQuote(p.pair));await s.callStatic.closeTradeMarket(p.index,expected);let tx=await s.closeTradeMarket(p.index,expected);row.hash=tx.hash;persist();let r=await waitReceipt(tx);row.hash=r.transactionHash||row.hash;captureOrder(r,row,c);row.status='Pending oracle close';persist();if(!reviewed)showPaperClose({...p,status:'Close submitted · awaiting oracle settlement'},'Close submitted');refreshWallet();return true;}catch(e){if(row){row.status=e.receipt?.status===0?'Failed on-chain':row.hash?'Submission uncertain · check chain':'Failed';row.error=e.reason||e.message;persist()}toast(e.reason||e.message);return false;}finally{busy=false}}
+async function closeLive(p,reviewed=false,manual=true){if(busy)return false;busy=true;let row;try{if(!wallet)throw Error('Load the position wallet first');if(pending.some(x=>x.owner===wallet.address&&/Sending|Pending|uncertain|Order resolved/.test(x.status)))throw Error('An order is still pending. Wait for reconciliation before closing.');requireFresh(p.pair);liveQuote(p.pair);if(!reviewed&&!confirm(`Close LIVE ${p.long?'long':'short'} ${levLabel(p.lev)}× position ${p.index}?`))return false;if(manual)closeRequestCue(liveValue(p));const c=await chain(),s=c.connect(wallet.connect(provider));row={created:Date.now(),id:'c'+Date.now(),owner:wallet.address,action:'close',tradeIndex:p.index,label:'Close '+p.index,status:'Sending'};pending.push(row);persist();let expected=priceUnit(liveQuote(p.pair));await s.callStatic.closeTradeMarket(p.index,expected);let tx=await s.closeTradeMarket(p.index,expected);row.hash=tx.hash;persist();let r=await waitReceipt(tx);row.hash=r.transactionHash||row.hash;captureOrder(r,row,c);row.status='Pending oracle close';persist();if(!reviewed)showPaperClose({...p,status:'Close submitted · awaiting oracle settlement'},'Close submitted');refreshWallet();return true;}catch(e){if(row){row.status=e.receipt?.status===0?'Failed on-chain':row.hash?'Submission uncertain · check chain':'Failed';row.error=e.reason||e.message;persist()}toast(e.reason||e.message);return false;}finally{busy=false}}
 
 function applyPublicChange(p){const previous=publicTrades.find(x=>x.id===p.id);if(p.isOpen)p={...previous,...p,liq:p.liq>0?p.liq:previous?.liq};publicRevision++;publicChanges.set(p.id,{revision:publicRevision,p:p.isOpen?p:null,eventKey:p.eventKey});missingPublic.delete(p.id);const old=publicTrades.find(x=>x.id===p.id);publicTrades=publicTrades.filter(x=>x.id!==p.id);if(p.isOpen)publicTrades.push({...old,...p,liq:p.liq>0?p.liq:old?.liq});snapId++;renderPublic();}
 function applyBackendChange(msg,net){try{if(msg.name==='liveEvents'||msg.name==='liveEvent'){applyBackendExecution(msg,net);return;}if(msg.name==='new-trade-history'){applyBackendHistory(msg,net);return;}if(msg.name==='deepReorg'){for(const id of publicChanges.keys())if(id.startsWith(net+':'))publicChanges.delete(id);missingPublic.clear();return;}const raw=msg.value?.trade?msg.value:msg.value?.user?{trade:msg.value}:null;if(!raw?.trade?.user||raw.trade.index===undefined)return;const id=net+':'+raw.trade.user.toLowerCase()+':'+N(raw.trade.index),old=publicTrades.find(p=>p.id===id)||knownPublic.get(id)||publicNoticeState.get(id)?.p;if(msg.name==='unregisterTrade'){applyPublicChange({id,isOpen:false});if(old){const action=publicAction(msg);if(action==='liq')notifyPublicTrade(old,action,quietEvents);else deferPublicClose(old,quietEvents);}return;}if(!['registerTrade','updateTrade','updateLeverage','updatePositionSize'].includes(msg.name))return;const merged={...old?.container,...raw,trade:{...old?.raw,...raw.trade,isOpen:true}};if(merged.trade.openPrice===undefined||merged.trade.pairIndex===undefined)return;const p=sdkPublic(merged,old,net);if(p){applyPublicChange(p);if(msg.name==='registerTrade')notifyPublicTrade(p,'open',quietEvents);}}catch{}}
@@ -590,7 +615,7 @@ try{$('switchMode').onclick=async()=>{if(busy||bulkCloseBusy){toast('Wait for th
 try{$('reset').onclick=()=>{if(confirm('Clear paper positions and history, and reset to $100?')){if(window.Feed)Feed.reset();book={cash:100,positions:[],history:[]};persist();eventSound('respawn');pushEvent('Respawn $100','');}};}catch{}
 try{$('mute').onclick=()=>{if(soundOn||tickOn){soundOn=false;tickOn=false;toast('Sounds muted');}else{soundOn=true;tickOn=true;ensureAudio();click();toast('Event and price sounds enabled');}persist();render();};$('enableAudio').onclick=()=>{soundOn=true;tickOn=true;ensureAudio();$('soundOn').checked=true;$('tickOn').checked=true;persist();eventSound('my-long');render();};}catch{}
 let soundPreviewBusy=false;
-try{$('previewSounds').onclick=async()=>{if(soundPreviewBusy)return;soundPreviewBusy=true;$('previewSounds').disabled=true;ensureAudio();const keepS=soundOn,keepT=tickOn;soundOn=true;tickOn=true;try{for(const [kind,label] of SOUND_PREVIEW_SEQUENCE){toast('Sound: '+label);eventSound(kind);await new Promise(r=>setTimeout(r,SOUND_PREVIEW_GAP_MS));}toast('Preview done');}finally{soundOn=keepS;tickOn=keepT;soundPreviewBusy=false;$('previewSounds').disabled=false;persist();renderAudioStatus();}};}catch{}
+try{$('previewSounds').onclick=async()=>{if(soundPreviewBusy)return;soundPreviewBusy=true;$('previewSounds').disabled=true;ensureAudio();const keepS=soundOn,keepT=tickOn;soundOn=true;tickOn=true;try{for(const [kind,label] of SOUND_PREVIEW_SEQUENCE){toast('Sound: '+label);eventSound(kind);await new Promise(r=>setTimeout(r,Math.max(SOUND_PREVIEW_GAP_MS,eventCueDuration(kind)*1000+80)));}toast('Preview done');}finally{soundOn=keepS;tickOn=keepT;soundPreviewBusy=false;$('previewSounds').disabled=false;persist();renderAudioStatus();}};}catch{}
 try{$('clusterToggle').onchange=()=>{clusterOn=$('clusterToggle').checked;persist();};}catch{}
 try{$('retryPublic').onclick=()=>{click();loadPublicSnapshot(true);};}catch{}
 try{$('zoomIn').onclick=()=>{click();setChartSpan(view.span/1.5);};}catch{}
@@ -630,7 +655,7 @@ try{if(prevPx[pair]>0&&priceOf(pair)>0&&priceOf(pair)!==prevPx[pair]){onTick(pre
 if(Feed.backgroundEvent){const event=JSON.parse(Feed.backgroundEvent());if(event.at&&(!tradeEvents.get(event.pair)||tradeEvents.get(event.pair).at<event.at))showTradeEvent(event.text,event.action,event.long,event.at,'background',event.id,event.pair);}
 const bookRaw=Feed.paper();if(bookRaw!==nativeBookRaw){
  const next=JSON.parse(bookRaw);
- if(nativeBookRaw&&!document.hidden){const prior=new Set(JSON.parse(nativeBookRaw).history.map(p=>p.id)),closed=next.history.filter(p=>!prior.has(p.id)&&Date.now()-p.closed<2000);const newest=closed.find(p=>p.status==='Liquidated')||closed[0];if(newest)eventSound(paperCloseCue(newest));}
+ if(nativeBookRaw&&!document.hidden){const prior=new Set(JSON.parse(nativeBookRaw).history.map(p=>p.id)),closed=next.history.filter(p=>!prior.has(p.id)&&Date.now()-p.closed<2000);for(const p of closed.reverse())eventSound(paperCloseCue(p));}
  book=next;nativeBookRaw=bookRaw;
 }try{if(typeof s.history==='string'&&s.history)$('historyStatus').textContent=s.history;}catch{}try{nativeRunning=!!s.running;nativeStatus=s.status||'';nativeFeedError=s.feedError||'';nativeAcceptedAt=+s.lastAcceptedFrame||0;$('keepAlive').checked=s.keepAlive!==undefined?!!s.keepAlive:!!s.running;}catch{}}catch{}}
 async function fetchHistoryChain(chain,apiSym,from,to){const j=await fetchJson(`https://api.gains.trade/v1/${chain}/markets/${apiSym}/candles?interval=1m&from=${from}&to=${to}`);return {rows:Engine.history(j.data),chain};}

@@ -20,7 +20,7 @@ public class EventSoundPaletteTest {
   EventSoundPalette.settlement((f,d,t,g,w)->{if(!"buzzer".equals(t)||g<=.2)throw new AssertionError("Liquidation peak");buzzer.add(f);},"liq",true,-10);
   EventSoundPalette.settlement((f,d,t,g,w)->win.add(f),"close",false,1);
   EventSoundPalette.settlement((f,d,t,g,w)->lose.add(f),"close",false,-1);
-  if(buzzer.size()!=2||buzzer.get(0)<=buzzer.get(1)||win.size()!=4||lose.size()!=1)throw new AssertionError("Settlement cues");
+  if(buzzer.size()!=2||buzzer.get(0)<=buzzer.get(1)||win.size()!=7||lose.size()!=1)throw new AssertionError("Settlement cues");
   System.out.println("PASS: six gentle background palettes, bounded peaks/durations and liquidation-first burst priority.");
  }
 }

@@ -1,0 +1,3 @@
+- Your liquidation plays a five-second wrong-answer buzzer.
+- Each profitable close gets its own seven-note victory fanfare. Rapid closes play one after another.
+- A close request plays a shorter cue based on estimated net P&L. Confirmed losing closes get a low buzzer.

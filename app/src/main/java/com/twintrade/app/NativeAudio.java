@@ -41,7 +41,7 @@ public final class NativeAudio {
  @JavascriptInterface public String status(){return state;}
  public long playedFrames(){java.util.concurrent.CountDownLatch done=new java.util.concurrent.CountDownLatch(1);handler.post(()->{updateHead();done.countDown();});try{done.await(500,java.util.concurrent.TimeUnit.MILLISECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}return playedFrames;}
  @JavascriptInterface public void tone(double frequency,double duration,String type,double gain,double delay){
-  if(!Double.isFinite(frequency)||!Double.isFinite(duration)||!Double.isFinite(gain)||!Double.isFinite(delay)||frequency<20||frequency>10000||duration<=0||duration>2||delay<0||delay>2)return;
+  if(!Double.isFinite(frequency)||!Double.isFinite(duration)||!Double.isFinite(gain)||!Double.isFinite(delay)||frequency<20||frequency>10000||duration<=0||duration>3||delay<0||delay>2)return;
   handler.post(()->{
    if(!foreground||!enabled||waiting)return;
    handler.removeCallbacks(idle);
@@ -68,7 +68,7 @@ public final class NativeAudio {
    long frame=cursor+i;double sum=0;
    for(Note n:notes){if(frame<n.start||frame>=n.end)continue;double elapsed=(frame-n.start)/(double)RATE,phase=elapsed*n.frequency;double wave;
     switch(n.type){case "buzzer":case "square":wave=Math.sin(phase*2*Math.PI)>=0?1:-1;break;case "triangle":wave=2/Math.PI*Math.asin(Math.sin(phase*2*Math.PI));break;case "sawtooth":wave=2*(phase-Math.floor(phase+.5));break;case "warm":wave=(Math.sin(phase*2*Math.PI)+.18*Math.sin(phase*4*Math.PI)+.06*Math.sin(phase*6*Math.PI))/1.24;break;case "chime":wave=(Math.sin(phase*2*Math.PI)+.28*Math.sin(phase*4*Math.PI)+.12*Math.sin(phase*6*Math.PI)+.04*Math.sin(phase*8*Math.PI))/1.44;break;default:wave=Math.sin(phase*2*Math.PI);}
-    double total=(n.end-n.start)/(double)RATE,attack=Math.min(.015,total/2),envelope=elapsed<attack?.0001*Math.pow(Math.max(.001,n.gain)/.0001,elapsed/attack):Math.max(.001,n.gain)*Math.pow(.0001/Math.max(.001,n.gain),(elapsed-attack)/(total-attack));sum+=wave*envelope;
+    double total=(n.end-n.start)/(double)RATE,attack=Math.min(.015,total/2),envelope=elapsed<attack?.0001*Math.pow(Math.max(.001,n.gain)/.0001,elapsed/attack):Math.max(.001,n.gain)*Math.pow(.0001/Math.max(.001,n.gain),(elapsed-attack)/(total-attack));if("buzzer".equals(n.type)&&elapsed>=attack)envelope=n.gain*Math.min(1,(total-elapsed)/.045);sum+=wave*envelope;
    }
    // Soft limiting avoids harsh clipping when several event notes overlap.
    pcm[i]=(short)(Math.tanh(sum*.85)*32767);

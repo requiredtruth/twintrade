@@ -53,6 +53,21 @@ public final class MarketStore {
  public static synchronized JSONObject lastPaperClose(String event){
   try{JSONObject p=new JSONObject(book()).getJSONArray("history").getJSONObject(0);return event.equals(p.getString("id")+":"+p.getString("status"))?p:null;}catch(Exception e){return null;}
  }
+ public static synchronized String latestPaperCloseId(){
+  JSONArray history=book==null?null:book.optJSONArray("history");
+  JSONObject latest=history==null?null:history.optJSONObject(0);
+  return latest==null?"":latest.optString("id");
+ }
+ public static synchronized java.util.ArrayDeque<JSONObject> paperClosesSince(String id){
+  java.util.ArrayDeque<JSONObject> result=new java.util.ArrayDeque<>();
+  JSONArray history=book==null?null:book.optJSONArray("history");
+  if(history!=null)for(int i=0;i<history.length();i++){
+   JSONObject close=history.optJSONObject(i);
+   if(close==null||id.equals(close.optString("id")))break;
+   result.addFirst(close);
+  }
+  return result;
+ }
  public static synchronized int lastLiquidationSide(){try{if(!paperEvent.endsWith(":Liquidated"))return 0;JSONObject p=new JSONObject(book()).getJSONArray("history").getJSONObject(0);return p.getString("id").equals(paperEvent.substring(0,paperEvent.lastIndexOf(':')))?p.getBoolean("long")?1:-1:0;}catch(Exception e){return 0;}}
  private static void closeAt(JSONObject p,double price,long now,String reason)throws JSONException {JSONObject receipt=settlement(p,price,now);JSONArray old=book.getJSONArray("positions"),next=new JSONArray();for(int i=0;i<old.length();i++)if(!old.getJSONObject(i).getString("id").equals(p.getString("id")))next.put(old.getJSONObject(i));book.put("positions",next).put("cash",book.getDouble("cash")+receipt.getDouble("payout"));paperEvent=p.getString("id")+":"+reason;p.put("net",receipt.getDouble("net")).put("settlement",receipt).put("exit",price).put("closed",now).put("status",reason);JSONArray h=new JSONArray().put(p),previous=book.getJSONArray("history");for(int i=0;i<Math.min(199,previous.length());i++)h.put(previous.get(i));book.put("history",h);save(true);}
 

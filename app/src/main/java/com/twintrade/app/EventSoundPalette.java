@@ -12,12 +12,14 @@ public final class EventSoundPalette {
  }
  public static void settlement(Output out,String action,boolean longSide,double net){
   if("liq".equals(action)){
-   out.tone(longSide?175:196,.19,"buzzer",.22,0);
-   out.tone(longSide?131:147,.32,"buzzer",.23,.19);
+   out.tone(longSide?175:196,2,"buzzer",.23,0);
+   out.tone(longSide?131:147,3,"buzzer",.23,2);
   }else if(net>0){
-   out.tone(523,.09,"chime",.08,0);out.tone(659,.09,"chime",.08,.085);
-   out.tone(784,.1,"chime",.085,.17);out.tone(1047,.23,"chime",.085,.26);
-  }else if(net<0)out.tone(330,.22,"warm",.075,0);
+   out.tone(523,.09,"chime",.09,0);out.tone(659,.09,"chime",.09,.11);
+   out.tone(784,.09,"chime",.09,.22);out.tone(1047,.12,"chime",.095,.33);
+   out.tone(880,.09,"chime",.09,.48);out.tone(988,.09,"chime",.09,.59);
+   out.tone(1175,.29,"chime",.095,.70);
+  }else if(net<0)out.tone(147,.48,"buzzer",.15,0);
   else{out.tone(587,.09,"warm",.055,0);out.tone(659,.14,"chime",.05,.09);}
  }
  public static void play(Output out,String action,boolean side){play(out,action,side,"gentle");}
