@@ -12,13 +12,12 @@ public final class EventSoundPalette {
  }
  public static void settlement(Output out,String action,boolean longSide,double net){
   if("liq".equals(action)){
-   out.tone(longSide?175:196,2,"buzzer",.23,0);
-   out.tone(longSide?131:147,3,"buzzer",.23,2);
+   out.tone(longSide?175:196,3,"buzzer",.115,0);
   }else if(net>0){
-   out.tone(523,.09,"chime",.09,0);out.tone(659,.09,"chime",.09,.11);
-   out.tone(784,.09,"chime",.09,.22);out.tone(1047,.12,"chime",.095,.33);
-   out.tone(880,.09,"chime",.09,.48);out.tone(988,.09,"chime",.09,.59);
-   out.tone(1175,.29,"chime",.095,.70);
+   out.tone(784,.055,"chime",.045,0);out.tone(988,.055,"chime",.045,.068);
+   out.tone(1175,.055,"chime",.045,.136);out.tone(1568,.065,"chime",.0475,.204);
+   out.tone(1319,.055,"chime",.045,.29);out.tone(1568,.055,"chime",.045,.358);
+   out.tone(1976,.16,"chime",.0475,.43);
   }else if(net<0)out.tone(147,.48,"buzzer",.15,0);
   else{out.tone(587,.09,"warm",.055,0);out.tone(659,.14,"chime",.05,.09);}
  }

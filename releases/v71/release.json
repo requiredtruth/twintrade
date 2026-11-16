@@ -1,0 +1,13 @@
+{
+  "tag": "v0.71.0",
+  "title": "TwinTrade 0.71.0 \u2014 quieter liquidation and victory sounds",
+  "sequence": 55,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "3aaec4b04e5a994aa855bd239386e77ed7d63525dedb986e608b724832119ddf",
+    "TwinTrade.html": "919c2dadbab8429b7ef27c4d8b9be31062f3bce3ab393a7c0383cfe7055c80cd",
+    "TwinTrade-source.zip": "8251048b71db5319709e38e6f38edf913caa44b15d147ee030458344e92a6797",
+    "spec.md": "6ba525ca9506868dcc3a6e9327f1a5eec1692239a2cf194b7d6c2e8a553d40d2",
+    "SHA256SUMS": "372e76b6beef7151ee794852089308c9923e716c58bd02d84962fabf88cb49e8"
+  }
+}

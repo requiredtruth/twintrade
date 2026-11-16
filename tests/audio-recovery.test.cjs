@@ -34,10 +34,11 @@ for(const bar of [false,true]){
 const crossings=[];env.eventSound=k=>crossings.push(k);env.pushEvent=()=>{};run("mode='live';pair=0;fullyLoaded=true;soundOn=true;livePositions=[{id:'short',pair:0,long:false,entry:100,liq:150,_xAt:-1e15}];lastCrossAt=0;checkCrossings(101,99);livePositions[0]._xAt=-1e15;lastCrossAt=0;checkCrossings(99,101)");assert.deepEqual(crossings,['pnl-profit','pnl-loss'],'short entry crossings use profit/loss semantics rather than raw price direction');
 const calls=[],bridge={enabled:v=>calls.push(['enabled',v]),status:()=> 'running',clearPending:()=>calls.push(['clear']),tone:(...a)=>calls.push(['tone',...a])};const apk=boot(bridge);await new Promise(r=>setImmediate(r));apk.run('soundOn=true;tickOn=true;soundLevel=.45;tone(660,.1,"triangle",.095,.05)');const scaled=calls.find(c=>c[0]==='tone'&&c[1]===660);assert(scaled&&Math.abs(scaled[4]-.04275)<1e-9,'APK native PCM receives scaled gain');apk.run("eventSound('public-open-long')");assert(calls.some(c=>c[0]==='clear'),'APK event phrase clears queued movement tones');apk.run('soundOn=false;tickOn=false;renderAudioStatus()');assert.deepEqual(calls.at(-1),['enabled',false]);
 const liquidation=apk.run("EVENT_SOUND_PALETTE['my-liq-long']");
-assert(liquidation.every(n=>n[2]==='buzzer'&&n[3]>.2)&&liquidation[0][0]>liquidation[1][0],'liquidation uses a loud descending buzzer');
+assert.equal(JSON.stringify(liquidation),JSON.stringify([[175,3,'buzzer',.115,0]]));
 assert.equal(apk.run("EVENT_SOUND_PALETTE['my-close-loss'].length"),1);
 assert.equal(apk.run("EVENT_SOUND_PALETTE['my-close-win'].length"),7);
-assert.equal(apk.run("eventCueDuration('my-liq-long')"),5);
+assert(apk.run("EVENT_SOUND_PALETTE['my-close-win'].every(([pitch,duration,type,gain])=>pitch>=784&&duration<=.16&&type==='chime'&&gain<=.0475)"));
+assert.equal(apk.run("eventCueDuration('my-liq-long')"),3);
 const cueTimers=[];
 apk.env.setTimeout=(callback,delay)=>cueTimers.push({callback,delay});
 calls.length=0;
@@ -45,7 +46,7 @@ apk.run("soundOn=true;eventSound('my-close-win');eventSound('my-close-win');even
 for(let count=1;count<=3;count++){
  assert.equal(calls.filter(call=>call[0]==='tone').length,7*count,'one full fanfare per queued win');
  const timer=cueTimers.shift();
- assert(timer.delay>=990,'fanfares wait until the previous phrase ends');
+ assert(timer.delay>=apk.run("eventCueDuration('my-close-win')")*1000,'fanfares wait until the previous phrase ends');
  timer.callback();
 }
 apk.run("closeRequestCue(10);closeRequestCue(-10)");

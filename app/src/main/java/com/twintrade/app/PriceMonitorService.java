@@ -34,7 +34,7 @@ public class PriceMonitorService extends Service {
  private long settlementSoundUntil;
  private void playSettlement(String action,boolean longSide,double net,long now,double level){
   long start=Math.max(now,settlementSoundUntil);
-  long duration="liq".equals(action)?5000:net>0?990:net<0?480:230;
+  long duration="liq".equals(action)?3000:net>0?590:net<0?480:230;
   settlementSoundUntil=start+duration+65;
   sonifier.suppressUntil(settlementSoundUntil);
   Runnable play=()->{synchronized(audioLock){

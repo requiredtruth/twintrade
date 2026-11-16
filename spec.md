@@ -1,7 +1,7 @@
 # TwinTrade 0.62.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 70, versionName 0.70.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 71, versionName 0.71.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -460,3 +460,7 @@ Landscape grid now explicitly places both account metrics and selected-market P&
 
 - Queue personal settlement sounds in event order. A winning close uses seven notes, a losing close uses a short low buzz, and a liquidation uses a loud five-second buzzer.
 - Manual close requests use separate short confirmation cues keyed to estimated net P&L at submission. Settlement cues use the final result.
+
+## 0.71.0
+
+- Personal liquidation uses a single three-second buzzer. The seven-note win fanfare uses shorter, higher chimes. Both cues have half their previous gain.

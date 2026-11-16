@@ -1,0 +1,2 @@
+- Personal liquidations play one steady three-second buzzer at half its previous volume.
+- Each profitable close plays seven quicker, brighter chimes at half the previous gain. Consecutive wins still play in order.
