@@ -76,12 +76,12 @@ function setPrice(i,v,now){const prev=prices[i]||0,a=candlesOf(i),t=Math.floor(n
 /* ---- sounds: unique per actor + side + outcome; ticks vary by big/small. ---- */
 function ensureAudio(){if(window.NativeAudio){NativeAudio.enabled(soundOn||tickOn);audioError='';return;}try{if(!audioCtx||audioCtx.state==='closed')audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state!=='running'){const resumed=audioCtx.resume();if(resumed&&resumed.catch)resumed.then(()=>{audioError='';}).catch(()=>{audioError='Tap Enable sounds + test to retry';});}else audioError='';}catch{audioError='Audio unavailable · tap Enable sounds + test to retry';}}
 let lastAudioState='';
-function syncAudioState(){try{if(!window.Feed?.audioState)return;const positions=mode==='live'?livePositions.map(p=>({pair:p.pair,long:p.long,entry:p.entry,amount:p.amount,lev:p.lev,adjustment:p.feeTime?(p.realizedPnl||0)-p.borrow-p.funding-p.trading-p.closeEstimate:null})):[],raw=JSON.stringify({pair,symbol:TradeConfig.marketOrNull(pair)?.symbol||"",events:soundOn,ticks:tickOn,profile:soundProfile,level:soundLevel,mode,positions});if(raw!==lastAudioState){Feed.audioState(raw);lastAudioState=raw;}}catch{}}
+function syncAudioState(){try{if(!window.Feed?.audioState)return;const positions=mode==='live'?livePositions.map(p=>({pair:p.pair,long:p.long,entry:p.entry,amount:p.amount,lev:p.lev,adjustment:p.feeTime?(p.realizedPnl||0)-p.borrow-p.funding-p.trading-p.closeEstimate:null})):[],raw=JSON.stringify({pair,symbol:TradeConfig.marketOrNull(pair)?.symbol||"",events:soundOn,ticks:tickOn,profile:soundProfile,level:soundLevel,mode,owner:wallet?.address||"",positions});if(raw!==lastAudioState){Feed.audioState(raw);lastAudioState=raw;}}catch{}}
 function renderAudioStatus(){syncAudioState();try{if(window.NativeAudio)NativeAudio.enabled(soundOn||tickOn);const enabled=soundOn||tickOn,state=window.NativeAudio?NativeAudio.status():(audioCtx?.state||'not started');$('audioStatus').textContent=`Events ${soundOn?'on':'off'} (${soundProfile}) · Level ${Math.round(soundLevel*100)}% · Price/candles ${tickOn?'on':'off'} · Audio ${enabled?state:'muted'}${audioError?' · '+audioError:''}`;const button=$('mute');button.title=`Events ${soundOn?'on':'off'} · Price/candles ${tickOn?'on':'off'} · Tap to ${enabled?'mute':'enable'} sounds`;button.setAttribute('aria-label',button.title);}catch{}}
 /* Mobile browsers lock audio until a user gesture: unlock on any touch/key. */
 try{document.addEventListener('pointerdown',()=>{try{ensureAudio();}catch{}},{passive:true});document.addEventListener('keydown',()=>{try{ensureAudio();}catch{}});}catch{}
 function click(){if(!soundOn)return;tone(700,0.05,'sine',0.05);}
-function tone(freq,dur=0.12,type='sine',gain=0.12,when=0){if(!soundOn&&!tickOn||document.hidden)return;type=type==='square'?'triangle':type==='sawtooth'?'sine':type;gain=Math.min(.095,gain)*soundLevel;try{ensureAudio();if(window.NativeAudio){NativeAudio.tone(freq,dur,type,gain,when);return;}if(!audioCtx)return;const t=audioCtx.currentTime+when,o=audioCtx.createOscillator(),g=audioCtx.createGain();if((type==='warm'||type==='chime')&&audioCtx.createPeriodicWave&&o.setPeriodicWave){const real=new Float32Array(5),imag=new Float32Array(5);imag[1]=1;imag[2]=type==='chime'?.28:.18;imag[3]=type==='chime'?.12:.06;imag[4]=type==='chime'?.04:0;o.setPeriodicWave(audioCtx.createPeriodicWave(real,imag,{disableNormalization:false}));}else o.type=type==='warm'||type==='chime'?'sine':type;o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.001,gain),t+Math.min(.018,dur*.35));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.05);}catch{}}
+function tone(freq,dur=0.12,type='sine',gain=0.12,when=0,peak=.095){if(!soundOn&&!tickOn||document.hidden)return;type=type==='square'?'triangle':type==='sawtooth'?'sine':type;gain=Math.min(peak,gain)*soundLevel;try{ensureAudio();if(window.NativeAudio){NativeAudio.tone(freq,dur,type,gain,when);return;}if(!audioCtx)return;const t=audioCtx.currentTime+when,o=audioCtx.createOscillator(),g=audioCtx.createGain();if((type==='warm'||type==='chime')&&audioCtx.createPeriodicWave&&o.setPeriodicWave){const real=new Float32Array(5),imag=new Float32Array(5);imag[1]=1;imag[2]=type==='chime'?.28:.18;imag[3]=type==='chime'?.12:.06;imag[4]=type==='chime'?.04:0;o.setPeriodicWave(audioCtx.createPeriodicWave(real,imag,{disableNormalization:false}));}else o.type=type==='buzzer'?'square':type==='warm'||type==='chime'?'sine':type;o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(0.001,gain),t+Math.min(.018,dur*.35));g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.05);}catch{}}
 /* Small quote changes use a short tick/tock pulse. A confirmed reversal changes
  * direction; the pulse cadence stays active through tiny back-and-forth moves. */
 let tickMotionState=null,tickBeat=false,priceSoundSuppressedUntil=0;
@@ -97,7 +97,7 @@ function onTick(prev,next,silent=false){if(!tickOn||!(prev>0&&next>0)||prev===ne
  if(big||inPos&&avg>5)tone(softTickFrequency(f2*(big?1.4:1.25)),.09,up?'chime':'warm',g*(big?.45:.55),.14);
  }catch{}}
 let lastCandleSoundAt=0,lastCrossAt=0;
-let bigEvT=0;
+let bigEvT=0,liquidationCueUntil=0;
 function showBigEvent(text,cls){try{const b=$('bigEvent');if(!b)return;b.textContent=text;b.className=cls||'';b.hidden=false;clearTimeout(bigEvT);bigEvT=setTimeout(()=>{b.hidden=true;},4000);}catch{}}
 /* Price crossing your entry/liq lines: unique sounds + feed cards. */
 function checkCrossings(prev,next){if(!soundOn||!fullyLoaded)return;const now=Date.now();if(now-lastCrossAt<600)return;try{const ps=mode==='paper'?book.positions:livePositions;for(const p of ps){if(p.pair!==pair)continue;if((now-(p._xAt||0))<2000)continue;const liq=p.kind==='paper'?safeLiq(p):p.liq;
@@ -121,11 +121,11 @@ const EVENT_SOUND_PALETTE={
  'public-liq-short':[[196,.11,'warm',.06,0],[247,.14,'warm',.055,.1],[330,.18,'sine',.045,.22]],
  'my-long':[[523,.08,'warm',.065,0],[659,.11,'chime',.07,.08],[784,.16,'chime',.055,.17]],
  'my-short':[[659,.08,'warm',.065,0],[494,.11,'warm',.07,.08],[392,.16,'chime',.055,.17]],
- 'my-close-win':[[523,.08,'warm',.055,0],[659,.1,'chime',.065,.08],[880,.16,'chime',.05,.17]],
- 'my-close-loss':[[587,.08,'warm',.05,0],[494,.11,'warm',.055,.08],[392,.16,'sine',.045,.18]],
+ 'my-close-win':[[523,.09,'chime',.08,0],[659,.09,'chime',.08,.085],[784,.1,'chime',.085,.17],[1047,.23,'chime',.085,.26]],
+ 'my-close-loss':[[330,.22,'warm',.075,0]],
  'my-close':[[587,.09,'warm',.055,0],[659,.14,'chime',.05,.09]],
- 'my-liq-long':[[247,.11,'warm',.06,0],[196,.14,'warm',.055,.1],[147,.18,'sine',.045,.22]],
- 'my-liq-short':[[196,.11,'warm',.06,0],[247,.14,'warm',.055,.1],[330,.18,'sine',.045,.22]],
+ 'my-liq-long':[[175,.19,'buzzer',.22,0],[131,.32,'buzzer',.23,.19]],
+ 'my-liq-short':[[196,.19,'buzzer',.22,0],[147,.32,'buzzer',.23,.19]],
  'pnl-profit':[[523,.08,'warm',.052,0],[698,.13,'chime',.055,.09]],
  'pnl-loss':[[494,.08,'warm',.048,0],[370,.13,'warm',.05,.09]],
  'preview-tick-up':[[523,.06,'warm',.045,0],[659,.1,'chime',.05,.07]],
@@ -135,7 +135,7 @@ const EVENT_SOUND_PALETTE={
 const SOUND_PREVIEW_SEQUENCE=[['my-long','my L'],['my-short','my S'],['public-open-long','public OPEN L'],['public-open-short','public OPEN S'],['my-close-win','my CLOSE profit'],['my-close-loss','my CLOSE loss'],['public-close-long','public CLOSE L'],['public-close-short','public CLOSE S'],['my-liq-long','my LIQ L'],['my-liq-short','my LIQ S'],['public-liq-long','public LIQ L'],['public-liq-short','public LIQ S'],['pnl-profit','entry → profit'],['pnl-loss','entry → loss'],['liq-touch','liq touch'],['danger','danger zone'],['respawn','respawn'],['preview-tick-up','tick up'],['preview-tick-down','tick down']];
 const SOUND_PREVIEW_GAP_MS=560;
 function profiledEventNotes(notes){const selected=soundProfile==='minimal'&&notes.length>2?[notes[0],notes.at(-1)]:notes;return selected.map(([freq,dur,type,gain,when],i)=>soundProfile==='warm'?[freq*.88,dur,type==='chime'?'warm':type,gain*.9,when]:soundProfile==='minimal'?[freq,dur*.9,type,gain*.85,i?Math.min(when,.11):0]:[freq,dur,type,gain,when]);}
-function eventSound(kind){if(!soundOn)return;try{priceSoundSuppressedUntil=Date.now()+520;window.NativeAudio?.clearPending?.();if(EVENT_SOUND_PALETTE[kind]){for(const notes of profiledEventNotes(EVENT_SOUND_PALETTE[kind]))tone(...notes);return;}
+function eventSound(kind){if(!soundOn)return;const now=Date.now(),liquidated=kind.startsWith('my-liq-');if(now<liquidationCueUntil&&!liquidated)return;if(liquidated)liquidationCueUntil=now+520;try{priceSoundSuppressedUntil=now+520;window.NativeAudio?.clearPending?.();if(EVENT_SOUND_PALETTE[kind]){const notes=EVENT_SOUND_PALETTE[kind];for(const note of liquidated||kind==='my-close-win'?notes:profiledEventNotes(notes))tone(...note,liquidated?.23:.095);return;}
 if(kind==='other-long'){tone(660,0.09,'triangle',0.09);}
 else if(kind==='other-short'){tone(392,0.09,'triangle',0.09);}
 else if(kind==='other-liq'){tone(196,0.25,'sawtooth',0.1);}
@@ -157,14 +157,18 @@ function publicTradeText(p,action){const label=action==='liq'?'LIQ':action.toUpp
 restoreSelectedTradeEvent();
 function publicAction(msg){const v=msg.value||msg.args||{},name=String(v.action||v.trade?.action||v.event||v.eventName||msg.action||msg.event||msg.name||'');if(name==='TradeClosedLIQ'||name==='LIQ_CLOSE'||name==='Liquidated'||name==='LimitExecuted'&&N(v.orderType)===6)return 'liq';return 'close';}
 function notifyPublicTrade(p,action,quiet=false){if(!p?.id||!Number.isInteger(p.pair)||!['open','close','liq'].includes(action))return;const pendingClose=pendingPublicCloses.get(p.id);if(pendingClose){clearTimeout(pendingClose.timer);pendingPublicCloses.delete(p.id);}const previous=publicNoticeState.get(p.id);if(previous?.notified&&(previous.action===action||previous.action==='liq'&&action==='close')){const cached=tradeEvents.get(p.pair);if(p.symbol&&cached?.id===p.id&&cached.action===action){previous.p={...previous.p,...p,isOpen:action==='open'};showTradeEvent(publicTradeText(p,action),action,p.long,cached.at,cached.source,p.id,p.pair);}return;}publicNoticeState.delete(p.id);publicNoticeState.set(p.id,{action,p:{...p,isOpen:action==='open'},notified:false});while(publicNoticeState.size>3000)publicNoticeState.delete(publicNoticeState.keys().next().value);
- if(quiet||wallet&&String(p.user||p.raw?.user||'').toLowerCase()===wallet.address.toLowerCase())return;
+ if(quiet)return;
+ if(wallet&&String(p.user||p.raw?.user||'').toLowerCase()===wallet.address.toLowerCase()){
+  if(mode==='live'&&(action==='liq'||action==='close'&&Number.isFinite(p.settledNet))){publicNoticeState.get(p.id).notified=true;eventSound(action==='liq'?(p.long?'my-liq-long':'my-liq-short'):closeCue(p.settledNet));}
+  return;
+ }
  publicNoticeState.get(p.id).notified=true;if(chartPair(p))eventSound('public-'+action+'-'+(p.long?'long':'short'));showTradeEvent(publicTradeText(p,action),action,p.long,Date.now(),'live',p.id,p.pair);
 }
 function deferPublicClose(p,quiet=false){if(!p||pendingPublicCloses.has(p.id))return;const timer=setTimeout(()=>{pendingPublicCloses.delete(p.id);notifyPublicTrade(p,'close',quiet);},700);pendingPublicCloses.set(p.id,{timer});}
 /* Confirmed backend execution envelopes can supply a LIQ reason on any net. */
 function applyBackendExecution(msg,net){const values=Array.isArray(msg.value)?msg.value:[msg.value];for(const value of values){const v=value?.args||value?.returnValues||value;if(!v||!['MarketExecuted','LimitExecuted'].includes(value?.event||value?.name||value?.eventName))continue;const tuple=v.t||v.trade,t=Array.isArray(tuple)?Object.fromEntries(['user','index','pairIndex','leverage','long','isOpen','collateralIndex','tradeType','collateralAmount','openPrice','tp','sl','isCounterTrade','positionSizeToken','__placeholder'].map((key,i)=>[key,tuple[i]])):tuple;if(!t?.user||t.pairIndex===undefined||t.openPrice===undefined)continue;if(t.tradeType===undefined||t.collateralAmount===undefined||t.leverage===undefined||typeof t.long!=='boolean')continue;const old=publicTrades.find(p=>p.id===net+':'+t.user.toLowerCase()+':'+N(t.index)),p=sdkPublic({trade:{...t,isOpen:true}},old,net);if(!p)continue;p.raw=t;const open=(value.event||value.name||value.eventName)==='LimitExecuted'?[2,3].includes(N(v.orderType)):v.open===true;p.isOpen=open;p.eventPrice=N(v.marketPrice||v.oraclePrice||0)/1e10;applyPublicChange(p);notifyPublicTrade(p,open?'open':publicAction({event:value.event||value.name||value.eventName,args:v}),quietEvents);}}
 /* Current Gains backend sends confirmed history rows as top-level messages. */
-function historyPublicTrade(g,net){const action=/^TradeOpened(Market|Limit)$/.test(g.action)?'open':g.action==='TradeClosedLIQ'?'liq':/^TradeClosed(Market|TP|SL)$/.test(g.action)?'close':null;if(!action||!g.address||g.tradeIndex===undefined||typeof g.pair!=='string')return null;const market=TradeConfig.allMarkets().find(m=>m.symbol===g.pair),id=net+':'+String(g.address).toLowerCase()+':'+N(g.tradeIndex),old=publicTrades.find(p=>p.id===id)||publicNoticeState.get(id)?.p;const p={...old,id,user:String(g.address),index:N(g.tradeIndex),net,pair:market?.pairIndex??old?.pair??-1,symbol:g.pair,kind:'public',long:g.long===true||g.long===1||g.long==='1',lev:N(g.leverage)>0?N(g.leverage):old?.lev||0,amount:N(g.size)>0?N(g.size):old?.amount||0,entry:old?.entry>0?old.entry:N(g.price),eventPrice:N(g.price),isOpen:action==='open'};if(action==='open'&&!(p.lev>0&&p.amount>0&&p.entry>0))return null;return {p,action,at:Date.parse(g.date)};}
+function historyPublicTrade(g,net){const action=/^TradeOpened(Market|Limit)$/.test(g.action)?'open':g.action==='TradeClosedLIQ'?'liq':/^TradeClosed(Market|TP|SL)$/.test(g.action)?'close':null;if(!action||!g.address||g.tradeIndex===undefined||typeof g.pair!=='string')return null;const market=TradeConfig.allMarkets().find(m=>m.symbol===g.pair),id=net+':'+String(g.address).toLowerCase()+':'+N(g.tradeIndex),old=publicTrades.find(p=>p.id===id)||publicNoticeState.get(id)?.p;const p={...old,id,user:String(g.address),index:N(g.tradeIndex),net,pair:market?.pairIndex??old?.pair??-1,symbol:g.pair,kind:'public',long:g.long===true||g.long===1||g.long==='1',lev:N(g.leverage)>0?N(g.leverage):old?.lev||0,amount:N(g.size)>0?N(g.size):old?.amount||0,entry:old?.entry>0?old.entry:N(g.price),eventPrice:N(g.price),settledNet:g.pnl_net==null||g.pnl_net===''?NaN:Number(g.pnl_net),isOpen:action==='open'};if(action==='open'&&!(p.lev>0&&p.amount>0&&p.entry>0))return null;return {p,action,at:Date.parse(g.date)};}
 function applyBackendHistory(msg,net){const row=historyPublicTrade(msg.value||msg,net);if(!row)return;if(row.p.pair>=0)applyPublicChange(row.p);notifyPublicTrade(row.p,row.action,quietEvents);}
 function seedLatestPublicTrade(rows){const seen=new Set();for(const g of [...rows].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))){const row=historyPublicTrade(g,g.net||'POLYGON');if(!row||row.p.pair<0||seen.has(row.p.pair)||!Number.isFinite(row.at)||row.at>Date.now()+5000||wallet&&row.p.user.toLowerCase()===wallet.address.toLowerCase())continue;seen.add(row.p.pair);const cached=tradeEvents.get(row.p.pair);if(cached&&cached.at>=row.at)continue;showTradeEvent('Last confirmed · '+new Date(row.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · '+publicTradeText(row.p,row.action),row.action,row.p.long,row.at,'history',row.p.id,row.p.pair);}restoreSelectedTradeEvent();}
 
@@ -181,8 +185,124 @@ function connectPrices(){lastPriceConnect=Date.now();let generation=++wsGenerati
 function paperDelayMs(random=Math.random){return random()<.05?30000:3000+Math.floor(random()*7001)}
 function paperPendingFor(positionId,action){return (book.pending||[]).find(q=>q.positionId===positionId&&q.action===action)}
 function queueBrowserClose(p,reason='Closed',now=Date.now()){if(!Array.isArray(book.pending))book.pending=[];let q=paperPendingFor(p.id,'close');if(q){if(reason==='Liquidated'){q.reason=reason;p.status='Liquidated triggered · pending execution';persist()}return q}q={id:'q'+now+Math.random().toString(16).slice(2),action:'close',positionId:p.id,pair:p.pair,reason,submitted:now,due:now+paperDelayMs()};book.pending.push(q);p.status=reason+' triggered · pending execution';persist();return q}
-function processBrowserPaper(now=Date.now()){if(window.Feed||!book.pending?.length)return;const next=[];let changed=false;for(const q of book.pending){if(q.due>now||!fresh(q.pair)){next.push(q);continue}changed=true;const px=priceOf(q.pair);if(q.action==='open'){const p=Engine.open(q.pair,q.long,q.amount,q.lev,px,q.cost,now);p.id=q.positionId;p.status='Paper open · delayed fill';if(Engine.value(p,px,now).net<=-q.amount*q.cost.liq/100)book.cash+=q.amount;else{book.positions.push(p);eventSound(q.long?'my-long':'my-short');pushEvent(`${q.long?'L':'S'} ${levLabel(q.lev)}× ${cashLabel(q.amount)} delayed fill`,q.long?'long':'short')}}else{const p=book.positions.find(x=>x.id===q.positionId);if(p){const settlement=Engine.settle(p,px,now),closed={...p,net:settlement.net,settlement,closed:now,exit:px,status:q.reason||'Closed'};book.cash+=settlement.payout;book.positions=book.positions.filter(x=>x.id!==p.id);book.history.unshift(closed);book.history=book.history.slice(0,200);eventSound(q.reason==='Liquidated'?(p.long?'my-liq-long':'my-liq-short'):settlement.net>=0?'my-close-win':'my-close-loss');pushEvent(`${q.reason==='Liquidated'?'LIQ':'CLOSE'} ${p.long?'L':'S'} ${levLabel(p.lev)}× delayed fill`,'liq');showPaperClose(closed,q.reason)}}}if(changed){book.pending=next;persist()}}
-function checkLiquidations(i){if(window.Feed)return;for(const p of [...book.positions])if(p.pair===i&&Engine.value(p,priceOf(i)).net<=-p.amount*p.cost.liq/100)queueBrowserClose(p,'Liquidated')}
+function processBrowserPaper(now=Date.now()){if(window.Feed||!book.pending?.length)return;const next=[];let changed=false;for(const q of book.pending){if(q.due>now||!fresh(q.pair)){next.push(q);continue}changed=true;const px=priceOf(q.pair);if(q.action==='open'){const p=Engine.open(q.pair,q.long,q.amount,q.lev,px,q.cost,now);p.id=q.positionId;p.status='Paper open · delayed fill';if(Engine.value(p,px,now).net<=-q.amount*q.cost.liq/100)book.cash+=q.amount;else{book.positions.push(p);eventSound(q.long?'my-long':'my-short');pushEvent(`${q.long?'L':'S'} ${levLabel(q.lev)}× ${cashLabel(q.amount)} delayed fill`,q.long?'long':'short')}}else{const p=book.positions.find(x=>x.id===q.positionId);if(p){const settlement=Engine.settle(p,px,now),closed={...p,net:settlement.net,settlement,closed:now,exit:px,status:q.reason||'Closed'};book.cash+=settlement.payout;book.positions=book.positions.filter(x=>x.id!==p.id);book.history.unshift(closed);book.history=book.history.slice(0,200);eventSound(q.reason==='Liquidated'?(p.long?'my-liq-long':'my-liq-short'):closeCue(settlement.net));pushEvent(`${q.reason==='Liquidated'?'LIQ':'CLOSE'} ${p.long?'L':'S'} ${levLabel(p.lev)}× delayed fill`,'liq');showPaperClose(closed,q.reason)}}}if(changed){book.pending=next;persist()}}
+function closeCue(net){return net>0?'my-close-win':net<0?'my-close-loss':'my-close';}
+function paperCloseCue(p){return p.status==='Liquidated'?(p.long?'my-liq-long':'my-liq-short'):closeCue(p.net);}
+function checkLiquidations(i){
+ if(window.Feed)return;
+ const price=priceOf(i),now=lastOf(i);
+ for(const p of book.positions){
+  if(p.pair!==i)continue;
+  if(Engine.value(p,price).net<=-p.amount*p.cost.liq/100){queueBrowserClose(p,'Liquidated');continue;}
+  if(!p.exits||paperPendingFor(p.id,'close'))continue;
+  const before=JSON.stringify(p.exits),reason=evaluateExit(p,price,now);
+  if(reason)queueBrowserClose(p,reason);
+  else if(before!==JSON.stringify(p.exits))persist();
+ }
+}
+function evaluateExit(p,price,now){
+ const e=p.exits,d=p.long?1:-1;
+ if(e.tp&&d*(price-e.tp)>=0)return 'Take profit';
+ if(e.sl&&d*(price-e.sl)<=0)return 'Stop loss';
+ if(e.trail){
+  e.best=p.long?Math.max(e.best,price):Math.min(e.best,price);
+  if(d*(price-e.best*(1-d*e.trail/100))<=0)return 'Trailing exit';
+ }
+ if(e.atr){
+  if(e.chandelier&&d*(price-e.chandelier)<=0)return 'Chandelier exit';
+  const bars=candlesOf(p.pair).filter(c=>c.t<Math.floor(now/60000)*60000).slice(-15);
+  if(bars.length!==15||bars.at(-1).t!==Math.floor(now/60000)*60000-60000||bars.some((c,i)=>c.source==='gap-fill'||i&&c.t-bars[i-1].t!==60000))return null;
+  let range=0,extreme=bars[1][p.long?'h':'l'];
+  for(let i=1;i<bars.length;i++){const c=bars[i],prev=bars[i-1].c;range+=Math.max(c.h-c.l,Math.abs(c.h-prev),Math.abs(c.l-prev));extreme=p.long?Math.max(extreme,c.h):Math.min(extreme,c.l);}
+  const stop=extreme-d*e.atr*range/14;
+  if(range>0&&stop>0){e.chandelier=e.chandelier?(p.long?Math.max(e.chandelier,stop):Math.min(e.chandelier,stop)):stop;if(d*(price-e.chandelier)<=0)return 'Chandelier exit';}
+ }
+ return null;
+}
+function loadLiveExitRules(){
+ try{const entries=JSON.parse(localStorage.getItem('liveExitRules')||'[]');return new Map(entries);}catch{return new Map();}
+}
+const liveExitRules=loadLiveExitRules();
+function saveLiveExitRules(){localStorage.setItem('liveExitRules',JSON.stringify([...liveExitRules]));}
+let liveExitPollAt=0;
+function checkLiveExits(){
+ const now=Date.now();
+ if(mode!=='live'||document.hidden||busy||!wallet||!liveExitRules.size||now-liveExitPollAt<500)return;
+ liveExitPollAt=now;
+ for(const p of livePositions){
+  const e=liveExitRules.get(p.id);
+  if(!e||e.triggered||p.user.toLowerCase()!==wallet.address.toLowerCase()||!fresh(p.pair))continue;
+  let quote;try{quote=liveQuote(p.pair);}catch{continue;}
+  const before=JSON.stringify(e),reason=evaluateExit({...p,exits:e},quote,indexTimes[p.pair]);
+  if(reason){
+   if(pending.some(x=>x.owner===wallet.address&&/Sending|Pending|uncertain|Order resolved/.test(x.status)))continue;
+   e.triggered=reason;
+   saveLiveExitRules();
+   toast(reason+' triggered · submitting live close');
+   void closeLive(p,true);
+   break;
+  }
+  if(before!==JSON.stringify(e))saveLiveExitRules();
+ }
+}
+function editExits(p){
+ const dialog=$('exitRules'),paper=p.kind==='paper',current=(paper?p.exits:liveExitRules.get(p.id))||{};
+ $('exitMarket').textContent=marketLabel(p.pair)+' · '+(p.long?'Long':'Short');
+ $('exitLocal').hidden=false;
+ $('exitTP').value=(paper?current.tp:Number(p.raw?.tp||0)/1e10)||'';
+ $('exitSL').value=(paper?current.sl:Number(p.raw?.sl||0)/1e10)||'';
+ $('exitTrail').value=current.trail||'';$('exitATR').value=current.atr||'';
+ $('savePaperExits').hidden=!paper;$('saveLiveTrail').hidden=paper;$('saveLiveTP').hidden=paper;$('saveLiveSL').hidden=paper;
+ $('exitStatus').textContent=paper?'Paper exits use fresh quotes and the existing simulated fill delay.':'Fixed exits are sent to Gains. Trailing and Chandelier exits only run while TwinTrade is visible and connected.'+(current.triggered?' Last trigger: '+current.triggered+'. Save to rearm.':'');
+ $('exitForm').onsubmit=event=>event.preventDefault();
+ $('savePaperExits').onclick=()=>{
+  try{
+   const exits={tp:+$('exitTP').value,sl:+$('exitSL').value,trail:+$('exitTrail').value,atr:+$('exitATR').value};
+   const px=priceOf(p.pair),d=p.long?1:-1;
+   requireFresh(p.pair);
+   if(Object.values(exits).some(v=>!Number.isFinite(v)||v<0)||exits.trail>=100||exits.atr>100)throw Error('Check the prices, trailing percentage and ATR multiplier.');
+   if(exits.tp&&d*(exits.tp-px)<=0||exits.sl&&d*(exits.sl-px)>=0)throw Error('Take profit and stop loss must be on opposite sides of the current price.');
+   if(window.Feed){const result=Feed.setExits(p.id,JSON.stringify(exits));if(result!=='OK')throw Error(result);syncNative();}
+   else{const open=book.positions.find(x=>x.id===p.id);if(!open||paperPendingFor(p.id,'close'))throw Error('Position is already closing.');open.exits={...exits,best:current.trail===exits.trail&&current.best||px,chandelier:current.atr===exits.atr&&current.chandelier||0};persist();}
+   dialog.close();render();
+  }catch(e){$('exitStatus').textContent=e.message;}
+ };
+ $('saveLiveTrail').onclick=()=>{
+  try{
+   const trail=+$('exitTrail').value,atr=+$('exitATR').value;
+   if(!Number.isFinite(trail)||trail<0||trail>=100||!Number.isFinite(atr)||atr<0||atr>100)throw Error('Check the trailing percentage and ATR multiplier.');
+   if(trail||atr){
+    const price=liveQuote(p.pair);
+    if(!confirm('Enable an automatic LIVE market close for position '+p.index+' while TwinTrade is visible and connected?'))return;
+    liveExitRules.set(p.id,{tp:0,sl:0,trail,atr,best:current.trail===trail&&current.best||price,chandelier:current.atr===atr&&current.chandelier||0});
+   }else liveExitRules.delete(p.id);
+   saveLiveExitRules();
+   dialog.close();
+  }catch(e){$('exitStatus').textContent=e.message;}
+ };
+ $('saveLiveTP').onclick=()=>saveLiveExit(p,'TP');
+ $('saveLiveSL').onclick=()=>saveLiveExit(p,'SL');
+ dialog.showModal();
+}
+async function saveLiveExit(p,kind){
+ if(busy)return;
+ const value=+$('exit'+kind).value,method=kind==='TP'?'updateTp':'updateSl',owner=wallet?.address;
+ if(!Number.isFinite(value)||value<0||!owner||owner.toLowerCase()!==p.user.toLowerCase())return;
+ if(!confirm((value?'Set '+kind+' to '+value:'Clear '+kind)+' for LIVE position '+p.index+' on Polygon?'))return;
+ busy=true;
+ try{
+  const c=await chain();
+  if(wallet?.address!==owner||!livePositions.some(x=>x.id===p.id))throw Error('Position or wallet changed.');
+  const signer=c.connect(wallet.connect(provider));
+  const args=[p.index,priceUnit(value)];
+  await signer.callStatic[method](...args);
+  const tx=await signer[method](...args);
+  await waitReceipt(tx);
+  $('exitStatus').textContent=kind+' confirmed on Polygon.';
+  await refreshWallet();
+ }catch(e){$('exitStatus').textContent=e.reason||e.message;}
+ finally{busy=false;}
+}
 function paperReceipt(p){if(p?.settlement)return p.settlement;if(p?.kind==='paper'&&p.closed&&p.exit>0){const r=Engine.settle(p,p.exit,p.closed);return {...r,net:p.net,payout:Math.max(0,p.amount+p.net)};}return null;}
 function paperReceiptText(p){const r=paperReceipt(p);if(!r)return '';return `Price P&L ${fmtPnl(r.gross)} · Open fee ${money(r.openFee)} · Close fee ${money(r.closeFee)} · Hold ${r.hold<0?'gain':'loss'} ${money(Math.abs(r.hold))} included in net${r.lossLimitAdjustment>0?' · Loss capped at collateral':''} · Net ${fmtPnl(r.net)} · Returned ${money(r.payout)}`;}
 let closeReceipts=[],bulkCloseBusy=false;
@@ -232,7 +352,7 @@ async function refreshProfile(){renderProfile();if(mode==='live'){await loadAcco
 try{$('profileOpen').onclick=()=>{$('profileDialog').showModal();refreshProfile();};$('closeProfile').onclick=()=>$('profileDialog').close();$('profileRange').onchange=renderProfile;$('refreshProfile').onclick=refreshProfile;}catch{}
 function renderAccountMetrics(ps,net){const metrics=Engine.accountSummary(mode==='paper'?book.cash:liveBalance,ps,mode==='paper'?book.pending:[],net);for(const [id,v] of [['netBalancePct',metrics.balancePercent],['netMarginPct',metrics.marginPercent]]){const el=$(id);if(el){el.textContent=pnlPercentText(v);el.className=!Number.isFinite(v)?'muted':v>0?'positive':v<0?'negative':'';}}if($('activeMargin'))$('activeMargin').textContent=money(metrics.margin);if($('openTradeCount'))$('openTradeCount').textContent=String(metrics.trades);}
 function renderPositionPnl(ps){const groups=Engine.pnlTotals(ps.filter(p=>p.isOpen!==false&&chartPair(p)).map(p=>({long:p.long,amount:p.amount,net:!refPrice(p.pair)?NaN:p.kind==='paper'?Engine.value(p,refPrice(p.pair)).net:liveValue(p)})));const el=$('positionPnlSummary');if(!el)return;el.hidden=history;setHTML('positionPnlSummary',Object.entries(groups).map(([side,g])=>`<span>${side==='both'?'Total':side==='long'?'Long':'Short'} net <b class="${!Number.isFinite(g.percent)?'muted':g.percent>=0?'positive':'negative'}">${pnlPercentText(g.percent)}</b></span>`).join(''));}
-function render(){renderRatios();if(loadingPair!==pair){loadingPair=pair;restoreSelectedTradeEvent();paintLoading();}syncNative();processBrowserPaper();syncLeverage();const price=priceOf(pair);try{
+function render(){renderRatios();if(loadingPair!==pair){loadingPair=pair;restoreSelectedTradeEvent();paintLoading();}syncNative();processBrowserPaper();checkLiveExits();syncLeverage();const price=priceOf(pair);try{
 $('respawn').hidden=mode!=='paper';$('market').textContent=marketLabel(pair);$('price').textContent=money(price||NaN);if(price>0&&lastFlashPrice>0&&price!==lastFlashPrice){try{const el=$('price');el.className=price>lastFlashPrice?'pop-up':'pop-down';clearTimeout(flashTimer);flashTimer=setTimeout(()=>{try{el.className='';}catch{}},280);}catch{}}if(price>0)lastFlashPrice=price;$('empty').hidden=!!candlesOf(pair).length;$('mode').textContent=mode==='paper'?'PAPER':'LIVE · POLYGON';renderSyncStatus();
 $('kbps').textContent=lastKbps.toFixed(1)+' KB/s';$('livedot').className=fresh(pair)?'on':'';
 $('mute').textContent=(soundOn||tickOn)?'🔊':'🔇';renderAudioStatus();
@@ -244,7 +364,7 @@ renderAccountMetrics(ps,net);
 try{$('net').textContent=money(net);$('net').className=net>=0?'positive':'negative';$('positionsTab').className=history?'':'active';$('historyTab').className=history?'active':'';}catch{}
 renderPositionPnl(ps);
 let list=history?(mode==='paper'?book.history:liveHistory.filter(p=>wallet&&p.owner?.toLowerCase()===wallet.address.toLowerCase())):ps;let html='';if(!history&&mode==='live')for(const p of pending.filter(x=>wallet&&x.owner===wallet.address))html+=`<div class="position">${esc(p.label)} <b>${esc(p.status)}</b><small>${esc(p.hash||p.error||'')}</small></div>`;if(!history&&mode==='paper')for(const q of book.pending||[]){const seconds=Math.max(0,Math.ceil((q.due-Date.now())/1000));html+=`<div class="position"><b>${q.action==='open'?(q.long?'L':'S'):'CLOSE'}</b><span>${q.lev?levLabel(q.lev)+'×':''}</span><span>${q.amount?cashLabel(q.amount):''}</span><b>${seconds}s</b><small>Paper ${esc(q.action)} pending · sampled once · fills at available execution-time market price${q.reason?' · '+esc(q.reason):''}</small></div>`;}
-for(const p of list.filter(chartPair)){let v=history?p.net:p.kind==='paper'?Engine.value(p,refPrice(p.pair)||p.entry).net:liveValue(p);let cost=p.kind==='paper'?(history?paperReceipt(p):Engine.value(p,refPrice(p.pair)||p.entry)):null;const holdCls=cost?(cost.hold>0.0000005?'negative':cost.hold<-0.0000005?'positive':''):((p.holdingTime||p.feeTime)&&liveHolding(p)>0.0000005?'negative':(p.holdingTime||p.feeTime)&&liveHolding(p)<-0.0000005?'positive':'');const holdTxt=cost?`Hold ${cost.hold<0?'gain':'loss'} <b class="${holdCls}">${feeMoney(cost.hold)}</b> (${Math.abs(cost.holdRate).toFixed(6)}% notional/h · ${money(Math.abs(p.amount*p.lev*cost.holdRate/100))}/h ${cost.holdRate<0?'earned':'paid'}) · Borrow <b class="negative">${feeMoney(cost.borrow)}</b> · Funding <b class="${cost.funding<0?'positive':'negative'}">${feeMoney(cost.funding)}</b> ${cost.funding<0?'earned':'paid'}`:(p.holdingTime||p.feeTime)?`Hold ${Number.isFinite(liveHolding(p))?(liveHolding(p)<0?'gain':'loss'):'unavailable'} <b class="${holdCls}">${feeMoney(liveHolding(p))}</b> · Borrow <b class="${(p.borrow||0)>0.0000005?'negative':(p.borrow||0)<-0.0000005?'positive':''}">${feeMoney(p.borrow)}</b> · Funding <b class="${(p.funding||0)>0.0000005?'negative':(p.funding||0)<-0.0000005?'positive':''}">${feeMoney(p.funding)}</b> ${p.funding<0?'earned':'paid'}`:'';html+=`<div class="position"><b class="${p.long?'long':'short'}">${p.long?'L':'S'}</b><span>${levLabel(p.lev)}×</span><span>${cashLabel(p.amount)}</span><b class="${v>=0?'positive':'negative'}">${money(v)} <small>(${pnlPercentText(Engine.pnlPercent(v,p.amount))})</small></b>${!history?`<button data-close="${esc(p.id)}">×</button>`:''}<small>${p.pair===300&&pair===0?'BTCDEGEN · ':''}${esc(p.status)} · Entry ${money(p.entry)}${history&&p.kind==='paper'?' · '+esc(paperReceiptText(p)):cost?' · Open fee '+money(cost.openFee)+' · Close est. '+money(cost.closeFee)+' · '+holdTxt+' · holding + fees included in net · '+esc(p.cost.holdingSource||'Saved paper assumptions')+' · frozen-rate paper estimate':(p.holdingTime||p.feeTime)?' · Trading paid '+money(p.trading)+' · Close base est. '+money(p.closeEstimate)+' · '+holdTxt+' · '+(p.hourRate===undefined?'rate unavailable':(p.hourRate>=0?'+':'')+p.hourRate.toFixed(5)+'%/h')+' · '+esc(p.holdingError||p.feeError||'net estimate'):' · '+esc(p.holdingError||p.feeError||'Net costs unavailable')}</small></div>`}
+for(const p of list.filter(chartPair)){let v=history?p.net:p.kind==='paper'?Engine.value(p,refPrice(p.pair)||p.entry).net:liveValue(p);let cost=p.kind==='paper'?(history?paperReceipt(p):Engine.value(p,refPrice(p.pair)||p.entry)):null;const holdCls=cost?(cost.hold>0.0000005?'negative':cost.hold<-0.0000005?'positive':''):((p.holdingTime||p.feeTime)&&liveHolding(p)>0.0000005?'negative':(p.holdingTime||p.feeTime)&&liveHolding(p)<-0.0000005?'positive':'');const holdTxt=cost?`Hold ${cost.hold<0?'gain':'loss'} <b class="${holdCls}">${feeMoney(cost.hold)}</b> (${Math.abs(cost.holdRate).toFixed(6)}% notional/h · ${money(Math.abs(p.amount*p.lev*cost.holdRate/100))}/h ${cost.holdRate<0?'earned':'paid'}) · Borrow <b class="negative">${feeMoney(cost.borrow)}</b> · Funding <b class="${cost.funding<0?'positive':'negative'}">${feeMoney(cost.funding)}</b> ${cost.funding<0?'earned':'paid'}`:(p.holdingTime||p.feeTime)?`Hold ${Number.isFinite(liveHolding(p))?(liveHolding(p)<0?'gain':'loss'):'unavailable'} <b class="${holdCls}">${feeMoney(liveHolding(p))}</b> · Borrow <b class="${(p.borrow||0)>0.0000005?'negative':(p.borrow||0)<-0.0000005?'positive':''}">${feeMoney(p.borrow)}</b> · Funding <b class="${(p.funding||0)>0.0000005?'negative':(p.funding||0)<-0.0000005?'positive':''}">${feeMoney(p.funding)}</b> ${p.funding<0?'earned':'paid'}`:'';html+=`<div class="position"><b class="${p.long?'long':'short'}">${p.long?'L':'S'}</b><span>${levLabel(p.lev)}×</span><span>${cashLabel(p.amount)}</span><b class="${v>=0?'positive':'negative'}">${money(v)} <small>(${pnlPercentText(Engine.pnlPercent(v,p.amount))})</small></b>${!history?`<button data-exits="${esc(p.id)}">Exits</button><button data-close="${esc(p.id)}">×</button>`:''}<small>${p.pair===300&&pair===0?'BTCDEGEN · ':''}${esc(p.status)} · Entry ${money(p.entry)}${history&&p.kind==='paper'?' · '+esc(paperReceiptText(p)):cost?' · Open fee '+money(cost.openFee)+' · Close est. '+money(cost.closeFee)+' · '+holdTxt+' · holding + fees included in net · '+esc(p.cost.holdingSource||'Saved paper assumptions')+' · frozen-rate paper estimate':(p.holdingTime||p.feeTime)?' · Trading paid '+money(p.trading)+' · Close base est. '+money(p.closeEstimate)+' · '+holdTxt+' · '+(p.hourRate===undefined?'rate unavailable':(p.hourRate>=0?'+':'')+p.hourRate.toFixed(5)+'%/h')+' · '+esc(p.holdingError||p.feeError||'net estimate'):' · '+esc(p.holdingError||p.feeError||'Net costs unavailable')}</small></div>`}
 try{setHTML('positions',html||'<p class="muted" style="padding:0 15px">'+(history?'No closed trades.':'No positions in this market.')+'</p>');}catch{}
 try{$('costbadge').textContent=mode==='paper'?'Paper costs: estimates':'Net P&L: estimate';}catch{}
 const available=mode==='paper'?book.cash:liveBalance;const allocation=Number.isFinite(available)?Engine.collateral(available,+$('amount').value):NaN;const n=allocation*+$('lev').value;
@@ -375,7 +495,7 @@ for(const p of livePositions){if(!priceOf(p.pair))continue;await refreshLivePosi
 for(const row of pending.filter(p=>p.owner===addr&&p.approvalHash&&!p.hash)){const receipt=await provider.getTransactionReceipt(row.approvalHash);if(receipt){row.status=receipt.status===0?'Approval failed on-chain':'Approval complete · order not submitted';}}
 for(const row of pending.filter(p=>p.owner===addr&&p.hash&&p.orderId===undefined)){const receipt=await provider.getTransactionReceipt(row.hash);if(receipt){if(receipt.status===0)row.status='Failed on-chain';else{captureOrder(receipt,row,c);if(!reconcileConfirmedState(row,livePositions))row.status='Pending oracle execution'}}}let pend=await c.getPendingOrders(addr);const active=new Set(pend.filter(p=>p.isOpen).map(p=>String(N(p.index))));for(const p of pending.filter(p=>p.owner===addr&&p.orderId!==undefined)){if(!active.has(String(p.orderId))){if(p.action==='open'&&livePositions.some(t=>t.index===p.tradeIndex))p.status='Open';else if(p.action==='close'&&!livePositions.some(t=>t.index===p.tradeIndex))p.status='Closed';else p.status='Order resolved · check chain';}}
 if(!sameWallet())return false;pending=pending.filter(p=>!['Open','Closed'].includes(p.status));persist();
-try{for(const [id,info] of prevLive){if(!livePositions.some(x=>x.id===id)){const p=info.position;if(!liveHistory.some(x=>x.id===id&&x.owner===addr))liveHistory.unshift({...p,owner:addr,net:null,closed:Date.now(),status:'Closed · settlement unavailable'});persist();eventSound(info.v>=0?'my-close-win':'my-close-loss');pushEvent(`CLOSED ${info.label} ${fmtPnl(info.v)}`,'');showBigEvent(`CLOSED ${fmtPnl(info.v)}`,info.v>=0?'big-win':'big-loss');}}}catch{}try{$('walletStatus').textContent=addr+' · '+money(liveBalance)+' USDC';}catch{}return true;}catch(e){try{$('walletStatus').textContent='Wallet sync unavailable: '+(e.reason||e.message)}catch{}return false;}finally{refreshBusy=false}}
+try{for(const [id,info] of prevLive){if(!livePositions.some(x=>x.id===id)){const p=info.position;if(liveExitRules.delete(id))saveLiveExitRules();if(!liveHistory.some(x=>x.id===id&&x.owner===addr))liveHistory.unshift({...p,owner:addr,net:null,closed:Date.now(),status:'Closed · settlement unavailable'});persist();pushEvent(`CLOSED ${info.label} ${fmtPnl(info.v)}`,'');showBigEvent(`CLOSED ${fmtPnl(info.v)}`,info.v>=0?'big-win':'big-loss');}}}catch{}try{$('walletStatus').textContent=addr+' · '+money(liveBalance)+' USDC';}catch{}return true;}catch(e){try{$('walletStatus').textContent='Wallet sync unavailable: '+(e.reason||e.message)}catch{}return false;}finally{refreshBusy=false}}
 async function sendOrder(long){if(busy||bulkCloseBusy)return;try{const orderMarket=TradeConfig.orderMarket(pair,+$('lev').value),orderPair=orderMarket.pairIndex,orderChartPair=pair;requireFresh(orderPair);let percent=+$('amount').value,amount=Engine.collateral(mode==='paper'?book.cash:liveBalance,percent),lev=+$('lev').value;if(!Number.isFinite(amount)||amount<=0||!Number.isFinite(lev)||lev<orderMarket.minLeverage||lev>orderMarket.maxLeverage)throw Error('Choose a positive amount and leverage up to '+orderMarket.maxLeverage+'×');if(mode==='paper'){busy=true;const orderConfig=cfg;if(!holdingRatesFresh(orderPair))await fetchHoldingRates(orderPair);if(mode!=='paper'||pair!==orderChartPair||cfg!==orderConfig||+$('lev').value!==lev||+$('amount').value!==percent)throw Error('Order settings changed while loading holding rates. Review and retry.');requireFresh(orderPair);amount=Engine.collateral(book.cash,percent);if(!(amount>0))throw Error('No available paper collateral');const costs=paperCosts(orderPair,long);if(window.Feed){if(Feed.updateCaps)Feed.updateCaps(JSON.stringify(TradeConfig.leverageMarkets().map(m=>({pairIndex:m.pairIndex,maxLeverage:m.maxLeverage,minLeverage:m.minLeverage}))));const result=Feed.open(orderPair,long,percent,lev,JSON.stringify(costs));if(!result.startsWith('PENDING:'))throw Error(result);book=JSON.parse(Feed.paper());persist();toast('Paper open pending · collateral reserved · execution-time price will be used');return}if(!Array.isArray(book.pending))book.pending=[];if(book.pending.some(q=>q.action==='open'&&q.pair===orderPair&&q.long===long&&Math.abs(q.percent-percent)<1e-9&&Math.abs(q.lev-lev)<1e-9))throw Error('Duplicate paper open already pending');if(amount>book.cash)throw Error('Insufficient paper balance');const now=Date.now(),due=now+paperDelayMs(),id='p'+now+Math.random().toString(16).slice(2);book.cash-=amount;book.pending.push({id:'q'+id,action:'open',positionId:id,pair:orderPair,long,amount,percent,lev,cost:costs,submitted:now,due});persist();processBrowserPaper(now);toast('Paper open pending · collateral reserved · execution-time price will be used');return}if(!wallet)throw Error('Save a Polygon key first');liveQuote(orderPair);if(pending.some(p=>p.owner===wallet.address&&/Sending|Pending|uncertain|Checking approval|Order resolved/.test(p.status)))throw Error('An order is still pending. Wait for reconciliation before submitting another.');busy=true;const c=await chain(),s=c.connect(wallet.connect(provider)),[state,col,fee]=await Promise.all([c.getTradingActivated(),c.getCollateral(orderMarket.collateralIndex),c.pairTotalPositionSizeFeeP(orderPair)]);if(N(state)!==0)throw Error('Polygon trading is paused or close-only');const registered=await c.pairs(orderMarket.pairIndex);const expectedBase=orderMarket.base.replace('DEGEN','');if(registered.from!==expectedBase&&registered.from!==orderMarket.base)throw Error('On-chain market no longer matches the selected market');if(registered.to!==orderMarket.quote)throw Error('On-chain market quote mismatch');if(!col.isActive)throw Error('USDC collateral is not active');if(col.collateral.toLowerCase()!==NETWORK.usdc.toLowerCase())throw Error('Contract collateral does not match configured native USDC');let token=new ethers.Contract(col.collateral,['function symbol() view returns(string)','function decimals() view returns(uint8)','function allowance(address,address) view returns(uint256)','function approve(address,uint256) returns(bool)','function balanceOf(address) view returns(uint256)'],provider);if((await token.decimals())!==NETWORK.usdcDecimals)throw Error('USDC decimals mismatch');const units=ethers.utils.parseUnits(amount.toFixed(6),6);if((await token.balanceOf(wallet.address)).lt(units))throw Error('Insufficient USDC balance');
 if(!confirm(`OPEN LIVE ${long?'L':'S'} ${orderMarket.symbol}\nCollateral ${money(amount)} USDC · ${lev}×\nNotional ${money(amount*lev)} · max slippage ${cfg.maxSlip}%\nProtocol fees and POL gas apply. Confirm before approval and signing.`))return;
 let pendingRow={created:Date.now(),id:Date.now().toString(),owner:wallet.address,action:'open',pair:orderPair,long,leverage:lev,collateralUnits:units.toString(),tradeIndexesBefore:livePositions.map(p=>p.index),label:`${long?'L':'S'} ${orderMarket.base} ${lev}×`,status:'Sending · checking allowance'};pending.push(pendingRow);persist();try{let allowance=await token.allowance(wallet.address,DIAMOND);if(!allowance.eq(units)){pendingRow.status='Sending · setting exact USDC allowance';persist();let ap=await token.connect(wallet.connect(provider)).approve(DIAMOND,units);pendingRow.approvalHash=ap.hash;persist();let approvalReceipt=await waitReceipt(ap);pendingRow.approvalHash=approvalReceipt.transactionHash||pendingRow.approvalHash;pendingRow.status='Approval confirmed · verifying exact allowance';persist();allowance=await token.allowance(wallet.address,DIAMOND);if(!allowance.eq(units)){pendingRow.status='Approval mismatch · order not submitted';persist();throw Error('Exact USDC allowance was not confirmed; order was not submitted');}}requireFresh(orderPair);let t={user:wallet.address,index:0,pairIndex:orderPair,leverage:Math.round(lev*1000),long,isOpen:true,collateralIndex:orderMarket.collateralIndex,tradeType:0,collateralAmount:units,openPrice:priceUnit(liveQuote(orderPair)),tp:0,sl:0,isCounterTrade:false,positionSizeToken:0,__placeholder:0};pendingRow.status='Sending · simulating';await s.callStatic.openTrade(t,Math.round(cfg.maxSlip*1000),ZERO);pendingRow.status='Sending';persist();let tx=await s.openTrade(t,Math.round(cfg.maxSlip*1000),ZERO);pendingRow.hash=tx.hash;pendingRow.status='Sending · awaiting receipt';persist();let receipt=await waitReceipt(tx);pendingRow.hash=receipt.transactionHash||pendingRow.hash;captureOrder(receipt,pendingRow,c);pendingRow.status='Pending oracle execution';persist();refreshWallet()}catch(e){if(pendingRow.status!=='Approval mismatch · order not submitted')pendingRow.status=e.receipt?.status===0?'Failed on-chain':pendingRow.hash||pendingRow.approvalHash?'Submission uncertain · check chain':'Failed';pendingRow.error=e.reason||e.message;persist();throw e}
@@ -423,7 +543,7 @@ try{$('chartInfoOpen').onclick=()=>{click();chartDetails(chartBars());if(!$('cha
 try{$('statsOpen').onclick=()=>{hideAll();syncNative();$('statsPanel').hidden=false;$('shade').hidden=false;renderStats();};$('closeStats').onclick=hideAll;}catch{}
 try{$('long').onclick=()=>{ensureAudio();return sendOrder(true)};}catch{}
 try{$('short').onclick=()=>{ensureAudio();return sendOrder(false)};}catch{}
-try{$('positions').onclick=e=>{if(bulkCloseBusy)return;const id=e.target.dataset.close;if(!id)return;const p=(mode==='paper'?book.positions:livePositions).find(x=>x.id===id);if(p){if(mode==='paper'){try{closePaper(p)}catch(e){toast(e.message)}}else closeLive(p)}};}catch{}
+try{$('positions').onclick=e=>{if(bulkCloseBusy)return;const edit=e.target.dataset.exits,id=edit||e.target.dataset.close;if(!id)return;const p=(mode==='paper'?book.positions:livePositions).find(x=>x.id===id);if(p){if(edit){editExits(p);return;}if(mode==='paper'){try{closePaper(p)}catch(e){toast(e.message)}}else closeLive(p)}};}catch{}
 try{$('menu').onclick=()=>{click();renderMarketList();$('drawer').hidden=false;$('shade').hidden=false;};}catch{}
 try{$('traders').onclick=()=>{ensureAudio();click();renderPublic();$('tradersPanel').hidden=false;$('shade').hidden=false;};}catch{}
 try{$('global').onclick=()=>{openGlobal();};}catch{}
@@ -487,7 +607,11 @@ function syncNative(){if(!window.Feed)return;try{if(Date.now()-nativeCapsAt>5000
 /* Native bridge moves make the same sounds as socket moves. */
 try{if(prevPx[pair]>0&&priceOf(pair)>0&&priceOf(pair)!==prevPx[pair]){onTick(prevPx[pair],priceOf(pair));checkCrossings(prevPx[pair],priceOf(pair));}const tail=(candles[pair]||[]).slice(-1)[0]||null;if(prevTail&&tail&&tail.t!==prevTail.t&&Number.isFinite(prevTail.o)&&Number.isFinite(prevTail.c))onCandleClose(prevTail);}catch{}
 if(Feed.backgroundEvent){const event=JSON.parse(Feed.backgroundEvent());if(event.at&&(!tradeEvents.get(event.pair)||tradeEvents.get(event.pair).at<event.at))showTradeEvent(event.text,event.action,event.long,event.at,'background',event.id,event.pair);}
-const bookRaw=Feed.paper();if(bookRaw!==nativeBookRaw){book=JSON.parse(bookRaw);nativeBookRaw=bookRaw;}try{if(typeof s.history==='string'&&s.history)$('historyStatus').textContent=s.history;}catch{}try{nativeRunning=!!s.running;nativeStatus=s.status||'';nativeFeedError=s.feedError||'';nativeAcceptedAt=+s.lastAcceptedFrame||0;$('keepAlive').checked=s.keepAlive!==undefined?!!s.keepAlive:!!s.running;}catch{}}catch{}}
+const bookRaw=Feed.paper();if(bookRaw!==nativeBookRaw){
+ const next=JSON.parse(bookRaw);
+ if(nativeBookRaw&&!document.hidden){const prior=new Set(JSON.parse(nativeBookRaw).history.map(p=>p.id)),closed=next.history.filter(p=>!prior.has(p.id)&&Date.now()-p.closed<2000);const newest=closed.find(p=>p.status==='Liquidated')||closed[0];if(newest)eventSound(paperCloseCue(newest));}
+ book=next;nativeBookRaw=bookRaw;
+}try{if(typeof s.history==='string'&&s.history)$('historyStatus').textContent=s.history;}catch{}try{nativeRunning=!!s.running;nativeStatus=s.status||'';nativeFeedError=s.feedError||'';nativeAcceptedAt=+s.lastAcceptedFrame||0;$('keepAlive').checked=s.keepAlive!==undefined?!!s.keepAlive:!!s.running;}catch{}}catch{}}
 async function fetchHistoryChain(chain,apiSym,from,to){const j=await fetchJson(`https://api.gains.trade/v1/${chain}/markets/${apiSym}/candles?interval=1m&from=${from}&to=${to}`);return {rows:Engine.history(j.data),chain};}
 /* Reference price for PnL display: live oracle first, else latest candle
  * close, so colors/percentages show even before a feed tick arrives. */

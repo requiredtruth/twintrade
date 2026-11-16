@@ -1,0 +1,1 @@
+Adds per-position TP, SL, percentage trailing and Chandelier exits. Paper exits run in the Android monitor; live TP/SL are on-chain and live trailing exits require TwinTrade to be visible and connected. Includes a liquidation buzzer, four-note win cue and single-tone loss cue.

@@ -1,0 +1,13 @@
+{
+  "tag": "v0.68.0",
+  "title": "TwinTrade 0.68.0 \u2014 position exits and outcome sounds",
+  "sequence": 52,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "7e2ffed91cb42d43dcc0022c6ccf44c5a0871c2e32dcaae2a2ccefa4e85c91c9",
+    "TwinTrade.html": "e19d0e2135a422077707032bf7e03d757f41ddf04abe86626fee3685c93925aa",
+    "TwinTrade-source.zip": "208545bfbf672f4e95b3b8e44a008804ee35d4154e2f4b872add69f7942210cc",
+    "spec.md": "0bd33b881111290bd310fe0d03e0723be0b17f0b8b74c1672cf2d69a5e1c7a01",
+    "SHA256SUMS": "62d663d55f6ea41bc56a85a5f51d8c4732fe694c731650a79a9111a804a26b72"
+  }
+}

@@ -120,6 +120,13 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.evaluate(()=>{publicTrades=ratioFixture;$('ratioBasis').value='count';statsRevision++;renderRatios()});
  // Six close choices; current-coin selection preserves other-coin positions.
  await page.evaluate(()=>{const now=Date.now(),cost={fee:.035,slip:0,borrow:.07,funding:0,liq:90};mode='paper';pair=0;prices[0]=100.2698;last[0]=now;prices[1]=100;last[1]=now;book={cash:0,positions:[Engine.open(0,true,100,200,100,cost,now-3600000),Engine.open(1,false,10,10,100,{...cost,fee:0,borrow:0},now)],history:[]};render();});
+ await page.locator('[data-exits]').first().click();
+ assert(await page.locator('#exitRules').isVisible());
+ await page.fill('#exitTP','101');await page.fill('#exitSL','98');await page.fill('#exitTrail','2');await page.fill('#exitATR','3');
+ await page.evaluate(()=>{last[0]=Date.now();});
+ await page.click('#savePaperExits');
+ assert(!(await page.locator('#exitRules').isVisible()));
+ assert.deepEqual(await page.evaluate(()=>{const {tp,sl,trail,atr}=book.positions[0].exits;return [tp,sl,trail,atr];}),[101,98,2,3]);
  await page.click('#closeMenu');assert.equal(await page.locator('#closeMenuDialog .close-options button').count(),6);await page.click('#closeCurrentLongs');await page.waitForFunction(()=>book.positions.length===1||(book.pending||[]).some(q=>q.action==='close'));await page.evaluate(()=>{processBrowserPaper(Date.now()+31000);render()});assert.equal(await page.locator('#settlementDialog').evaluate(el=>el.open),true);assert((await page.locator('#settlementRows').textContent()).includes('Holding cost deducted'));const delayedReceipt=await page.evaluate(()=>book.history[0].settlement);assert(delayedReceipt.hold>=14&&delayedReceipt.hold<=14.13,'holding accrues during at most 31 delayed seconds');assert((await page.locator('#settlementRows').textContent()).includes('$7.00'));assert((await page.locator('#settlementTotal').textContent()).includes(delayedReceipt.payout.toFixed(2)));assert.equal(await page.evaluate(()=>book.positions.length),1);assert.equal(await page.evaluate(()=>book.positions[0].pair),1);
  await page.waitForTimeout(4200);assert.equal(await page.locator('#settlementDialog').evaluate(el=>el.open),true,'receipt persists until dismissed');
  for(const [w,h]of [[360,640],[740,360],[393,852]]){await page.setViewportSize({width:w,height:h});const b=await page.locator('#settlementDialog').boundingBox();assert(b.x>=0&&b.y>=0&&b.x+b.width<=w+1&&b.y+b.height<=h+1,'receipt dialog fits rotated phone');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}

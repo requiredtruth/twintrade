@@ -50,6 +50,7 @@ public class MainActivity extends Activity {
   @JavascriptInterface public void seed(String raw){MarketStore.seed(raw);}
   @JavascriptInterface public String paper(){return MarketStore.book();}
   @JavascriptInterface public String open(int pair,boolean isLong,double percent,double lev,String cost){return MarketStore.open(pair,isLong,percent,lev,cost);}
+  @JavascriptInterface public String setExits(String id,String json){return MarketStore.setExits(id,json);}
   @JavascriptInterface public String close(String id){return MarketStore.close(id);}
   @JavascriptInterface public int recoverHoldingRates(int pair,double borrowLong,double borrowShort,double fundLong,double fundShort){return MarketStore.recoverHoldingRates(pair,borrowLong,borrowShort,fundLong,fundShort,System.currentTimeMillis());}
   @JavascriptInterface public void reset(){MarketStore.reset();}

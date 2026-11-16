@@ -30,7 +30,7 @@ public final class MarketStore {
  private static TreeMap<Long,JSONObject> map(int pair){return pair==0?btc:pair==1?eth:extra.computeIfAbsent(pair,k->new TreeMap<>());}
  public static synchronized void seed(String raw){try{if(book==null){book=new JSONObject(raw);save(true);}}catch(Exception ignored){}}
  public static synchronized String book(){try{if(book==null)book=new JSONObject("{\"cash\":100,\"positions\":[],\"history\":[],\"pending\":[]}");if(!book.has("pending"))book.put("pending",new JSONArray());if(cachedBook==null)cachedBook=book.toString();return cachedBook;}catch(Exception e){return "{}";}}
- public static synchronized void tick(int pair,double price,long now){if(pair<0||pair>1000||!Double.isFinite(price)||price<=0||now<=0||now>System.currentTimeMillis()||now<timeOf(pair))return;if(pair<2){prices[pair]=price;times[pair]=now;}else{xprices.put(pair,price);xtimes.put(pair,now);}long t=now/60000*60000;try{TreeMap<Long,JSONObject> m=map(pair);JSONObject candle=m.get(t);if(candle==null||"gap-fill".equals(candle.optString("source"))){candle=new JSONObject().put("t",t).put("o",price).put("h",price).put("l",price).put("c",price).put("source","gains-live");m.put(t,candle);fillGaps(m);revise(pair);}else{candle.put("source","gains-live");candle.put("h",Math.max(candle.getDouble("h"),price)).put("l",Math.min(candle.getDouble("l"),price)).put("c",price);}while(m.size()>600)m.pollFirstEntry();if(book!=null){processPending(pair,price,now);JSONArray ps=book.getJSONArray("positions");for(int j=ps.length()-1;j>=0;j--){JSONObject p=ps.getJSONObject(j);if(p.getInt("pair")==pair&&value(p,price,now)<=-p.getDouble("amount")*p.getJSONObject("cost").getDouble("liq")/100)queueClose(p,"Liquidated",now);}}save(false);}catch(Exception ignored){}}
+ public static synchronized void tick(int pair,double price,long now){if(pair<0||pair>1000||!Double.isFinite(price)||price<=0||now<=0||now>System.currentTimeMillis()||now<timeOf(pair))return;if(pair<2){prices[pair]=price;times[pair]=now;}else{xprices.put(pair,price);xtimes.put(pair,now);}long t=now/60000*60000;try{TreeMap<Long,JSONObject> m=map(pair);JSONObject candle=m.get(t);if(candle==null||"gap-fill".equals(candle.optString("source"))){candle=new JSONObject().put("t",t).put("o",price).put("h",price).put("l",price).put("c",price).put("source","gains-live");m.put(t,candle);fillGaps(m);revise(pair);}else{candle.put("source","gains-live");candle.put("h",Math.max(candle.getDouble("h"),price)).put("l",Math.min(candle.getDouble("l"),price)).put("c",price);}while(m.size()>600)m.pollFirstEntry();if(book!=null){processPending(pair,price,now);JSONArray ps=book.getJSONArray("positions");for(int j=ps.length()-1;j>=0;j--){JSONObject p=ps.getJSONObject(j);if(p.getInt("pair")!=pair)continue;if(value(p,price,now)<=-p.getDouble("amount")*p.getJSONObject("cost").getDouble("liq")/100)queueClose(p,"Liquidated",now);else if(p.has("exits")&&!closing(p.getString("id"))){String reason=exitReason(p,price,now,m);if(reason!=null)queueClose(p,reason,now);}}}save(false);}catch(Exception ignored){}}
  public static synchronized void merge(int pair,JSONArray a)throws JSONException {TreeMap<Long,JSONObject> m=map(pair);String before=new JSONArray(m.values()).toString();for(int i=0;i<a.length();i++){JSONObject input=a.getJSONObject(i);if(!validOhlc(input.getDouble("o"),input.getDouble("h"),input.getDouble("l"),input.getDouble("c")))continue;long t=input.getLong("t");if(t>=1000000000L&&t<1000000000000L)t*=1000;t=t/60000*60000;if(t<=0||t>System.currentTimeMillis())continue;JSONObject c=new JSONObject(input.toString()).put("t",t),old=m.get(t);if(old==null||"gap-fill".equals(old.optString("source"))||"gains-history".equals(c.optString("source"))&&t<System.currentTimeMillis()/60000*60000||!"gains-live".equals(old.optString("source")))m.put(t,c);}fillGaps(m);while(m.size()>600)m.pollFirstEntry();if(!before.equals(new JSONArray(m.values()).toString()))revise(pair);}
  private static void fillGaps(TreeMap<Long,JSONObject> m)throws JSONException {m.entrySet().removeIf(e->"gap-fill".equals(e.getValue().optString("source")));if(m.isEmpty())return;long floor=m.lastKey()-599*60000L;Long prev=null;double close=0;for(Long t:new ArrayList<Long>(m.keySet())){if(prev!=null)for(long k=Math.max(prev+60000L,floor);k<t;k+=60000L)m.put(k,new JSONObject().put("t",k).put("o",close).put("h",close).put("l",close).put("c",close).put("source","gap-fill"));close=m.get(t).getDouble("c");prev=t;}while(m.size()>600)m.pollFirstEntry();}
  public static synchronized void seedOhlc(int pair,double o,double h,double l,double close,long now){if(pair<0||pair>1000||!validOhlc(o,h,l,close)||now<=0||now>System.currentTimeMillis())return;try{long t=now/60000*60000;TreeMap<Long,JSONObject> m=map(pair);JSONObject c=m.get(t);if(c==null||!"gains-live".equals(c.optString("source")))m.put(t,new JSONObject().put("t",t).put("o",o).put("h",h).put("l",l).put("c",close).put("source","gains-charts"));fillGaps(m);revise(pair);while(m.size()>600)m.pollFirstEntry();}catch(Exception ignored){}}
@@ -50,12 +50,81 @@ public final class MarketStore {
  private static JSONObject settlement(JSONObject p,double price,long now)throws JSONException{JSONObject c=p.getJSONObject("cost");double amount=p.getDouble("amount"),n=amount*p.getDouble("lev"),d=p.getBoolean("long")?1:-1,exit=price*(1-d*c.getDouble("slip")/100),rate=c.getDouble("borrow")+(c.has("fundingSide")?c.getDouble("fundingSide"):d*c.getDouble("funding")),gross=n*d*(exit/p.getDouble("entry")-1),openFee=n*c.getDouble("fee")/100,closeFee=openFee;double[] h=holding(p,now);double hold=h[0]+h[1],raw=gross-openFee-closeFee-hold,net=Math.max(-amount,raw);return new JSONObject().put("gross",gross).put("openFee",openFee).put("closeFee",closeFee).put("hold",hold).put("borrow",h[0]).put("funding",h[1]).put("holdRate",rate).put("net",net).put("lossLimitAdjustment",net-raw).put("payout",Math.max(0,amount+net)).put("price",price).put("at",now);}
  public static synchronized double[] paperSoundState(int selected){double total=0,exposure=0;int count=0;try{JSONArray ps=new JSONObject(book()).getJSONArray("positions");for(int i=0;i<ps.length();i++){JSONObject p=ps.getJSONObject(i);int pair=p.getInt("pair");if(pair!=selected&&!(selected==0&&pair==300))continue;double px=priceOf(pair);if(!(px>0))continue;total+=value(p,px,System.currentTimeMillis());count++;exposure+=(p.getBoolean("long")?1:-1)*p.getDouble("amount")*p.getDouble("lev")/p.getDouble("entry");}}catch(Exception ignored){}return new double[]{count==0?Double.NaN:total/count,exposure};}
  public static volatile String paperEvent="";
+ public static synchronized JSONObject lastPaperClose(String event){
+  try{JSONObject p=new JSONObject(book()).getJSONArray("history").getJSONObject(0);return event.equals(p.getString("id")+":"+p.getString("status"))?p:null;}catch(Exception e){return null;}
+ }
  public static synchronized int lastLiquidationSide(){try{if(!paperEvent.endsWith(":Liquidated"))return 0;JSONObject p=new JSONObject(book()).getJSONArray("history").getJSONObject(0);return p.getString("id").equals(paperEvent.substring(0,paperEvent.lastIndexOf(':')))?p.getBoolean("long")?1:-1:0;}catch(Exception e){return 0;}}
  private static void closeAt(JSONObject p,double price,long now,String reason)throws JSONException {JSONObject receipt=settlement(p,price,now);JSONArray old=book.getJSONArray("positions"),next=new JSONArray();for(int i=0;i<old.length();i++)if(!old.getJSONObject(i).getString("id").equals(p.getString("id")))next.put(old.getJSONObject(i));book.put("positions",next).put("cash",book.getDouble("cash")+receipt.getDouble("payout"));paperEvent=p.getString("id")+":"+reason;p.put("net",receipt.getDouble("net")).put("settlement",receipt).put("exit",price).put("closed",now).put("status",reason);JSONArray h=new JSONArray().put(p),previous=book.getJSONArray("history");for(int i=0;i<Math.min(199,previous.length());i++)h.put(previous.get(i));book.put("history",h);save(true);}
 
  private static String queueClose(JSONObject p,String reason,long now)throws JSONException {JSONArray q=book.getJSONArray("pending");for(int i=0;i<q.length();i++){JSONObject x=q.getJSONObject(i);if("close".equals(x.optString("action"))&&p.getString("id").equals(x.optString("positionId"))){if("Liquidated".equals(reason)&&!"Liquidated".equals(x.optString("reason"))){x.put("reason",reason);p.put("status","Liquidated triggered · pending execution");save(true);}return "PENDING:"+x.getLong("due");}}long due=now+PaperExecutionDelay.sample();q.put(new JSONObject().put("id","q"+UUID.randomUUID()).put("action","close").put("positionId",p.getString("id")).put("pair",p.getInt("pair")).put("reason",reason).put("submitted",now).put("due",due));p.put("status",reason+" triggered · pending execution");save(true);return "PENDING:"+due;}
  private static void processPending(int pair,double price,long now)throws JSONException {JSONArray q=book.getJSONArray("pending"),next=new JSONArray();boolean changed=false;for(int i=0;i<q.length();i++){JSONObject x=q.getJSONObject(i);if(x.getInt("pair")!=pair||x.getLong("due")>now){next.put(x);continue;}changed=true;if("open".equals(x.getString("action"))){JSONObject c=x.getJSONObject("cost");double amount=x.getDouble("amount"),lev=x.getDouble("lev");boolean side=x.getBoolean("long");JSONObject p=new JSONObject().put("id",x.getString("positionId")).put("pair",pair).put("long",side).put("amount",amount).put("lev",lev).put("entry",price*(1+(side?1:-1)*c.getDouble("slip")/100)).put("opened",now).put("cost",c).put("status","Paper open · delayed fill").put("kind","paper");if(value(p,price,now)<=-amount*c.getDouble("liq")/100){book.put("cash",book.getDouble("cash")+amount);paperEvent=p.getString("id")+":Open rejected";}else{book.getJSONArray("positions").put(p);paperEvent=p.getString("id")+":Opened";}}else{JSONArray ps=book.getJSONArray("positions");JSONObject found=null;for(int j=0;j<ps.length();j++)if(x.getString("positionId").equals(ps.getJSONObject(j).getString("id"))){found=ps.getJSONObject(j);break;}if(found!=null)closeAt(found,price,now,x.optString("reason","Closed"));}}if(changed){book.put("pending",next);save(true);}}
  public static synchronized String open(int pair,boolean isLong,double percent,double leverage,String costs){try{book();long now=System.currentTimeMillis();if(pair<0||pair>1000||!fresh(pair,now))throw new Exception("Waiting for fresh Gains price");if(!Double.isFinite(percent)||percent<=0||percent>100||!Double.isFinite(leverage)||leverage<minLev(pair)||leverage>maxLev(pair)||Math.abs(leverage*1000-Math.round(leverage*1000))>1e-7)throw new Exception("Invalid percentage or leverage");double amount=Math.floor(book.getDouble("cash")*percent/100*1e6)/1e6;if(amount<=0)throw new Exception("No available paper collateral. Respawn to $100.");JSONArray q=book.getJSONArray("pending");for(int i=0;i<q.length();i++){JSONObject x=q.getJSONObject(i);if("open".equals(x.optString("action"))&&x.optInt("pair")==pair&&x.optBoolean("long")==isLong&&Math.abs(x.optDouble("percent",-1)-percent)<1e-9&&Math.abs(x.optDouble("lev")-leverage)<1e-9)throw new Exception("Duplicate paper open already pending");}JSONObject c=new JSONObject(costs);validateCost(c);long due=now+PaperExecutionDelay.sample();String id="p"+UUID.randomUUID();q.put(new JSONObject().put("id","q"+UUID.randomUUID()).put("action","open").put("positionId",id).put("pair",pair).put("long",isLong).put("amount",amount).put("percent",percent).put("lev",leverage).put("cost",c).put("submitted",now).put("due",due));book.put("cash",book.getDouble("cash")-amount);save(true);return "PENDING:"+due;}catch(Exception e){return e.getMessage();}}
+ private static boolean closing(String id)throws JSONException {
+  JSONArray pending=book.getJSONArray("pending");
+  for(int i=0;i<pending.length();i++){JSONObject order=pending.getJSONObject(i);if("close".equals(order.optString("action"))&&id.equals(order.optString("positionId")))return true;}
+  return false;
+ }
+ public static synchronized String setExits(String id,String raw){
+  try{
+   book();
+   JSONObject requested=new JSONObject(raw);
+   double tp=requested.getDouble("tp"),sl=requested.getDouble("sl"),trail=requested.getDouble("trail"),atr=requested.getDouble("atr");
+   for(double value:new double[]{tp,sl,trail,atr})if(!Double.isFinite(value)||value<0)throw new Exception("Invalid exit configuration.");
+   if(trail>=100||atr>100)throw new Exception("Invalid trailing percentage or ATR multiplier.");
+   JSONArray positions=book.getJSONArray("positions");
+   for(int i=0;i<positions.length();i++){
+    JSONObject p=positions.getJSONObject(i);
+    if(!id.equals(p.getString("id")))continue;
+    int pair=p.getInt("pair"),d=p.getBoolean("long")?1:-1;
+    double price=priceOf(pair);
+    if(!fresh(pair,System.currentTimeMillis())||closing(id))throw new Exception("Position is closing or its price is stale.");
+    if(tp>0&&d*(tp-price)<=0||sl>0&&d*(sl-price)>=0)throw new Exception("Take profit and stop loss must be on opposite sides of the current price.");
+    JSONObject old=p.optJSONObject("exits");
+    double best=old!=null&&old.optDouble("trail")==trail?old.optDouble("best",price):price;
+    double chandelier=old!=null&&old.optDouble("atr")==atr?old.optDouble("chandelier",0):0;
+    p.put("exits",new JSONObject().put("tp",tp).put("sl",sl).put("trail",trail).put("atr",atr).put("best",best).put("chandelier",chandelier));
+    save(true);
+    return "OK";
+   }
+   return "Position already closed.";
+  }catch(Exception e){return e.getMessage();}
+ }
+ private static String exitReason(JSONObject p,double price,long now,TreeMap<Long,JSONObject> candles)throws JSONException{
+  JSONObject exits=p.getJSONObject("exits");
+  boolean longSide=p.getBoolean("long");
+  int d=longSide?1:-1;
+  double tp=exits.optDouble("tp",0),sl=exits.optDouble("sl",0),trail=exits.optDouble("trail",0),atr=exits.optDouble("atr",0);
+  if(tp>0&&d*(price-tp)>=0)return "Take profit";
+  if(sl>0&&d*(price-sl)<=0)return "Stop loss";
+  if(trail>0){
+   double prevBest=exits.optDouble("best",price),best=longSide?Math.max(prevBest,price):Math.min(prevBest,price);
+   if(best!=prevBest){exits.put("best",best);cachedBook=null;}
+   if(d*(price-best*(1-d*trail/100))<=0)return "Trailing exit";
+  }
+  if(atr>0){
+   double priorStop=exits.optDouble("chandelier",0);
+   if(priorStop>0&&d*(price-priorStop)<=0)return "Chandelier exit";
+   long start=now/60000*60000-15*60000L;
+   double range=0,extreme=longSide?Double.NEGATIVE_INFINITY:Double.POSITIVE_INFINITY,previous=0;
+   for(int i=0;i<15;i++){
+    JSONObject bar=candles.get(start+i*60000L);
+    if(bar==null||"gap-fill".equals(bar.optString("source")))return null;
+    if(i>0){
+     double high=bar.getDouble("h"),low=bar.getDouble("l");
+     range+=Math.max(high-low,Math.max(Math.abs(high-previous),Math.abs(low-previous)));
+     extreme=longSide?Math.max(extreme,high):Math.min(extreme,low);
+    }
+    previous=bar.getDouble("c");
+   }
+   double candidate=extreme-d*atr*range/14;
+   if(range>0&&candidate>0){
+    double prev=exits.optDouble("chandelier",0),stop=prev==0?candidate:longSide?Math.max(prev,candidate):Math.min(prev,candidate);
+    if(stop!=prev){exits.put("chandelier",stop);cachedBook=null;}
+    if(d*(price-stop)<=0)return "Chandelier exit";
+   }
+  }
+  return null;
+ }
  public static synchronized String close(String id){try{book();JSONArray ps=book.getJSONArray("positions");for(int i=0;i<ps.length();i++){JSONObject p=ps.getJSONObject(i);if(id.equals(p.getString("id"))){int pair=p.getInt("pair");if(!fresh(pair,System.currentTimeMillis()))throw new Exception("Waiting for fresh Gains price");return queueClose(p,"Closed",System.currentTimeMillis());}}return "Position already closed";}catch(Exception e){return e.getMessage();}}
  public static synchronized void advancePendingForTests(int pair,double price,long now){try{processPending(pair,price,now);}catch(Exception e){throw new IllegalStateException(e);}}
  public static synchronized void reset(){try{book=new JSONObject("{\"cash\":100,\"positions\":[],\"history\":[],\"pending\":[]}");save(true);}catch(Exception ignored){}}
