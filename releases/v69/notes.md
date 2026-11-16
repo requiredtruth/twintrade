@@ -1,0 +1,1 @@
+Make price ticks and minute-close sounds follow net position direction in the selected market, including profitable shorts. Includes the price-feed recovery, outcome cues, and position exits from the earlier releases.

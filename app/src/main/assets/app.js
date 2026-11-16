@@ -88,13 +88,14 @@ let tickMotionState=null,tickBeat=false,priceSoundSuppressedUntil=0;
 function softTickFrequency(f){return Math.max(220,Math.min(1080,f));}
 function onTick(prev,next,silent=false){if(!tickOn||!(prev>0&&next>0)||prev===next)return;const now=Date.now(),motion=Engine.tickMotion(tickMotionState,prev,next,now,pair),pct=(next-prev)/prev*100,abs=Math.abs(pct),micro=abs<.005,cooldown=motion.major?90:micro?130:105;tickMotionState=motion.state;if(now-lastTickAt<cooldown)return;lastTickAt=now;tickBeat=!tickBeat;
  if(silent||now<priceSoundSuppressedUntil)return;
- const up=motion.direction>0,big=abs>=.05;
- try{const ps=myPositions();let total=0,count=0,exposure=0;for(const p of ps){const px=refPrice(p.pair);if(!px)continue;const v=p.kind==='paper'?Engine.value(p,px).net:liveValue(p);if(Number.isFinite(v)){total+=v;count++;}exposure+=(p.long?1:-1)*p.amount*p.lev/p.entry;}
- const inPos=count>0,avg=inPos?total/count:0,favorable=!inPos||exposure===0?up:motion.direction*exposure>0,base=inPos?(avg>0?760:avg<0?420:620):620,g=Math.min(.14,.045+abs*1.1);
- if(micro){tone(softTickFrequency(base*(favorable?1.04:.96)*(tickBeat?1.015:.985)),.035,favorable?'chime':'warm',g);return;}
- const span=1+Math.min(abs,.5)*.9,f1=base*(up?span:1/span),f2=f1*(up?1.26:.79),dur=big?.13:.07;
- tone(softTickFrequency(f1),dur,'warm',g);tone(softTickFrequency(f2),dur+.02,up?'chime':'warm',g*.9,.07);
- if(big||inPos&&avg>5)tone(softTickFrequency(f2*(big?1.4:1.25)),.09,up?'chime':'warm',g*(big?.45:.55),.14);
+ const big=abs>=.05;
+ try{
+ const {avg,exposure}=positionSoundContext(),favor=exposure===0?motion.direction>0:(next-prev)*exposure>0;
+ const base=Number.isFinite(avg)?avg>0?760:avg<0?420:620:620,g=Math.min(.14,.045+abs*1.1);
+ if(micro){tone(softTickFrequency(base*(favor?1.08:.88)*(tickBeat?1.015:.985)),.035,favor?'chime':'warm',g);return;}
+ const span=1+Math.min(abs,.5)*.9,f1=favor?Math.min(730,base*span):Math.max(360,base/span),f2=f1*(favor?1.26:.79),dur=big?.13:.07;
+ tone(softTickFrequency(f1),dur,'warm',g);tone(softTickFrequency(f2),dur+.02,favor?'chime':'warm',g*.9,.07);
+ if(big||avg>5)tone(softTickFrequency(f2*(favor?(big?1.4:1.25):.79)),.09,favor?'chime':'warm',g*(big?.45:.55),.14);
  }catch{}}
 let lastCandleSoundAt=0,lastCrossAt=0;
 let bigEvT=0,liquidationCueUntil=0;
@@ -103,15 +104,35 @@ function showBigEvent(text,cls){try{const b=$('bigEvent');if(!b)return;b.textCon
 function checkCrossings(prev,next){if(!soundOn||!fullyLoaded)return;const now=Date.now();if(now-lastCrossAt<600)return;try{const ps=mode==='paper'?book.positions:livePositions;for(const p of ps){if(p.pair!==pair)continue;if((now-(p._xAt||0))<2000)continue;const liq=p.kind==='paper'?safeLiq(p):p.liq;
 if(Math.sign(next-p.entry)!==Math.sign(prev-p.entry)){p._xAt=now;lastCrossAt=now;const profitable=(next>p.entry)===p.long;eventSound(profitable?'pnl-profit':'pnl-loss');pushEvent(`${profitable?'Profit':'Loss'} side of your ${p.long?'L':'S'} entry ${money(p.entry)}`,profitable?'long':'short');return;}
 if(liq>0&&Math.sign(next-liq)!==Math.sign(prev-liq)){p._xAt=now;lastCrossAt=now;eventSound('liq-touch');pushEvent(`Price touched LIQ ${money(liq)} — danger`,'liq');return;}}}catch{}}
-/* Average net across ALL open positions (paper or live). Drives sound mood. */
-function avgOpenNet(){try{const ps=mode==='paper'?book.positions:livePositions;let s=0,n=0;for(const p of ps){if(!priceOf(p.pair))continue;const v=p.kind==='paper'?Engine.value(p,priceOf(p.pair)).net:liveValue(p);if(Number.isFinite(v)){s+=v;n++;}}return n?{avg:s/n,count:n}:null;}catch{return null;}}
-function positionMood(){const r=avgOpenNet();if(!r)return 'flat';return Engine.positionMood(r.avg,true);}
+function positionSoundContext(){
+ let total=0,count=0,exposure=0;
+ for(const p of myPositions()){
+  const sensitivity=p.amount*p.lev/p.entry;
+  if(Number.isFinite(sensitivity))exposure+=(p.long?1:-1)*sensitivity;
+  const price=refPrice(p.pair);
+  if(!(price>0))continue;
+  const net=p.kind==='paper'?Engine.value(p,price).net:liveValue(p);
+  if(Number.isFinite(net)){total+=net;count++;}
+ }
+ return {avg:count?total/count:NaN,exposure};
+}
 function myPositions(){try{return (mode==='paper'?book.positions:livePositions).filter(chartPair);}catch{return[];}}
 function myAvgEntry(){let w=0,s=0;for(const p of myPositions()){const n=(p.amount||0)*(p.lev||0);w+=n;s+=n*p.entry;}return w>0?s/w:0;}
 function myTotalNet(targetPair=null){let s=0,n=0;for(const p of myPositions()){if(targetPair!==null&&!(targetPair===pair?chartPair(p):p.pair===targetPair))continue;if(!refPrice(p.pair))continue;const v=p.kind==='paper'?Engine.value(p,refPrice(p.pair)).net:liveValue(p);if(Number.isFinite(v)){s+=v;n++;}}return n?{total:s,count:n}:null;}
-/* Chart candle-close sound: fires regardless of positions; brighter when
- * average open P&L is positive, darker when negative. */
-function onCandleClose(c){if(!tickOn)return;const now=Date.now();if(now<priceSoundSuppressedUntil||now-lastCandleSoundAt<1500)return;lastCandleSoundAt=now;try{const up=c.c>=c.o,mood=positionMood(),notes=up?(mood==='positive'?[[494,.08,'warm',.045,0],[622,.12,'chime',.052,.08]]:mood==='negative'?[[392,.11,'warm',.04,0]]:[[466,.09,'warm',.043,0],[554,.11,'chime',.045,.08]]):(mood==='negative'?[[392,.08,'warm',.045,0],[311,.13,'warm',.052,.08]]:mood==='positive'?[[440,.11,'warm',.04,0]]:[[415,.09,'warm',.043,0],[349,.12,'warm',.045,.08]]);window.NativeAudio?.clearPending?.();for(const note of notes)tone(...note);}catch{}}
+/* Minute-close phrases follow the selected market's net exposure. */
+function onCandleClose(c){
+ if(!tickOn)return;
+ const now=Date.now();
+ if(now<priceSoundSuppressedUntil||now-lastCandleSoundAt<1500)return;
+ lastCandleSoundAt=now;
+ try{
+  const {exposure}=positionSoundContext(),move=c.c-c.o;
+  const favorable=exposure===0?move>=0:move*exposure>0;
+  const notes=exposure!==0&&move===0?[[440,.11,'warm',.04,0]]:favorable?[[466,.09,'warm',.043,0],[554,.11,'chime',.045,.08]]:[[415,.09,'warm',.043,0],[349,.12,'warm',.045,.08]];
+  window.NativeAudio?.clearPending?.();
+  for(const note of notes)tone(...note);
+ }catch{}
+}
 const EVENT_SOUND_PALETTE={
  'public-open-long':[[523,.07,'warm',.055,0],[659,.1,'chime',.06,.075],[784,.13,'chime',.05,.15]],
  'public-open-short':[[659,.07,'warm',.055,0],[494,.1,'warm',.06,.075],[392,.13,'chime',.05,.15]],

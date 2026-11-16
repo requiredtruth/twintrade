@@ -21,6 +21,16 @@ const preview=run('SOUND_PREVIEW_SEQUENCE.map(x=>x[0])');assert(preview.includes
 assert(preview.includes('my-liq-long')&&preview.includes('my-liq-short')&&!preview.includes('my-liq'),'preview exposes distinct owner liquidation sides');assert.notDeepEqual(run("EVENT_SOUND_PALETTE['my-liq-long']"),run("EVENT_SOUND_PALETTE['my-liq-short']"),'owner liquidation side phrases differ');
 run("soundProfile='gentle';lastTickAt=0;eventSound('public-open-long')");const eventCount=started;run('lastTickAt=0;onTick(100,101);onCandleClose({o:100,c:101})');assert.equal(started,eventCount,'event phrase suppresses overlapping tick and candle sounds');run('priceSoundSuppressedUntil=0;lastTickAt=0;onTick(101,102)');assert(started>eventCount,'movement sound resumes after the phrase');
 const candleTones=[];env.tone=(...args)=>candleTones.push(args);run(`priceSoundSuppressedUntil=0;lastCandleSoundAt=0;lastTickAt=0;tickOn=true;mode='paper';pair=0;book={cash:100,positions:[],history:[]};prices[0]=100;candles[0]=[{t:Math.floor(Date.now()/60000)*60000-60000,o:99,h:101,l:98,c:100,source:'gains-live'}];setPrice(0,100.1,Date.now())`);assert.equal(candleTones.length,2,'minute rollover plays one candle phrase instead of stacking a tick');assert(candleTones.every(n=>['warm','chime'].includes(n[2])&&n[0]>=220&&n[0]<=700&&n[3]<=.052),'foreground candle phrase is gentle and bounded');
+function shortNotes(prev,next,bar=false){
+ candleTones.length=0;
+ run(`priceSoundSuppressedUntil=0;lastTickAt=0;lastCandleSoundAt=0;tickMotionState=null;prices[0]=100;book.positions=[Engine.open(0,false,10,10,120,{fee:0,slip:0,borrow:0,funding:0,liq:90},Date.now())];${bar?`onCandleClose({o:${prev},c:${next}})`:`onTick(${prev},${next})`}`);
+ return candleTones.map(n=>n[0]);
+}
+for(const bar of [false,true]){
+ const adverse=shortNotes(100,100.5,bar),favorable=shortNotes(100,99.5,bar);
+ assert(adverse.length>=2&&adverse.every((f,i)=>i===0||f<adverse[i-1]),'rising price descends for a profitable short');
+ assert(favorable.length>=2&&favorable.every((f,i)=>i===0||f>favorable[i-1]),'falling price ascends for a profitable short');
+}
 const crossings=[];env.eventSound=k=>crossings.push(k);env.pushEvent=()=>{};run("mode='live';pair=0;fullyLoaded=true;soundOn=true;livePositions=[{id:'short',pair:0,long:false,entry:100,liq:150,_xAt:-1e15}];lastCrossAt=0;checkCrossings(101,99);livePositions[0]._xAt=-1e15;lastCrossAt=0;checkCrossings(99,101)");assert.deepEqual(crossings,['pnl-profit','pnl-loss'],'short entry crossings use profit/loss semantics rather than raw price direction');
 const calls=[],bridge={enabled:v=>calls.push(['enabled',v]),status:()=> 'running',clearPending:()=>calls.push(['clear']),tone:(...a)=>calls.push(['tone',...a])};const apk=boot(bridge);await new Promise(r=>setImmediate(r));apk.run('soundOn=true;tickOn=true;soundLevel=.45;tone(660,.1,"triangle",.095,.05)');const scaled=calls.find(c=>c[0]==='tone'&&c[1]===660);assert(scaled&&Math.abs(scaled[4]-.04275)<1e-9,'APK native PCM receives scaled gain');apk.run("eventSound('public-open-long')");assert(calls.some(c=>c[0]==='clear'),'APK event phrase clears queued movement tones');apk.run('soundOn=false;tickOn=false;renderAudioStatus()');assert.deepEqual(calls.at(-1),['enabled',false]);
 const liquidation=apk.run("EVENT_SOUND_PALETTE['my-liq-long']");

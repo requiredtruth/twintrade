@@ -20,7 +20,7 @@ public class PriceMonitorService extends Service {
    boolean minuteChanged=minute!=soundMinute,candle=pnlCross==0&&minuteChanged&&soundOpen>0&&soundLast>0;
    if(candle)sonifier.suppressUntil(now+140);
    sonifier.tick(selected,prev,next,now,context[0],context[1],level);
-   if(candle){backgroundAudio.clearPending();CandleSound.play(backgroundAudio::tone,soundLast>=soundOpen,context[0],level);}
+   if(candle){backgroundAudio.clearPending();CandleSound.play(backgroundAudio::tone,soundLast-soundOpen,context[1],level);}
    if(minuteChanged){soundMinute=minute;soundOpen=next;}
   }
   soundLast=next;

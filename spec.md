@@ -1,7 +1,7 @@
 # TwinTrade 0.62.0 specification
 
 ## Provenance and release lineage
-The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 68, versionName 0.68.0, package com.twintrade.app, min API 26 and target API 35.
+The supplied ZIP contains TwinTrade 0.3.0. It is preserved byte-for-byte in the beta release. The supplied APK is 0.17.0 (versionCode 17); it is preserved byte-for-byte in the supplied-v17 release. Its exact eight web assets were extracted, and its application Java was inspected with JADX. This version reconstructs buildable native Java using the original source plus that analysis, then applies the fixes below. It is not a claim that recompilation reproduces the original APK bytes. This APK uses versionCode 69, versionName 0.69.0, package com.twintrade.app, min API 26 and target API 35.
 
 ## Delivered behavior
 - Bundled BTC/ETH, distinct BTCDEGEN/ETHDEGEN and broader market registry with runtime discovery. Updated remote caps override bundled caps, and disabled markets cannot be selected for new orders. Native paper caps receive the same registry through the secure local bridge.
@@ -451,3 +451,7 @@ Landscape grid now explicitly places both account metrics and selected-market P&
 
 - Edit TP, SL, percentage trailing and 14-minute Chandelier exits from each open position. Paper rules use the delayed fill path and run in Android background monitoring. Live TP and SL are Polygon transactions. Live trailing and Chandelier exits submit a market close once per arming while the app is visible and connected. Review and rearm from the position after an unsuccessful close.
 - Own liquidation plays a loud two-part buzzer, profitable settlement plays a rising four-note phrase, and losing settlement plays a single low tone. The cues follow the event sound toggle and volume.
+
+## v0.69.0 — position-aware price sounds
+
+- Price movement and minute-close cues follow the selected market’s net position exposure. For a short, rising prices sound adverse and falling prices sound favorable even while the position is in profit. Larger adverse moves descend throughout the phrase.

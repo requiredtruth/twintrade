@@ -1,0 +1,13 @@
+{
+  "tag": "v0.69.0",
+  "title": "TwinTrade 0.69.0 \u2014 position-aware price sounds",
+  "sequence": 53,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "ab8d2a6247938f43318e1fed212dcb8a069f15675fa208a240bfdbe195e2140c",
+    "TwinTrade.html": "44b18c0327c325eee2a146c15d3fe5bb791529732911edab2d3edc0ce3000c7d",
+    "TwinTrade-source.zip": "3bbd6ccc6f6e5d5a8bc783cea406046945c2eb57ba5ad5db62fcff0cc514ae1d",
+    "spec.md": "bf3c0a5015cea3ada1b2f411ec401f02f42551aa7b9eb2eae6146815f56e7e8d",
+    "SHA256SUMS": "21ea58016503e181789f119616f7202b1730c6f5c4371042aaa83de4e5c6d780"
+  }
+}

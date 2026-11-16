@@ -1,2 +1,26 @@
-import com.twintrade.app.CandleSound;import java.util.*;
-public class CandleSoundTest {public static void main(String[] args){List<Object[]> notes=new ArrayList<>();CandleSound.Output out=(f,d,t,g,w)->notes.add(new Object[]{f,d,t,g,w});CandleSound.play(out,true,10,1);check(notes.size()==2&&"warm".equals(notes.get(0)[2])&&"chime".equals(notes.get(1)[2]),"Profitable rise phrase");bounded(notes);notes.clear();CandleSound.play(out,true,-1,1);check(notes.size()==1&&(double)notes.get(0)[0]<450,"Losing rise must be restrained");notes.clear();CandleSound.play(out,false,-1,.45);check(notes.size()==2&&(double)notes.get(1)[0]<(double)notes.get(0)[0],"Losing fall phrase");for(Object[] n:notes)check((double)n[3]<=.052*.45+.000001,"Level scaling");notes.clear();CandleSound.play(out,false,10,1);check(notes.size()==1,"Profitable counter-move must stay quiet");bounded(notes);System.out.println("PASS: native candle direction/mood phrases, warm/chime timbres, bounded peaks and saved level scaling.");}private static void bounded(List<Object[]> notes){for(Object[] n:notes){double f=(double)n[0],g=(double)n[3],w=(double)n[4];String t=(String)n[2];check(f>=220&&f<=700&&g<=.052&&w<=.08,"Gentle bounded candle note");check(t.equals("warm")||t.equals("chime"),"Harsh candle waveform");}}private static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}}
+import com.twintrade.app.CandleSound;
+import java.util.ArrayList;
+import java.util.List;
+
+public class CandleSoundTest {
+ public static void main(String[] args) {
+  check(-1,-10,true);
+  check(1,-10,false);
+  check(1,10,true);
+  check(-1,10,false);
+  check(1,0,true);
+  System.out.println("PASS: candle phrases match net position direction and respect volume.");
+ }
+
+ private static void check(double move,double exposure,boolean favorable) {
+  List<Double> frequencies=new ArrayList<>();
+  List<String> timbres=new ArrayList<>();
+  CandleSound.play((f,d,t,g,w)->{
+   if(g>.052*.45||f<220||f>700)throw new AssertionError("Candle sound outside gentle bounds");
+   frequencies.add(f);
+   timbres.add(t);
+  },move,exposure,.45);
+  if(frequencies.size()!=2||(frequencies.get(1)>frequencies.get(0))!=favorable||
+     !timbres.get(1).equals(favorable?"chime":"warm"))throw new AssertionError("Incorrect exposure direction");
+ }
+}
