@@ -4,6 +4,13 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  // Valid empty trader snapshots prevent unrelated offline retry notices from racing timer assertions.
  await page.route('https://**/*',r=>r.request().url().includes('/open-trades')?r.fulfill({json:[]}):r.abort());await page.addInitScript(()=>{window.WebSocket=class{constructor(url){this.readyState=1;this.url=url;setTimeout(()=>this.onopen?.({}),0);if(url.includes('backend-pricing'))setTimeout(()=>this.onmessage?.({data:JSON.stringify({m:[0,84610,1,2682,300,84610,313,2682],i:[0,84612,1,2683],t:Date.now()})}),500)}close(){this.readyState=3}send(){}};});
  await page.goto('file://'+path.resolve('dist/TwinTrade.html'));await page.waitForTimeout(1100);await page.evaluate(()=>paperDelayMs=()=>0);
+ await page.evaluate(()=>recordLiveError('USDC approval',Object.assign(Error('processing response error'),{code:'SERVER_ERROR',error:{message:'RPC unavailable https://rpc.example.test/private-credential'}})));
+ await page.click('#statsOpen');
+ const [download]=await Promise.all([page.waitForEvent('download'),page.click('#exportErrorsStats')]);
+ assert.equal(download.suggestedFilename(),'TwinTrade-errors.txt');
+ const report=require('node:fs').readFileSync(await download.path(),'utf8');
+ assert(report.includes('USDC approval'));assert(report.includes('SERVER_ERROR'));assert(!report.includes('private-credential'));
+ await page.click('#closeStats');
  await page.fill('#dollars','2.123456');
  assert((await page.locator('#quote').textContent()).includes('$2.123456 collateral'));
  await page.locator('#sizeSlider').evaluate(el=>{el.value='12.5';el.dispatchEvent(new Event('input'));});

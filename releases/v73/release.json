@@ -1,0 +1,13 @@
+{
+  "tag": "v0.73.0",
+  "title": "TwinTrade 0.73.0 \u2014 Polygon transaction recovery and error export",
+  "sequence": 57,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "03eb37d0f1e366b4394c659e2d301a95496700ae0886a4dc496114d8d1544706",
+    "TwinTrade.html": "e8f5d0b252949af63e0beb2fafcdeb6f36aafde341e6d0c4f72f474d79965708",
+    "TwinTrade-source.zip": "d9cdbad34ec1076474ae44f39ba3a68405c48cd914f35bc50883d359dcf4db5f",
+    "spec.md": "92cdab02dd60578b0ae82cbefaaed92c9d229d725584e8c70a1f3a85bcca4503",
+    "SHA256SUMS": "d0f532e3b216fdcacff9367b9186aaad50a5eb0aea3277f6bf4c0822467debff"
+  }
+}

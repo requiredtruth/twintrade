@@ -1,0 +1,3 @@
+- Saves the signed approval and live-open transaction hashes before broadcast. If Polygon's RPC response is lost, TwinTrade checks the receipt by hash without submitting a second transaction.
+- Shows separate errors for approval preparation, gas, broadcast, receipt, allowance verification and order simulation.
+- Exports recent sanitized live order errors to TwinTrade-errors.txt from Settings and Stats.

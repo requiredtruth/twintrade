@@ -464,3 +464,7 @@ Landscape grid now explicitly places both account metrics and selected-market P&
 ## 0.71.0
 
 - Personal liquidation uses a single three-second buzzer. The seven-note win fanfare uses shorter, higher chimes. Both cues have half their previous gain.
+
+### Live order diagnostics
+
+Settings and Stats export a local UTF-8 text report through the Android file picker or a browser download. It includes recent live order failure stages and sanitized RPC codes and reasons. Open and approval transaction hashes are journaled before broadcast. If the RPC response is lost, the app waits for the known Polygon receipt without broadcasting a second transaction. An open still checks its confirmed USDC allowance, simulates and rechecks the reviewed quote before broadcasting.

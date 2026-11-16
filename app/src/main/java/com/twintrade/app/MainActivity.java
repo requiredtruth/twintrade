@@ -3,7 +3,27 @@ import android.app.*;import android.os.*;import android.webkit.*;import android.
 public class MainActivity extends Activity {
  public static volatile boolean visible=false;
  private NativeAudio audio;private WebView web;private boolean resumed=false,pageReady=false;
- @Override public void onCreate(Bundle state){super.onCreate(state);MarketStore.init(this);audio=new NativeAudio(this);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setStatusBarColor(0xff171e27);getWindow().setNavigationBarColor(0xff151c25);// Insets belong on the native parent: WebView padding does not reliably shrink its HTML viewport.
+ private static final int SAVE_ERROR_REPORT=73;
+ private String errorReport;
+ @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+  super.onActivityResult(requestCode,resultCode,data);
+  if(requestCode!=SAVE_ERROR_REPORT)return;
+  String report=errorReport;
+  errorReport=null;
+  if(resultCode!=RESULT_OK||data==null||data.getData()==null||report==null)return;
+  try(OutputStream out=getContentResolver().openOutputStream(data.getData(),"wt")){
+   if(out==null)throw new IOException("No writable file");
+   out.write(report.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+   android.widget.Toast.makeText(this,"Error report saved",android.widget.Toast.LENGTH_SHORT).show();
+  }catch(IOException|SecurityException e){
+   android.widget.Toast.makeText(this,"Could not save error report",android.widget.Toast.LENGTH_LONG).show();
+  }
+ }
+ @Override protected void onSaveInstanceState(Bundle state){
+  super.onSaveInstanceState(state);
+  if(errorReport!=null)state.putString("errorReport",errorReport);
+ }
+ @Override public void onCreate(Bundle state){super.onCreate(state);if(state!=null)errorReport=state.getString("errorReport");MarketStore.init(this);audio=new NativeAudio(this);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setStatusBarColor(0xff171e27);getWindow().setNavigationBarColor(0xff151c25);// Insets belong on the native parent: WebView padding does not reliably shrink its HTML viewport.
  if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
  else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
  android.widget.FrameLayout safeArea = new android.widget.FrameLayout(this);
@@ -35,6 +55,20 @@ public class MainActivity extends Activity {
  @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('ratiosDialog').open)document.getElementById('ratiosDialog').close();else if(document.getElementById('chartInfoDialog').open)document.getElementById('chartInfoDialog').close();else if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
 
  public class Feed {
+  @JavascriptInterface public void saveErrorReport(String report){
+   if(report==null||report.length()>150000)return;
+   runOnUiThread(()->{
+    if(errorReport!=null)return;
+    errorReport=report;
+    Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+      .setType("text/plain").putExtra(Intent.EXTRA_TITLE,"TwinTrade-errors.txt");
+    try{startActivityForResult(save,SAVE_ERROR_REPORT);}
+    catch(ActivityNotFoundException e){
+     errorReport=null;
+     android.widget.Toast.makeText(MainActivity.this,"No file picker available",android.widget.Toast.LENGTH_LONG).show();
+    }
+   });
+  }
   @JavascriptInterface public void audioState(String raw){if(raw==null||raw.length()>200000)return;try{org.json.JSONObject state=new org.json.JSONObject(raw);int selected=state.getInt("pair");if(selected<0||selected>1000)return;getSharedPreferences("market",0).edit().putString("audioState",raw).apply();PriceMonitorService.visibilityChanged();}catch(Exception ignored){}}
   @JavascriptInterface public void updateCaps(String raw){MarketStore.updateCaps(raw);}
   @JavascriptInterface public void exitApp(){

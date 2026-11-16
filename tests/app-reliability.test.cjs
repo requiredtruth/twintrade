@@ -22,16 +22,43 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  resolveBtc({rows:[{t:Math.floor(Date.now()/60000)*60000-60000,o:10,h:10,l:10,c:10}],chain:'polygon'});await btc;
  assert.equal(run('candles[0][0].c'),10);assert.equal(run('candles[1][0].c'),20);
  // Review rejected: no token approval or trading transaction.
- const state={approvals:0,opens:0,signerConnected:false,allowance:eth.utils.parseUnits('1000',6),approvalApplies:true,desyncAfterApproval:false};
- env.chain=async()=>({connect(){return this},getTradingActivated:async()=>0,getCollateral:async()=>({isActive:true,collateral:run('NETWORK.usdc')}),pairTotalPositionSizeFeeP:async()=>0,pairs:async()=>({from:'BTC',to:'USD'}),callStatic:{openTrade:async()=>{}},openTrade:async()=>{state.opens++;return{hash:'open-hash',wait:async()=>({logs:[],status:1})}},interface:{parseLog(){throw Error('no logs')}}});
- env.ethers.Contract=class{async decimals(){return 6}async balanceOf(){return eth.utils.parseUnits('100',6)}async allowance(){return state.allowance}connect(){state.signerConnected=true;return this}async approve(spender,value){assert(state.signerConnected,'Approval must have a signer');assert.equal(spender.toLowerCase(),run('DIAMOND.toLowerCase()'));state.approvals++;if(state.approvalApplies)state.allowance=value;return{hash:'approval-original',wait:async()=>{if(state.desyncAfterApproval)run('indexTimes[0]=Date.now()-5001');return{status:1,transactionHash:'approval-replacement'}}}}};
- run("wallet={address:'0x1111111111111111111111111111111111111111',connect(){return this}};liveBalance=100;mode='live';pair=0;setPrice(0,100,Date.now());indexPrices[0]=100;indexTimes[0]=Date.now();");
+ const state={approvals:0,opens:0,allowance:eth.utils.parseUnits('1000',6),approvalApplies:true,desyncAfterApproval:false,loseApprovalResponse:true};
+ const requests=new Map();
+ const rpc={
+   async send(method,[signed]){
+     assert.equal(method,'eth_sendRawTransaction');
+     const hash=eth.utils.keccak256(signed);
+     assert.equal(run(state.prepared.kind==='approve'?'pending[0].approvalHash':'pending[0].hash'),hash,'hash persisted before broadcast');
+     requests.set(hash,state.prepared.kind);
+     if(state.prepared.kind==='approve'){
+       state.approvals++;
+       if(state.approvalApplies)state.allowance=state.prepared.value;
+       if(state.loseApprovalResponse)throw Object.assign(Error('processing response error'),{code:'SERVER_ERROR',error:{code:-32000,message:'RPC lost response https://example.test/api/PRIVATE_TOKEN'}});
+     }else state.opens++;
+     return hash;
+   },
+   async waitForTransaction(hash){
+     assert(requests.has(hash));
+     if(state.missingReceipt)return null;
+     if(requests.get(hash)==='approve'&&state.desyncAfterApproval)run('indexTimes[0]=Date.now()-5001');
+     return {transactionHash:hash,logs:[],status:1};
+   }
+ };
+ env.chain=async()=>({connect(){return this},getTradingActivated:async()=>0,getCollateral:async()=>({isActive:true,collateral:run('NETWORK.usdc')}),pairTotalPositionSizeFeeP:async()=>0,pairs:async()=>({from:'BTC',to:'USD'}),callStatic:{openTrade:async()=>{}},populateTransaction:{openTrade:async()=>({kind:'open'})},interface:{parseLog(){throw Error('no logs')}}});
+ env.ethers.Contract=class{
+   constructor(){this.populateTransaction={approve:async(spender,value)=>{assert.equal(spender.toLowerCase(),run('DIAMOND.toLowerCase()'));return {kind:'approve',value};}}}
+   async decimals(){return 6}
+   async balanceOf(){return eth.utils.parseUnits('100',6)}
+   async allowance(){return state.allowance}
+ };
+ env.fixtureWallet={address:'0x1111111111111111111111111111111111111111',provider:rpc,connect(){return this},async populateTransaction(req){return req},async signTransaction(req){state.prepared=req;return req.kind==='approve'?'0x01':'0x02'}};
+ run("wallet=fixtureWallet;liveBalance=100;mode='live';pair=0;setPrice(0,100,Date.now());indexPrices[0]=100;indexTimes[0]=Date.now();");
  await run('sendOrder(true)');assert.equal(state.approvals,0);assert.equal(state.opens,0);
- env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);assert(state.allowance.eq(eth.utils.parseUnits('10',6)));assert.equal(run('pending[0].approvalHash'),'approval-replacement');
+ env.confirm=()=>true;await run('sendOrder(true)');assert.equal(state.approvals,1);assert.equal(state.opens,1);assert(state.allowance.eq(eth.utils.parseUnits('10',6)));assert.equal(run('pending[0].approvalHash'),eth.utils.keccak256('0x01'));assert.equal(state.approvals,1,'ambiguous approval is never repeated');assert(!stored.liveErrors.includes('PRIVATE_TOKEN'));assert(stored.liveErrors.includes('RPC lost response'));state.loseApprovalResponse=false;
  // An oversized pre-existing allowance is reduced to the exact order amount. A token that
  // does not apply that change must stop before simulation or submission and journal the reason.
  run('pending=[]');state.allowance=eth.utils.parseUnits('1000',6);state.approvalApplies=false;const opened=state.opens;
- await run('sendOrder(false)');assert.equal(state.approvals,2);assert.equal(state.opens,opened);assert.equal(run('pending[0].status'),'Approval mismatch · order not submitted');assert(node('toast').textContent.includes('order was not submitted'));
+ await run('sendOrder(false)');assert.equal(state.approvals,2);assert.equal(state.opens,opened);assert.equal(run('pending[0].status'),'Failed · order not submitted');assert(node('toast').textContent.includes('order was not submitted'));
  // Recheck the execution index after allowance confirmation and block a stale quote.
  state.approvalApplies=true;state.desyncAfterApproval=true;state.allowance=eth.utils.parseUnits('1000',6);run('pending=[];last[0]=Date.now();indexTimes[0]=last[0];indexPrices[0]=100');
  await run('sendOrder(false)');assert.equal(state.approvals,3);assert.equal(state.opens,opened);assert(node('toast').textContent.includes('fresh Gains index quote'));
@@ -41,6 +68,11 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  run("$('dollars').value='';$('amount').value='custom';$('sizeSlider').value='12.5'");assert.equal(run('orderSize(100).amount'),12.5);
  run("$('amount').value='10'");
  state.desyncAfterApproval=false;run('indexTimes[0]=Date.now();pending=[{owner:wallet.address,status:"Pending oracle execution"}]');assert.equal(run('liveQuote(0)'),100);
+ run('pending=[]');state.missingReceipt=true;state.allowance=eth.utils.parseUnits('1000',6);
+ await run('sendOrder(false)');assert.equal(state.approvals,4);assert.equal(state.opens,opened);
+ assert.equal(run('pending[0].status'),'Submission uncertain · check chain');
+ await run('sendOrder(false)');assert.equal(state.approvals,4,'uncertain transaction blocks duplicate submission');
+ state.missingReceipt=false;
  // If a confirmed receipt cannot be decoded into an oracle order ID, exact submitted
  // metadata and the pre-submit index set safely reconcile the resulting state. Ambiguous
  // matches remain blocked instead of guessing.
