@@ -1,0 +1,13 @@
+{
+  "tag": "v0.76.0",
+  "title": "TwinTrade 0.76.0 \u2014 adjustable rows and live close verification",
+  "sequence": 60,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "f6d435800b1abc94555b779b325b5a7e26c06ca8f037280b21c5ed45942891db",
+    "TwinTrade.html": "01f9875724bdeb9a820888b665739a5b2465e1567799873a5fc53c8acc2cd596",
+    "TwinTrade-source.zip": "015e011c32cefbacf7386654c2d36df7c6cfe844cb8402224f99a2a5dfbc51e3",
+    "spec.md": "0d895a4fd6b576be94bef7b82b5371f0f9640be8a3f85cdf48a08e625f723589",
+    "SHA256SUMS": "3a0e2c3604f5839cf5c5fe7f07f3df2ce5d1ec22dff2eeac6b8284d4a59e8eae"
+  }
+}

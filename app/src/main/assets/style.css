@@ -106,3 +106,42 @@ header{display:grid;grid-template-columns:40px minmax(0,1fr) auto 40px;gap:2px 8
 .actions button:disabled{opacity:.45;cursor:default}
 @media(max-width:639px) and (max-height:700px){#chartwrap{min-height:70px}}
 @media(min-width:640px) and (max-height:500px){.actions{flex-direction:row}}
+
+ .row-toggle,.row-grip{font-weight:700;min-width:25px;padding:2px 5px}
+.row-grip{touch-action:none;color:#a8c3df;cursor:ns-resize}
+.row-grip[id^=move]{cursor:grab}
+.ticket-title{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;color:#aab9cc}
+.ticket-title span{margin-right:auto}
+#ticketBody{display:contents}
+#ticketBody[hidden],#chartwrap[hidden],#positions[hidden]{display:none}
+#chartwrap{flex-basis:min(65dvh,var(--terminal-chart,0px))}
+#positions{max-height:min(35dvh,var(--terminal-positions,18dvh))}
+#ticketRow:not(.ticket-collapsed #ticketRow){min-height:min(65dvh,var(--terminal-ticket,0px))}
+.chart-collapsed #positions{flex:1;max-height:var(--terminal-positions,35dvh)}
+@media(max-width:639px) and (max-height:700px){
+ #chartwrap{min-height:72px}
+ .ticket-title{margin-bottom:0}
+ #ticketRow{padding-top:2px;padding-bottom:2px}
+ #positionPnlSummary{padding-top:4px;padding-bottom:4px}
+ #ticketRow .actions button{padding-top:7px;padding-bottom:7px}
+ #positions{max-height:min(32dvh,var(--terminal-positions,40px))}
+}
+@media(min-width:640px) and (max-height:500px){
+ body{grid-template-columns:minmax(0,1fr) clamp(190px,var(--terminal-ticketwidth,210px),55vw);grid-template-rows:40px 20px auto auto 28px 18px minmax(0,1fr) 30px auto minmax(24px,min(32dvh,var(--terminal-positions,48px)))}
+ #ticketRow{min-height:0!important}
+ #resizeTicket{cursor:ew-resize}
+ .row-grip[id^=move]{display:none}
+ .chart-collapsed>#positionsRow{grid-row:7}
+ .chart-collapsed>#positionPnlSummary{grid-row:8}
+ .chart-collapsed>#positions{grid-row:9 / 11;max-height:none}
+ .chart-collapsed{grid-template-rows:40px 20px auto auto 28px 18px 30px auto minmax(0,1fr) 0}
+ .positions-collapsed:not(.chart-collapsed){grid-template-rows:40px 20px auto auto 28px 18px minmax(0,1fr) 30px auto 0}
+}
+
+.terminal-layout-settings label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:5px 0}.terminal-layout-settings input{width:90px}
+
+@media (max-width:639px), (min-height:501px){
+ body.chart-sized,body.positions-sized,body.ticket-sized{overflow-y:auto}
+ .chart-sized #chartwrap{flex:0 0 min(65dvh,var(--terminal-chart))}
+ .positions-sized #positions{flex:0 0 min(35dvh,var(--terminal-positions));max-height:none}
+}

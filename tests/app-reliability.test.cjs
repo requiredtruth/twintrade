@@ -100,5 +100,26 @@ const assets=path.join(__dirname,'../app/src/main/assets');for(const f of ['conf
  await run('sendOrder(true)');
  assert.equal(run('pending[0].status'),'Failed · order not submitted');
  assert.equal(run('pending[0].approvalHash'),undefined);
+ // A live market close simulates first, journals its signed hash, and recovers
+ // a transient receipt read without a second broadcast.
+ run("pending=[];indexTimes[0]=Date.now()");
+ const closeHash=eth.utils.keccak256('0x02');
+ let closeSends=0,closeReads=0,simulated=false;
+ env.chain=async()=>({connect(){return this},callStatic:{closeTradeMarket:async(index,price)=>{
+   assert.equal(index,1);assert.equal(price.toString(),'1000000000000');simulated=true;
+ }},populateTransaction:{closeTradeMarket:async()=>({kind:'close'})}});
+ rpc.send=async(method,[value])=>{
+   if(method==='eth_sendRawTransaction'){
+     assert(simulated);assert.equal(run('pending[0].hash'),closeHash);closeSends++;return closeHash;
+   }
+   assert.equal(method,'eth_getTransactionReceipt');assert.equal(value,closeHash);
+   if(++closeReads===1)throw Error('bad response');
+   return {transactionHash:value,blockNumber:100,status:1,logs:[]};
+ };
+ assert.equal(await run('closeLive(position,true,false)'),true);
+ assert.equal(closeSends,1);assert.equal(closeReads,2);
+ assert.equal(run('pending[0].status'),'Pending oracle close');
+ assert.equal(run('reconcileConfirmedState(pending[0],[])'),true);
+ assert.equal(run('pending[0].status'),'Closed');
  console.log('PASS: duplicate paper settlement, market-switch history race, rejected review, signer-bound approval and pending-order exclusion.');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -1,0 +1,3 @@
+- Collapse or expand Charts, Positions and the Order Ticket, drag to resize, reorder rows in portrait, or enter pixel sizes in Settings.
+- Preserves layout settings across restarts and supports a landscape order-ticket width.
+- Checks the close order's wallet, mode and RPC before broadcasting. Regression coverage verifies simulation, one broadcast and recovery from a transient receipt error.

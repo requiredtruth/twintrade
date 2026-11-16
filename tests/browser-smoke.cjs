@@ -20,6 +20,20 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  assert.equal(await page.inputValue('#lev'),'250.125');
  await page.selectOption('#amount','10');
  await page.fill('#lev','200');
+ for(const [key,body] of [['Chart','chartwrap'],['Positions','positions'],['Ticket','ticketBody']]){
+   const toggle=page.locator('#toggle'+key);
+   await toggle.click();assert.equal(await toggle.textContent(),'+');
+   assert.equal(await page.locator('#'+body).getAttribute('hidden'),'');
+   await toggle.click();assert.equal(await toggle.textContent(),'−');
+ }
+ const grip=await page.locator('#resizePositions').boundingBox();
+ await page.mouse.move(grip.x+grip.width/2,grip.y+grip.height/2);
+ await page.mouse.down();await page.mouse.move(grip.x+grip.width/2,grip.y+grip.height/2+35,{steps:4});await page.mouse.up();
+ assert(Number(await page.evaluate(()=>JSON.parse(localStorage.terminalLayout).sizes.Positions))>=24);
+ await page.locator('#moveChart').press('ArrowDown');
+ assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.terminalLayout).order),['Positions','Chart','Ticket']);
+ await page.locator('#moveChart').press('ArrowUp');
+ await page.evaluate(()=>document.getElementById('resetTerminalLayout').click());
  // Legend shares every chart line style and stays reachable in both orientations.
  for(const viewport of [{width:393,height:852},{width:852,height:393}]){
   await page.setViewportSize(viewport);await page.click('#legendOpen');
