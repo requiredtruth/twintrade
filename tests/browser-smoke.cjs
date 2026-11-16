@@ -31,7 +31,12 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
   await page.click('#closeLegend');assert(!(await page.locator('#legendDialog').isVisible()));
  }
  await page.setViewportSize({width:393,height:852});
- await page.evaluate(()=>{renderAccountMetrics([{amount:20}],10)});assert.equal(await page.locator('#netBalancePct').textContent(),'+8.33%');assert.equal(await page.locator('#netMarginPct').textContent(),'+50.00%');assert.equal(await page.locator('#openTradeCount').textContent(),'1');await page.evaluate(()=>render());
+ const accountMetrics=await page.evaluate(()=>{
+   renderAccountMetrics([{amount:20}],10);
+   return ['netBalancePct','netMarginPct','openTradeCount'].map(id=>$(id).textContent);
+ });
+ assert.deepEqual(accountMetrics,['+8.33%','+50.00%','1']);
+ await page.evaluate(()=>render());
  assert.equal(await page.locator('#price').textContent(),'$84610.00');assert((await page.locator('#positionPnlSummary').textContent()).includes('Long net'));await page.click('#long');await page.waitForTimeout(300);assert((await page.locator('#positions').textContent()).includes('L'));
  // Exact leverage entry and quick limits across crypto, commodities, stocks and forex.
  for(const [pi,max,min] of [[2,150,1.1],[90,250,1.1],[58,4,1.1],[21,1000,10],[0,500,1.1]]){await page.evaluate(pi=>{pair=pi;render()},pi);assert.equal(await page.locator('#lev').getAttribute('max'),String(max));assert.equal(await page.locator('#lev').getAttribute('min'),String(min));const choices=await page.locator('#levPresets option').evaluateAll(os=>os.map(o=>o.value));assert(choices.includes(String(max)));assert(choices.includes(String(min)));await page.selectOption('#levPresets',String(max));assert.equal(await page.inputValue('#lev'),String(max));}
