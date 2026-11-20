@@ -5,9 +5,9 @@
   "prerelease": false,
   "sha256": {
     "TwinTrade.apk": "9224e68b30aaff1963b05225ded00b9cbae347fdeaea543af64c620dd8fddddf",
-    "TwinTrade-source.zip": "7d20d676a96919ca05eac8440b7f22a9222e0af6b0732212ba7b1be894a45f6a",
+    "TwinTrade-source.zip": "4dec04935f76eb04a05932ba1042ed740b9275f663ba571063060b60adff499f",
     "spec.md": "0d895a4fd6b576be94bef7b82b5371f0f9640be8a3f85cdf48a08e625f723589",
     "TwinTrade.html": "19bbe8c6d693ad092d2341258bb06a9d61d627ee2e86bfbd68349de8818e6d42",
-    "SHA256SUMS": "6dff3a772841cfd5ba77bc986eb3b6c528a1b04bd6bb976398a0a021672fff55"
+    "SHA256SUMS": "f52582976a11d9ad44dca0934ac94a50a71ac1c232c206ee47ee177d78bf99fb"
   }
 }

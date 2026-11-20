@@ -38,8 +38,8 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  for(const viewport of [{width:393,height:852},{width:852,height:393}]){
   await page.setViewportSize(viewport);await page.click('#legendOpen');
   assert(await page.locator('#legendDialog').isVisible());
-  assert.equal(await page.locator('.legend-row').count(),14);
-  assert(await page.evaluate(()=>Object.values(LINE_STYLE).every((style,i)=>{const line=document.querySelectorAll('.legend-row line')[i];return line.getAttribute('stroke')===style.color&&line.getAttribute('stroke-dasharray')===style.dash.join(' ')})));
+  assert.equal(await page.locator('.legend-row').count(),18);
+  assert(await page.evaluate(()=>Object.values({...EXIT_STYLE,...LINE_STYLE}).every((style,i)=>{const line=document.querySelectorAll('.legend-row line')[i];return line.getAttribute('stroke')===style.color&&line.getAttribute('stroke-dasharray')===style.dash.join(' ')})));
   assert((await page.locator('#legendRows').textContent()).includes('Public short average liquidation'));
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.click('#closeLegend');assert(!(await page.locator('#legendDialog').isVisible()));
