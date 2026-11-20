@@ -17,6 +17,23 @@ run('pair=1;renderPublic()');assert(!node('publicTrades').innerHTML.includes('BT
 run('setChartSpan(1)');assert.equal(run('view.span'),10);run('setChartSpan(999999)');assert.equal(run('view.span'),10080);
 const T=require('../app/src/main/assets/trade-state.js'),E=require('../app/src/main/assets/engine.js'),t=Date.UTC(2026,9,3);const bars=Array.from({length:1440},(_,i)=>({t:t+i*60000,o:i+1,h:i+3,l:i+.5,c:i+2,source:'gains-history'}));const hour=T.aggregateCandles(bars,60);assert.equal(hour.length,24);assert.equal(hour[0].o,1);assert.equal(hour[0].c,61);assert.equal(hour[0].h,62);assert.equal(hour[0].l,.5);assert.equal(E.mergeCandles([],bars,t+1440*60000).length,1440);
 let history=0,publics=0;env.loadHistory=async()=>history++;env.loadPublicSnapshot=async()=>publics++;run('pair=0;historyLoadedAt[0]=publicLoadedAt=Date.now();view={span:1440,off:3,yOff:1};onAppResume()');assert.equal(history,0);assert.equal(publics,0);assert.equal(run('view.off'),3);run('historyLoadedAt[0]=publicLoadedAt=Date.now()-61000;onAppResume()');assert.equal(history,1);assert.equal(publics,1);
+// Draw paper and live exits through the actual chart entry point.
+run(`pair=0;mode='paper';view={span:75,off:0,yOff:0};
+ book.positions=[{id:'p',pair:300,kind:'paper',long:true,entry:100,lev:100,amount:10,
+ cost:{liq:90,fee:0,slip:0,borrow:0,funding:0},exits:{tp:130,sl:99,trail:2,best:102,atr:3,chandelier:99}},
+ {id:'other',pair:1,kind:'paper',long:true,entry:100,lev:100,amount:10,exits:{tp:777}}];`);
+texts.length=0;run('draw()');
+for(const label of ['↑ TP L D · $130.00','SL L D · $99.00','TRAIL L D · $99.96','CHAN L D · $99.00'])assert(texts.includes(label),label);
+assert(!texts.some(s=>s.includes('$777.00')));
+run(`mode='live';livePositions=[{id:'l',index:7,pair:0,kind:'live',long:false,entry:100,liq:102,lev:100,amount:10,raw:{tp:99e10,sl:101e10}}];
+ liveExitRules.set('l',{trail:2,best:98,atr:3,chandelier:100});`);
+texts.length=0;run('draw()');
+for(const label of ['TP S · $99.00','SL S · $101.00','TRAIL S · $99.96','CHAN S · $100.00'])assert(texts.includes(label),label);
+texts.length=0;run("book.positions=[];liveExitRules.get('l').best=97;liveExitRules.get('l').chandelier=0;draw();renderLegend()");
+assert(texts.includes('TRAIL S · $98.94'));
+assert(!texts.some(s=>s.startsWith('CHAN')));
+assert.match(node('legendRows').innerHTML,/Chandelier exit/);
+run('mode="paper";livePositions=[];view={span:1440,off:3,yOff:1}');
 run('checkpointSession()');const restored=boot();assert.equal(restored.run('pair'),0);assert.equal(restored.run('view.span'),1440);assert.equal(restored.run('view.off'),3);assert.equal(restored.run('publicTrades.length'),4);
 const native=fs.readFileSync(path.join(__dirname,'../app/src/main/java/com/twintrade/app/MainActivity.java'),'utf8');assert(native.includes('web.onResume()'));assert(native.includes('checkpointSession()'));const resume=native.split('protected void onResume()')[1].split('@Override')[0];assert(!resume.includes('loadUrl')&&!resume.includes('reload'));
 console.log('PASS: compact labels, BTCDEGEN L/S and individual estimated LIQs on BTC only, zoom bounds, real hour/day aggregation, short-return refresh gating and saved session restoration.');})();

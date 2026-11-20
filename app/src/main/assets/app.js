@@ -317,13 +317,14 @@ function checkLiquidations(i){
   else if(before!==JSON.stringify(p.exits))persist();
  }
 }
+function trailingStop(best,percent,direction){return best*(1-direction*percent/100);}
 function evaluateExit(p,price,now){
  const e=p.exits,d=p.long?1:-1;
  if(e.tp&&d*(price-e.tp)>=0)return 'Take profit';
  if(e.sl&&d*(price-e.sl)<=0)return 'Stop loss';
  if(e.trail){
   e.best=p.long?Math.max(e.best,price):Math.min(e.best,price);
-  if(d*(price-e.best*(1-d*e.trail/100))<=0)return 'Trailing exit';
+  if(d*(price-trailingStop(e.best,e.trail,d))<=0)return 'Trailing exit';
  }
  if(e.atr){
   if(e.chandelier&&d*(price-e.chandelier)<=0)return 'Chandelier exit';
@@ -395,6 +396,7 @@ function editExits(p){
    }else liveExitRules.delete(p.id);
    saveLiveExitRules();
    dialog.close();
+   draw();
   }catch(e){$('exitStatus').textContent=e.message;}
  };
  $('saveLiveTP').onclick=()=>saveLiveExit(p,'TP');
@@ -584,14 +586,72 @@ try{setHTML('positions',html||'<p class="muted" style="padding:0 15px">'+(histor
 try{$('costbadge').textContent=mode==='paper'?'Paper costs: estimates':'Net P&L: estimate';}catch{}
 renderOrderTicket();
 if(!fullyLoaded&&firstPublicDone&&candlesOf(pair).length>0)fullyLoaded=true;renderFees();renderAccount();renderProfile();draw();}
+const EXIT_STYLE={
+ tp:{label:'TP',meaning:'Take profit',color:'#57f2b3',dash:[12,4],width:2},
+ sl:{label:'SL',meaning:'Stop loss',color:'#ff7c70',dash:[4,3],width:2},
+ trail:{label:'TRAIL',meaning:'Trailing stop · follows the best price',color:'#62d7ff',dash:[10,3,2,3],width:2},
+ chandelier:{label:'CHAN',meaning:'Chandelier exit · drawn once the ATR stop is calculated',color:'#ffd27c',dash:[2,3],width:2}
+};
+function chartExitLevels(positions){
+ const levels=[];
+ positions.forEach((p,i)=>{
+  const paper=p.kind==='paper',rules=(paper?p.exits:liveExitRules.get(p.id))||{};
+  const side=(p.long?'L':'S')+(pair===0&&p.pair===300?' D':'')+(positions.length>1?' #'+(paper?i+1:p.index):'');
+  const values={
+   tp:paper?rules.tp:Number(p.raw?.tp)/1e10,
+   sl:paper?rules.sl:Number(p.raw?.sl)/1e10,
+   trail:rules.trail>0?trailingStop(rules.best,rules.trail,p.long?1:-1):0,
+   chandelier:rules.atr>0?rules.chandelier:0
+  };
+  for(const [key,price] of Object.entries(values)){
+   if(Number.isFinite(price)&&price>0)levels.push({price,style:EXIT_STYLE[key],side});
+  }
+ });
+ return levels;
+}
+function drawExitLabels(ctx,levels,Y,right,top,bottom){
+ const spacing=19,first=top+9,last=bottom-9;
+ const limit=Math.floor((last-first)/spacing)+1;
+ if(limit<1||!levels.length)return;
+ const rows=levels.map(level=>({...level,y:Y(level.price)})).sort((a,b)=>a.y-b.y);
+ const hidden=Math.max(0,rows.length-limit);
+ const shown=hidden?rows.slice(0,limit-1):rows;
+ if(hidden)shown.push({y:last,overflow:rows.length-shown.length});
+ let previous=first-spacing;
+ shown.forEach((row,i)=>{
+  const anchor=Math.max(first,Math.min(last,row.y));
+  const y=Math.min(last-(shown.length-i-1)*spacing,Math.max(previous+spacing,anchor));
+  previous=y;
+  const edge=row.y<top?'↑ ':row.y>bottom?'↓ ':'';
+  const label=row.overflow?'+'+row.overflow+' exit levels':edge+row.style.label+' '+row.side+' · $'+row.price.toFixed(row.price<1?6:2);
+  ctx.font='bold 10px monospace';
+  const width=ctx.measureText(label).width+17,x=Math.max(3,right-width-4);
+  const color=row.style?.color||'#aab9cc';
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1;
+  if(!row.overflow&&y!==row.y){
+   ctx.beginPath();
+   ctx.moveTo(x-12,anchor);
+   ctx.lineTo(x,y);
+   ctx.stroke();
+  }
+  ctx.fillStyle='#0b1623';
+  ctx.fillRect(x,y-8,width,16);
+  ctx.strokeRect(x+.5,y-7.5,width-1,15);
+  ctx.fillStyle=color;
+  ctx.fillRect(x,y-8,3,16);
+  ctx.fillText(label,x+8,y+3);
+ });
+}
 const LINE_STYLE={myLong:{color:'#ffe144',dash:[],width:2},myShort:{color:'#b373ff',dash:[],width:2},otherLong:{color:'#ff9f1a',dash:[2,3],width:1.5},otherShort:{color:'#9d7bff',dash:[6,3],width:1.5},aggLong:{color:'#00e5ff',dash:[10,4],width:3},aggShort:{color:'#ff7ad9',dash:[10,4],width:3},myLiq:{color:'#ff2450',dash:[4,4],width:1.5},myAvg:{color:'#ffffff',dash:[],width:2},otherLiq:{color:'#ff69bd',dash:[4,4],width:1.2},price:{color:'#20e08c',dash:[],width:1},avgLong:{color:'#ffe144',width:3.5,dash:[]},avgShort:{color:'#b373ff',width:3.5,dash:[]},avgLiqLong:{color:'#ff668f',width:3,dash:[8,3]},avgLiqShort:{color:'#ff9bdc',width:3,dash:[8,3]}};
 function renderLegend(){
  const meanings={myLong:'Your long entry',myShort:'Your short entry',otherLong:'Public long entry',otherShort:'Public short entry',aggLong:'Grouped public long entries · identical entry and leverage',aggShort:'Grouped public short entries · identical entry and leverage',myLiq:'Your liquidation level · L/S labels identify side',myAvg:'Your notional-weighted average entry · both sides',otherLiq:'Individual public liquidation level · L/S labels identify side',price:'Latest market mark price',avgLong:'Public long average entry · all leverage and each populated band',avgShort:'Public short average entry · all leverage and each populated band',avgLiqLong:'Public long average liquidation · known and estimated levels',avgLiqShort:'Public short average liquidation · known and estimated levels'};
- $('legendRows').innerHTML=Object.entries(LINE_STYLE).map(([key,style])=>{const pattern=style.dash.length?(style.dash[0]<=2?'dotted':'dashed'):'solid';return `<div class="legend-row"><svg width="64" height="18" viewBox="0 0 64 18" aria-hidden="true"><line x1="2" y1="9" x2="62" y2="9" stroke="${style.color}" stroke-width="${style.width}" stroke-dasharray="${style.dash.join(' ')}"/></svg><span>${meanings[key]}<small>${style.color} · ${pattern}</small></span></div>`}).join('');
+ $('legendRows').innerHTML=Object.entries({...EXIT_STYLE,...LINE_STYLE}).map(([key,style])=>{const pattern=style.dash.length?(style.dash[0]<=2?'dotted':'dashed'):'solid';return `<div class="legend-row"><svg width="64" height="18" viewBox="0 0 64 18" aria-hidden="true"><line x1="2" y1="9" x2="62" y2="9" stroke="${style.color}" stroke-width="${style.width}" stroke-dasharray="${style.dash.join(' ')}"/></svg><span>${style.meaning||meanings[key]}<small>${style.color} · ${pattern}</small></span></div>`}).join('');
 }
 
 function draw(){let canvas;try{canvas=$('chart');}catch{return}if(!canvas||!canvas.getBoundingClientRect)return;let r=canvas.getBoundingClientRect(),d=devicePixelRatio||1,w=r.width,h=r.height;if(!w||!h)return;if(canvas.width!==Math.round(w*d)||canvas.height!==Math.round(h*d)){canvas.width=w*d;canvas.height=h*d}let ctx;try{ctx=canvas.getContext('2d');}catch{return}if(!ctx||!ctx.setTransform)return;ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,w,h);let full=candlesOf(pair);try{const gaps=full.filter(c=>c.source==='gap-fill').length;$('historyStatus').textContent=$('historyStatus').textContent.split(' · gaps:')[0]+(gaps?' · gaps: '+gaps+' amber placeholders · backfill pending':'');}catch{}let a=chartBars();chartDetails(a);if(!a.length)return;
 let mine=(mode==='paper'?book.positions:livePositions).filter(chartPair);
+const exitLevels=chartExitLevels(mine);
 let others=$('overlay').checked?publicTrades.filter(p=>chartPair(p)&&p.isOpen&&(!selectedPublic||p.id===selectedPublic)):[];
 let cl=clusteredPublic(others);let overlays=mine.concat(cl.singles,cl.groups);
 /* Own entries and liquidation levels stay in the default scale, including
@@ -620,7 +680,14 @@ if($('avgOverlay').checked&&$('overlay').checked){marketAverages();for(const g o
 /* My average position line (notional-weighted entry of my open trades here). */
 const avgLn=myAvgEntry();if(avgLn>0){strokeLine(avgLn,LINE_STYLE.myAvg);const mt=myTotalNet(pair);tradeTags.push([avgLn,LINE_STYLE.myAvg,`MY AVG ${money(avgLn)}`,mt?fmtPnl(mt.total):null,mt?mt.total>=0:true,null]);}
 /* Thin green price line behind the bars. */
-const pv=pvScale;if(pv>0)strokeLine(pv,LINE_STYLE.price);ctx.restore();
+const pv=pvScale;if(pv>0)strokeLine(pv,LINE_STYLE.price);
+for(const {price,style} of exitLevels){
+ ctx.globalAlpha=.14;
+ strokeLine(price,{color:style.color,width:6});
+ ctx.globalAlpha=1;
+ strokeLine(price,style);
+}
+ctx.restore();
 /* Stack labels so none cover each other; candles cover lines, never text.
  * Tags whose line sits off-chart are dropped (no floating text for lines
  * you can't see); the rest clamp inside the chart. */
@@ -629,6 +696,7 @@ let lastY=-1e9;for(const o of stackTags){if(o.y<lastY+13)o.y=lastY+13;lastY=o.y;
 for(const o of stackTags)tagLine2(o.t[0],o.t[1],o.t[2],o.t[3],o.t[4],o.t[5],o.y);
 /* Price bars ALWAYS above everything else: candles drawn after all lines. */
 a.forEach((c,i)=>{let x=headPad+(i+.5)*step;ctx.strokeStyle=ctx.fillStyle=c.source==='gap-fill'?'#e8b44c':c.c>=c.o?'#09c78f':'#ff4969';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,Y(c.h));ctx.lineTo(x,Y(c.l));ctx.stroke();ctx.fillRect(x-Math.max(.5,Math.min(6,step*.65))/2,Y(Math.max(c.o,c.c)),Math.max(.5,Math.min(6,step*.65)),Math.max(1,Math.abs(Y(c.o)-Y(c.c))))});
+drawExitLabels(ctx,exitLevels,Y,right,top,bottom);
 /* Price pill stays last and on top. */
 if(pv>0){
 ctx.font='bold 11px monospace';let ptw=12;try{ptw=ctx.measureText(money(pv)).width;}catch{}const py=Y(pv);ctx.fillStyle='#0a1420';ctx.fillRect(3,py-15,ptw+9,14);ctx.strokeStyle=LINE_STYLE.price.color;ctx.lineWidth=1.5;ctx.strokeRect(3,py-15,ptw+9,14);ctx.fillStyle='#ffffff';ctx.fillText(money(pv),7,py-4);}
@@ -727,7 +795,7 @@ function recordLiveError(stage,error,row){
 }
 function exportLiveErrors(){
   const legacy=pending.filter(row=>row.error&&!row.errorLogged).slice(-20).map(row=>({status:row.status,...safeOrderError({reason:row.error})}));
-  const report=['TwinTrade v0.77.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
+  const report=['TwinTrade v0.78.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
   if(window.Feed?.saveErrorReport){Feed.saveErrorReport(report);return;}
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain'}));const link=document.createElement('a');link.href=url;link.download='TwinTrade-errors.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
