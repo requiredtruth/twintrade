@@ -23,4 +23,21 @@ run('view.off=candles[0].length-1');chartEvents.pointerdown(pointer(120));chartE
 run('view.off=0;candles[0]=[];draw()');assert.match(node('chartRange').textContent,/Waiting for candles/);assert.equal(run('chartTimeTicks([],34,323).length'),0);
 run('candles[0]=[{t:Date.now(),o:1,h:1,l:1,c:1}];view.span=10;draw()');assert.equal(run('chartTimeTicks(chartBars(),34,323).length'),1);
 let historyCalls=[],scheduled;env.loadHistory=async(p,n)=>historyCalls.push([p,n]);env.setTimeout=(fn,ms)=>{if(ms===250)scheduled=fn;return 0};run('view.off=0;setChartSpan(1440)');await scheduled();assert.deepEqual(historyCalls,[[0,1440]],'gesture zoom requests missing day history');historyCalls=[];run('view.span=10080;view.off=1000;requestChartHistory()');await scheduled();assert.deepEqual(historyCalls,[[0,10080]],'gesture history remains capped at one week');
+// Simulate an Android zone change while the same WebView and cached event stay open.
+let zone='America/Chicago';
+env.Feed={timeZone:()=>zone};
+const epoch=Date.UTC(2026,10,20,5,41);
+run(`refreshDeviceTimeZone();showTradeEvent('Last confirmed · 11:41 PM · BTC/USD', 'close',true,${epoch},'history');`);
+let tick=run(`chartTimeTicks([{t:${epoch}}],34,323)[0]`);
+assert.equal(tick.time,'23:41');
+assert.equal(tick.date,'Nov 19');
+assert.match(node('tradeEvent').textContent,/11:41 PM.*BTC\/USD/);
+zone='America/New_York';
+run('refreshDeviceTimeZone()');
+tick=run(`chartTimeTicks([{t:${epoch}}],34,323)[0]`);
+assert.equal(tick.t,epoch);
+assert.equal(tick.time,'00:41');
+assert.equal(tick.date,'Nov 20');
+assert.match(node('chartRange').textContent,/America\/New_York/);
+assert.match(node('tradeEvent').textContent,/12:41 AM.*BTC\/USD/);
 console.log('PASS: chart range/zoom/interval, midnight dates, actual loaded bounds, past offsets, empty/single candle, tick spacing on phone and landscape.');})();

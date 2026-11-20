@@ -1,0 +1,13 @@
+{
+  "tag": "v0.77.0",
+  "title": "TwinTrade 0.77.0 \u2014 Android time sync",
+  "sequence": 61,
+  "prerelease": false,
+  "sha256": {
+    "TwinTrade.apk": "6a2a58fd6d8a3da329dcebe5f81cc5d971f488ac7b869832042c430349c4f264",
+    "TwinTrade-source.zip": "8a676bb82cadf9ddb428ef6b8c24c6d9899571f77cedff39333da7ef1296cf26",
+    "spec.md": "0d895a4fd6b576be94bef7b82b5371f0f9640be8a3f85cdf48a08e625f723589",
+    "TwinTrade.html": "b2946ba5fdaa38ab7866c498e448f231e5565b9c5c985eebb85c1b97e3da7ec6",
+    "SHA256SUMS": "fb513954233e3deefc288b2d0f23996d18c69ec8d3f4903e7927c3b649670ef6"
+  }
+}

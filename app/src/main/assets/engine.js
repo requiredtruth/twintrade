@@ -40,12 +40,12 @@ function dedupeCandles(list){if(!Array.isArray(list))return [];const m=new Map()
 /* Only bridge internal missing minutes; never manufacture ticks or future data.
  * Placeholder OHLC uses previous close and is discarded on each reconciliation. */
 function continuousCandles(list){const bars=dedupeCandles((list||[]).filter(c=>c&&c.source!=='gap-fill'));if(!bars.length)return [];const out=[],floor=bars[bars.length-1].t-10079*60000;let prev=null;for(const c of bars){if(prev)for(let t=Math.max(prev.t+60000,floor);t<c.t;t+=60000)out.push({t,o:prev.c,h:prev.c,l:prev.c,c:prev.c,source:'gap-fill'});if(c.t>=floor)out.push(c);prev=c;}return out.slice(-10080);}
-function mergeCandles(existing,incoming,now=Date.now()){const current=Math.floor(now/60000)*60000,m=new Map(dedupeCandles((existing||[]).filter(c=>c.source!=='gap-fill')).map(c=>[c.t,c]));for(const c of dedupeCandles(incoming)){if(c.source==='gap-fill')continue;const old=m.get(c.t);if(c.source==='coinbase-spot'&&old&&/^gains-/.test(old.source||''))continue;if(!old||c.source==='gains-history'&&c.t<current||!(old.source==='gains-history'&&c.t<current))m.set(c.t,c);}return continuousCandles([...m.values()]);}
+function mergeCandles(existing,incoming,now=Date.now()){const current=Math.floor(now/60000)*60000,m=new Map(dedupeCandles((existing||[]).filter(c=>c.source!=='gap-fill')).filter(c=>c.t<=current).map(c=>[c.t,c]));for(const c of dedupeCandles(incoming)){if(c.t>current||c.source==='gap-fill')continue;const old=m.get(c.t);if(c.source==='coinbase-spot'&&old&&/^gains-/.test(old.source||''))continue;if(!old||c.source==='gains-history'&&c.t<current||!(old.source==='gains-history'&&c.t<current))m.set(c.t,c);}return continuousCandles([...m.values()]);}
 /* Revision-matched native snapshots carry only the active tail. Preserve the
  * normal history precedence, falling back to reconciliation for older bars. */
 function mergeLiveTail(existing,incoming,now=Date.now()){
  const rows=dedupeCandles(incoming),a=existing||[],tail=a[a.length-1],c=rows[0];
- if(rows.length!==1||!tail||c.t!==tail.t)return mergeCandles(a,incoming,now);
+ if(rows.length!==1||!tail||c.t!==tail.t||c.t>Math.floor(now/60000)*60000)return mergeCandles(a,incoming,now);
  if(c.source==='gap-fill'||tail.source==='gains-history'&&tail.t<Math.floor(now/60000)*60000&&c.source!=='gains-history')return a;
  if(['o','h','l','c','source'].some(k=>tail[k]!==c[k]))a[a.length-1]=c;
  return a;

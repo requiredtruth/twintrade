@@ -30,29 +30,42 @@ let view={span:75,off:0,yOff:0,...savedSession.view};let chartInterval=[0,1,5,15
 view.span=Math.max(10,Math.min(10080,Number(view.span)||75));
 view.off=Number.isFinite(+view.off)?Math.max(0,Math.min(10079,Math.trunc(+view.off))):0;
 view.yOff=Number.isFinite(+view.yOff)?+view.yOff:0;
-if(savedSession.at>Date.now()-86400000){if(Array.isArray(savedSession.candles))candles[pair]=Engine.dedupeCandles(savedSession.candles);if(Array.isArray(savedSession.trades))publicTrades=savedSession.trades.filter(p=>p&&typeof p==='object'&&p.isOpen&&Number.isInteger(p.pair)&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.amount)&&p.amount>0&&Number.isFinite(p.lev)&&p.lev>0);selectedPublic=savedSession.selectedPublic||null;}
+if(savedSession.at>Date.now()-86400000){if(Array.isArray(savedSession.candles))candles[pair]=Engine.mergeCandles([],savedSession.candles);if(Array.isArray(savedSession.trades))publicTrades=savedSession.trades.filter(p=>p&&typeof p==='object'&&p.isOpen&&Number.isInteger(p.pair)&&Number.isFinite(p.entry)&&p.entry>0&&Number.isFinite(p.amount)&&p.amount>0&&Number.isFinite(p.lev)&&p.lev>0);selectedPublic=savedSession.selectedPublic||null;}
 function checkpointSession(){syncAudioState();try{const trades=publicTrades.map(({id,user,index,net,pair,isOpen,long,lev,amount,entry,liq,liqError})=>({id,user,index,net,pair,isOpen,long,lev,amount,entry,liq,liqError,kind:'public'}));localStorage.setItem('chartSession',JSON.stringify({at:Date.now(),pair,view,interval:chartInterval,selectedPublic,candles:candlesOf(pair),trades,overlay:$('overlay').checked,avgOverlay:$('avgOverlay').checked,lastTradeEvent,lastTradeEvents:[...tradeEvents.values()]}));persist();}catch{}}
-function onAppResume(){if(soundOn||tickOn)ensureAudio();syncNative();managePriceTransport();if(Date.now()-(historyLoadedAt[pair]||0)>60000)loadHistory();if(Date.now()-publicLoadedAt>60000)loadPublicSnapshot();refreshWallet();refreshOpenHoldingRates();render();}
+function onAppResume(){refreshDeviceTimeZone();if(soundOn||tickOn)ensureAudio();syncNative();managePriceTransport();if(Date.now()-(historyLoadedAt[pair]||0)>60000)loadHistory();if(Date.now()-publicLoadedAt>60000)loadPublicSnapshot();refreshWallet();refreshOpenHoldingRates();render();}
 function chartPair(p){return p.pair===pair||pair===0&&p.pair===300;}
 function publicLiq(p){return Number.isFinite(p.liq)&&p.liq>0?p.liq:TradeState.estimateLiq(p);}
 let barsCache={};
-function chartBars(){const raw=candlesOf(pair),end=Math.max(0,raw.length-Math.max(0,view.off|0)),tail=raw[end-1];if(!tail)return [];const key=[pair,raw.length,tail.t,tail.o,tail.h,tail.l,tail.c,tail.source,view.off,view.span,chartInterval].join(':');if(barsCache.raw===raw&&barsCache.key===key)return barsCache.bars;const floor=tail.t-(view.span-1)*60000;const interval=candleInterval();const bars=TradeState.aggregateCandles(raw.filter((c,i)=>i<end&&c.t>=floor),interval);barsCache={raw,key,bars};return bars;}
+function chartBars(){const raw=trimFutureCandles(pair,Date.now()),end=Math.max(0,raw.length-Math.max(0,view.off|0)),tail=raw[end-1];if(!tail)return [];const key=[pair,raw.length,tail.t,tail.o,tail.h,tail.l,tail.c,tail.source,view.off,view.span,chartInterval].join(':');if(barsCache.raw===raw&&barsCache.key===key)return barsCache.bars;const floor=tail.t-(view.span-1)*60000;const interval=candleInterval();const bars=TradeState.aggregateCandles(raw.filter((c,i)=>i<end&&c.t>=floor),interval);barsCache={raw,key,bars};return bars;}
 function candleInterval(){return chartInterval||(view.span<=300?1:view.span<=1500?5:view.span<=4500?15:60);}
 function durationLabel(minutes){return minutes>=1440?+(minutes/1440).toFixed(2)+'d':minutes>=60?+(minutes/60).toFixed(2)+'h':minutes+'m';}
-function chartDate(t){return new Date(t).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});}
+let deviceTimeZone;
+function refreshDeviceTimeZone(){
+ let zone;
+ try{
+  const id=window.Feed?.timeZone?.();
+  zone=new Intl.DateTimeFormat(undefined,id?{timeZone:id}:{}).resolvedOptions().timeZone;
+ }catch{zone=Intl.DateTimeFormat().resolvedOptions().timeZone;}
+ if(zone===deviceTimeZone)return;
+ deviceTimeZone=zone;
+ if(lastTradeEvent)paintTradeEvent(lastTradeEvent);
+ draw();
+}
+function localDate(t,options){return new Date(t).toLocaleString([], {...options,timeZone:deviceTimeZone});}
+function chartDate(t){return localDate(t,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});}
 function chartPlot(width){const right=width-70,left=34,gap=Math.min(80,Math.max(40,(right-left)*.15));return {left,right,candleRight:right-gap,candleWidth:Math.max(1,right-gap-left)};}
 function chartTimeTicks(bars,left,right){
  if(!bars.length||right<=left)return [];
  const width=right-left,step=width/bars.length,ticks=[];
  const stride=Math.max(1,Math.ceil(82/step));
- for(let i=0;i<bars.length;i+=stride){const date=new Date(bars[i].t);ticks.push({t:bars[i].t,x:left+(i+.5)*step,time:date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false}),date:date.toLocaleDateString([], {month:'short',day:'numeric'})});}
+ for(let i=0;i<bars.length;i+=stride){const t=bars[i].t;ticks.push({t,x:left+(i+.5)*step,time:localDate(t,{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}),date:localDate(t,{month:'short',day:'numeric'})});}
  return ticks;
 }
 function chartDetails(bars){
  const summary=$('chartDetails'),range=$('chartRange');if(!summary||!range)return;
  const interval=candleInterval();
  summary.textContent=`Range ${durationLabel(view.span)} · Candles ${durationLabel(interval)}${chartInterval?'':' auto'} · Zoom ${+(75/view.span).toFixed(3)}× · ${view.off?'Past '+durationLabel(view.off):'Latest'}`;
- let zone='local time';try{zone=Intl.DateTimeFormat().resolvedOptions().timeZone||zone;}catch{}
+ const zone=deviceTimeZone||'local time';
  range.textContent=bars.length?`${chartDate(bars[0].t)} → ${chartDate(bars.at(-1).t+interval*60000)} · ${zone}`:`Waiting for candles · ${zone}`;
 }
 let chartHistoryTimer=0;
@@ -72,7 +85,12 @@ function priceOf(p){return prices[p]||0}
 function lastOf(p){return last[p]||0}
 function candlesOf(p){if(!candles[p])candles[p]=[];return candles[p]}
 function marketLabel(p){try{const m=TradeConfig.marketOrNull(p);if(m)return m.symbol.replace('/USD','')+' / USD';}catch{}if(Number.isInteger(p)&&p>=0)return 'pair '+p+' / USD';return 'BTC / USD';}
-function setPrice(i,v,now){const prev=prices[i]||0,a=candlesOf(i),t=Math.floor(now/60000)*60000;let c=a[a.length-1];const rollover=!!c&&c.t!==t;prices[i]=v;last[i]=now;if(i===pair&&prev>0&&v!==prev){onTick(prev,v,rollover);checkCrossings(prev,v);if(rollover&&Number.isFinite(c.o)&&Number.isFinite(c.c))onCandleClose(c);}if(!c||c.t!==t){if(c)for(let gt=Math.max(c.t+60000,t-10079*60000);gt<t;gt+=60000)a.push({t:gt,o:c.c,h:c.c,l:c.c,c:c.c,source:'gap-fill'});c={t,o:v,h:v,l:v,c:v,source:'gains-live'};a.push(c);if(a.length>10080)a.splice(0,a.length-10080)}else{c.source='gains-live';c.h=Math.max(c.h,v);c.l=Math.min(c.l,v);c.c=v}}
+function trimFutureCandles(i,now){
+ const bars=candlesOf(i),current=Math.floor(now/60000)*60000;
+ if(bars.at(-1)?.t>current)candles[i]=Engine.mergeCandles(bars,[],now);
+ return candles[i];
+}
+function setPrice(i,v,now){const prev=prices[i]||0,a=trimFutureCandles(i,Date.now()),t=Math.floor(now/60000)*60000;let c=a[a.length-1];prices[i]=v;last[i]=now;if(c&&c.t>t)return;const rollover=!!c&&c.t!==t;if(i===pair&&prev>0&&v!==prev){onTick(prev,v,rollover);checkCrossings(prev,v);if(rollover&&Number.isFinite(c.o)&&Number.isFinite(c.c))onCandleClose(c);}if(!c||c.t!==t){if(c)for(let gt=Math.max(c.t+60000,t-10079*60000);gt<t;gt+=60000)a.push({t:gt,o:c.c,h:c.c,l:c.c,c:c.c,source:'gap-fill'});c={t,o:v,h:v,l:v,c:v,source:'gains-live'};a.push(c);if(a.length>10080)a.splice(0,a.length-10080)}else{c.source='gains-live';c.h=Math.max(c.h,v);c.l=Math.min(c.l,v);c.c=v}}
 /* ---- sounds: unique per actor + side + outcome; ticks vary by big/small. ---- */
 function ensureAudio(){if(window.NativeAudio){NativeAudio.enabled(soundOn||tickOn);audioError='';return;}try{if(!audioCtx||audioCtx.state==='closed')audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state!=='running'){const resumed=audioCtx.resume();if(resumed&&resumed.catch)resumed.then(()=>{audioError='';}).catch(()=>{audioError='Tap Enable sounds + test to retry';});}else audioError='';}catch{audioError='Audio unavailable · tap Enable sounds + test to retry';}}
 let lastAudioState='';
@@ -194,7 +212,19 @@ function pushEvent(text,cls){try{const box=$('events');if(!box)return;const d=do
 function notePublicDiff(next,quiet){knownPublic=new Map(next.map(p=>[p.id,p]));}
 let lastTradeEvent=null,publicFeedConnected=false;const tradeEvents=new Map(),publicNoticeState=new Map(),pendingPublicCloses=new Map();
 function clearTradeEvent(){tradeEvents.clear();lastTradeEvent=null;try{$('tradeEvent').hidden=true;}catch{}}
-function showTradeEvent(text,action,long,at=Date.now(),source='live',id=null,eventPair=pair){if(!Number.isInteger(eventPair)||eventPair<0)return;const event={text,action,long,at,source,id,pair:eventPair},cached=tradeEvents.get(eventPair);if(cached&&cached.at>at)return;tradeEvents.delete(eventPair);tradeEvents.set(eventPair,event);while(tradeEvents.size>512)tradeEvents.delete(tradeEvents.keys().next().value);if(!chartPair(event)||lastTradeEvent&&chartPair(lastTradeEvent)&&lastTradeEvent.at>at)return;lastTradeEvent=event;try{const el=$('tradeEvent');el.textContent=text;el.className=action+' '+(long?'long':'short');el.hidden=false;}catch{}}
+function showTradeEvent(text,action,long,at=Date.now(),source='live',id=null,eventPair=pair){if(!Number.isInteger(eventPair)||eventPair<0)return;const event={text,action,long,at,source,id,pair:eventPair},cached=tradeEvents.get(eventPair);if(cached&&cached.at>at)return;tradeEvents.delete(eventPair);tradeEvents.set(eventPair,event);while(tradeEvents.size>512)tradeEvents.delete(tradeEvents.keys().next().value);if(!chartPair(event)||lastTradeEvent&&chartPair(lastTradeEvent)&&lastTradeEvent.at>at)return;lastTradeEvent=event;paintTradeEvent(event);}
+function paintTradeEvent(event){
+ try{
+  const el=$('tradeEvent');
+  if(event.source==='history'){
+   // Older sessions stored the already formatted time in the event text.
+   const details=event.text.replace(/^Last confirmed · [^·]+ · /,'');
+   el.textContent='Last confirmed · '+localDate(event.at,{hour:'2-digit',minute:'2-digit'})+' · '+details;
+  }else el.textContent=event.text;
+  el.className=event.action+' '+(event.long?'long':'short');
+  el.hidden=false;
+ }catch{}
+}
 for(const event of [...(Array.isArray(savedSession.lastTradeEvents)?savedSession.lastTradeEvents.slice(-512):[]),savedSession.lastTradeEvent]){if(!event||typeof event.text!=='string'||event.text.length>2000||!['open','close','liq'].includes(event.action)||typeof event.long!=='boolean'||!Number.isInteger(event.pair)||event.pair<0||!Number.isFinite(event.at)||event.at>Date.now()+5000)continue;const previous=tradeEvents.get(event.pair);if(!previous||previous.at<=event.at)tradeEvents.set(event.pair,event);}
 function tradeFeedStatus(connected=publicFeedConnected){publicFeedConnected=connected;if(lastTradeEvent&&chartPair(lastTradeEvent))return;try{const el=$('tradeEvent');el.textContent=(connected?'Live trades · ':'Connecting to trades · ')+marketLabel(pair)+(connected?' · waiting for execution':'');el.className='';el.hidden=false;}catch{}}
 function restoreSelectedTradeEvent(){lastTradeEvent=null;const latest=[...tradeEvents.values()].reverse().filter(chartPair).sort((a,b)=>b.at-a.at)[0];if(latest)showTradeEvent(latest.text,latest.action,latest.long,latest.at,latest.source,latest.id,latest.pair);else tradeFeedStatus();}
@@ -215,7 +245,7 @@ function applyBackendExecution(msg,net){const values=Array.isArray(msg.value)?ms
 /* Current Gains backend sends confirmed history rows as top-level messages. */
 function historyPublicTrade(g,net){const action=/^TradeOpened(Market|Limit)$/.test(g.action)?'open':g.action==='TradeClosedLIQ'?'liq':/^TradeClosed(Market|TP|SL)$/.test(g.action)?'close':null;if(!action||!g.address||g.tradeIndex===undefined||typeof g.pair!=='string')return null;const market=TradeConfig.allMarkets().find(m=>m.symbol===g.pair),id=net+':'+String(g.address).toLowerCase()+':'+N(g.tradeIndex),old=publicTrades.find(p=>p.id===id)||publicNoticeState.get(id)?.p;const p={...old,id,user:String(g.address),index:N(g.tradeIndex),net,pair:market?.pairIndex??old?.pair??-1,symbol:g.pair,kind:'public',long:g.long===true||g.long===1||g.long==='1',lev:N(g.leverage)>0?N(g.leverage):old?.lev||0,amount:N(g.size)>0?N(g.size):old?.amount||0,entry:old?.entry>0?old.entry:N(g.price),eventPrice:N(g.price),settledNet:g.pnl_net==null||g.pnl_net===''?NaN:Number(g.pnl_net),isOpen:action==='open'};if(action==='open'&&!(p.lev>0&&p.amount>0&&p.entry>0))return null;return {p,action,at:Date.parse(g.date)};}
 function applyBackendHistory(msg,net){const row=historyPublicTrade(msg.value||msg,net);if(!row)return;if(row.p.pair>=0)applyPublicChange(row.p);notifyPublicTrade(row.p,row.action,quietEvents);}
-function seedLatestPublicTrade(rows){const seen=new Set();for(const g of [...rows].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))){const row=historyPublicTrade(g,g.net||'POLYGON');if(!row||row.p.pair<0||seen.has(row.p.pair)||!Number.isFinite(row.at)||row.at>Date.now()+5000||wallet&&row.p.user.toLowerCase()===wallet.address.toLowerCase())continue;seen.add(row.p.pair);const cached=tradeEvents.get(row.p.pair);if(cached&&cached.at>=row.at)continue;showTradeEvent('Last confirmed · '+new Date(row.at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · '+publicTradeText(row.p,row.action),row.action,row.p.long,row.at,'history',row.p.id,row.p.pair);}restoreSelectedTradeEvent();}
+function seedLatestPublicTrade(rows){const seen=new Set();for(const g of [...rows].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date))){const row=historyPublicTrade(g,g.net||'POLYGON');if(!row||row.p.pair<0||seen.has(row.p.pair)||!Number.isFinite(row.at)||row.at>Date.now()+5000||wallet&&row.p.user.toLowerCase()===wallet.address.toLowerCase())continue;seen.add(row.p.pair);const cached=tradeEvents.get(row.p.pair);if(cached&&cached.at>=row.at)continue;showTradeEvent(publicTradeText(row.p,row.action),row.action,row.p.long,row.at,'history',row.p.id,row.p.pair);}restoreSelectedTradeEvent();}
 
 function fresh(p){return Engine.freshQuote(priceOf(p),lastOf(p));}
 function liveQuote(p){
@@ -697,7 +727,7 @@ function recordLiveError(stage,error,row){
 }
 function exportLiveErrors(){
   const legacy=pending.filter(row=>row.error&&!row.errorLogged).slice(-20).map(row=>({status:row.status,...safeOrderError({reason:row.error})}));
-  const report=['TwinTrade v0.76.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
+  const report=['TwinTrade v0.77.0 – Polygon live order diagnostics',new Date().toISOString(),...liveErrors.map(row=>JSON.stringify(row)),...legacy.map(row=>'Earlier order '+JSON.stringify(row))].join('\n')+'\n';
   if(window.Feed?.saveErrorReport){Feed.saveErrorReport(report);return;}
   const url=URL.createObjectURL(new Blob([report],{type:'text/plain'}));const link=document.createElement('a');link.href=url;link.download='TwinTrade-errors.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
@@ -1064,3 +1094,4 @@ try{$('zoomMenu').onclick=()=>{const panel=$('zoomPanel');panel.hidden=!panel.hi
 
 try{$('lev').addEventListener('change',()=>{fetchMarketFees();render();});}catch{}
 
+refreshDeviceTimeZone();

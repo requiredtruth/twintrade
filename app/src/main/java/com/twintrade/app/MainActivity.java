@@ -5,6 +5,11 @@ public class MainActivity extends Activity {
  private NativeAudio audio;private WebView web;private boolean resumed=false,pageReady=false;
  private static final int SAVE_ERROR_REPORT=73;
  private String errorReport;
+ private final BroadcastReceiver timeZoneChanges=new BroadcastReceiver(){
+  @Override public void onReceive(Context context,Intent intent){
+   if(web!=null&&pageReady)web.evaluateJavascript("if(typeof refreshDeviceTimeZone==='function')refreshDeviceTimeZone();",null);
+  }
+ };
  @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
   super.onActivityResult(requestCode,resultCode,data);
   if(requestCode!=SAVE_ERROR_REPORT)return;
@@ -42,6 +47,9 @@ public class MainActivity extends Activity {
   return insets.consumeSystemWindowInsets();
  });
  safeArea.requestApplyInsets();WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setMediaPlaybackRequiresUserGesture(false);s.setDomStorageEnabled(true);s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);web.addJavascriptInterface(audio,"NativeAudio");web.addJavascriptInterface(new Vault(),"Vault");web.addJavascriptInterface(new Feed(),"Feed");web.setWebChromeClient(new WebChromeClient(){@Override public boolean onConsoleMessage(ConsoleMessage msg){if(msg.message().startsWith("Audio engine: "))android.util.Log.i("TwinTrade",msg.message());if(msg.messageLevel()==ConsoleMessage.MessageLevel.ERROR)android.util.Log.w("TwinTrade","WebView script error at line "+msg.lineNumber()+": "+msg.message());return true;}@Override public boolean onJsConfirm(WebView v,String url,String message,JsResult result){new AlertDialog.Builder(MainActivity.this).setMessage(message).setPositiveButton("Confirm",(d,w)->result.confirm()).setNegativeButton("Cancel",(d,w)->result.cancel()).setOnCancelListener(d->result.cancel()).show();return true;}});web.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView view,String url){if(view==web&&"https://app.twintrade.local/index.html".equals(url)){pageReady=true;web.evaluateJavascript("!!(document.getElementById('long') && typeof document.getElementById('long').onclick==='function')",ready->android.util.Log.i("TwinTrade","Trading page initialized: "+ready));if(resumed)resumePage();}}@Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest req){return true;}@Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest req){if(!"app.twintrade.local".equals(req.getUrl().getHost()))return null;try{String path=req.getUrl().getPath();if(path==null||path.equals("/"))path="/index.html";if(path.contains(".."))throw new IOException();String mime=path.endsWith(".js")?"application/javascript":path.endsWith(".css")?"text/css":"text/html";WebResourceResponse response=new WebResourceResponse(mime,"UTF-8",getAssets().open(path.substring(1)));java.util.Map<String,String> headers=new java.util.HashMap<>();headers.put("Content-Security-Policy","default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https: wss:; img-src 'self' data:; object-src 'none'; frame-src 'none'; base-uri 'none'");response.setResponseHeaders(headers);return response;}catch(Exception e){return new WebResourceResponse("text/plain","UTF-8",404,"Not Found",null,new ByteArrayInputStream(new byte[0]));}}});web.loadUrl("https://app.twintrade.local/index.html");
+ IntentFilter zones=new IntentFilter(Intent.ACTION_TIMEZONE_CHANGED);
+ if(Build.VERSION.SDK_INT>=33)registerReceiver(timeZoneChanges,zones,Context.RECEIVER_NOT_EXPORTED);
+ else registerReceiver(timeZoneChanges,zones);
  // Start monitoring from onResume, once the Activity is foreground eligible.
  if(Build.VERSION.SDK_INT>=33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},8);
 }
@@ -51,10 +59,11 @@ public class MainActivity extends Activity {
  @Override protected void onResume(){super.onResume();resumed=true;visible=true;PriceMonitorService.visibilityChanged();audio.foreground(true);if(web!=null){web.onResume();resumePage();}if(getSharedPreferences("market",0).getBoolean("keepAlive",true))startMonitor(null);}
  @Override protected void onPause(){resumed=false;visible=false;audio.foreground(false);PriceMonitorService.visibilityChanged();if(web!=null){if(pageReady)web.evaluateJavascript("if(typeof checkpointSession==='function')checkpointSession();",null);web.onPause();}super.onPause();}
  @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);}
- @Override protected void onDestroy(){if(audio!=null)audio.close();if(web!=null){web.removeJavascriptInterface("NativeAudio");web.removeJavascriptInterface("Vault");web.removeJavascriptInterface("Feed");web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onDestroy(){unregisterReceiver(timeZoneChanges);if(audio!=null)audio.close();if(web!=null){web.removeJavascriptInterface("NativeAudio");web.removeJavascriptInterface("Vault");web.removeJavascriptInterface("Feed");web.destroy();web=null;}super.onDestroy();}
  @Override public void onBackPressed(){web.evaluateJavascript("if(document.getElementById('ratiosDialog').open)document.getElementById('ratiosDialog').close();else if(document.getElementById('chartInfoDialog').open)document.getElementById('chartInfoDialog').close();else if(document.getElementById('config').open)document.getElementById('config').close();else {document.getElementById('drawer').hidden=true;document.getElementById('shade').hidden=true;}",null);}
 
  public class Feed {
+  @JavascriptInterface public String timeZone(){return java.util.TimeZone.getDefault().getID();}
   @JavascriptInterface public void saveErrorReport(String report){
    if(report==null||report.length()>150000)return;
    runOnUiThread(()->{
