@@ -622,7 +622,7 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
   if(priceY===null||Math.abs(y-priceY)>1)slots.push(y);
  }
  const tradeRows=trades.map(([value,style,label,pnl,up,pct])=>({
-  anchor:Y(value),style,label,detail:[pnl,pct].filter(Boolean).join(' '),up
+  anchor:Y(value),style,label,details:[pnl,pct].filter(Boolean),up
  })).filter(row=>row.anchor>=top-16&&row.anchor<=bottom+16);
  const rows=exits.map(({price,style,side})=>{
   const anchor=Y(price),edge=anchor<top?'↑ ':anchor>bottom?'↓ ':'';
@@ -634,10 +634,11 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
   rows.splice(visible,hidden,{anchor:bottom,style:{color:'#aab9cc'},label:'+'+hidden+' levels',summary:true});
  }
  const drawLabel=(row,y)=>{
-  const {style,label,detail,boxed}=row;
+  const {style,label,details=[],boxed}=row;
   ctx.font=boxed?'bold 10px monospace':'10px monospace';
   const labelWidth=ctx.measureText(label).width;
-  const detailWidth=detail?ctx.measureText(detail).width+5:0;
+  const detailWidths=details.map(detail=>ctx.measureText(detail).width);
+  const detailWidth=detailWidths.reduce((total,width)=>total+width+5,0);
   const width=Math.min(maxWidth,labelWidth+detailWidth+12);
   if(!row.summary){
    ctx.strokeStyle=style.color;
@@ -657,10 +658,12 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
   const scale=Math.min(1,(width-12)/(labelWidth+detailWidth));
   ctx.fillStyle=row.mark?'#fff':style.color;
   ctx.fillText(label,x+6,y+3,labelWidth*scale);
-  if(detail){
-   ctx.fillStyle=row.up?'#10d49b':'#ff5979';
-   ctx.fillText(detail,x+6+(labelWidth+5)*scale,y+3,(detailWidth-5)*scale);
-  }
+  ctx.fillStyle=row.up?'#10d49b':'#ff5979';
+  let offset=labelWidth+5;
+  details.forEach((detail,i)=>{
+   ctx.fillText(detail,x+6+offset*scale,y+3,detailWidths[i]*scale);
+   offset+=detailWidths[i]+5;
+  });
  };
  if(priceY!==null)drawLabel({anchor:Y(price),style:LINE_STYLE.price,label:money(price),boxed:true,mark:true},priceY);
  for(const row of rows){
