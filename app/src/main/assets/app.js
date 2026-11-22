@@ -613,7 +613,7 @@ function chartExitLevels(positions){
 function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
  const compact=bottom-top<160;
  const halfHeight=compact?6:8,spacing=2*halfHeight+2;
- const first=top+halfHeight+1,last=bottom-halfHeight-1;
+ const first=halfHeight+3,last=bottom+10-halfHeight;
  const x=3,maxWidth=left-x-10;
  if(last<first||maxWidth<24)return;
  const clamp=y=>Math.max(first,Math.min(last,y));
@@ -647,7 +647,7 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
    ctx.lineWidth=1;
    ctx.beginPath();
    ctx.moveTo(x+width,y);
-   ctx.lineTo(left,clamp(row.anchor));
+   ctx.lineTo(left,Math.max(top,Math.min(bottom,row.anchor)));
    ctx.stroke();
   }
   ctx.fillStyle='#0b1623';
@@ -702,15 +702,17 @@ const strokeLine=(v,style)=>{if(!(v>0))return Y(v);let y=Y(v);if(!Number.isFinit
  * The canvas clips only pixels; panning reveals levels without reloading. */
 ctx.save();ctx.beginPath();ctx.rect(0,top,right,bottom-top);ctx.clip();
 /* Pass 1: stroke every trade line. Pass 2: all trade labels (with live PnL). */
-const tradeTags=[];const pxNow=priceOf(pair);
+const tradeTags=[],averageTags=[];
 const pnlOf=p=>{const v=p.kind==='paper'?Engine.value(p,refPrice(p.pair)).net:p.kind==='live'?liveValue(p):estPnl(p.entry,p.long,p.lev,p.amount,refPrice(p.pair));if(!Number.isFinite(v))return [null,true,null];const pct=p.amount>0?v/p.amount*100:NaN;return [fmtPnl(v),v>=0,Number.isFinite(pct)?`(${pct>=0?'+':''}${pct.toFixed(1)}%)`:null];};
 for(const p of mine.slice().reverse()){strokeLine(p.entry,p.long?LINE_STYLE.myLong:LINE_STYLE.myShort);const q=pnlOf(p);tradeTags.push([p.entry,p.long?LINE_STYLE.myLong:LINE_STYLE.myShort,`${p.long?'L':'S'} ${levLabel(p.lev)}× ${cashLabel(p.amount)}${p.pair===300&&pair===0?' D':''} NET`,q[0],q[1],q[2]]);const liq=safeLiq(p);if(liq>0){strokeLine(liq,LINE_STYLE.myLiq);tradeTags.push([liq,LINE_STYLE.myLiq,`${p.long?'L':'S'} LIQ${p.pair===300&&pair===0?' D':''}${p.kind==='live'&&!(p.liq>0)?' EST':''} ${money(liq)}`,null,true,null]);}}
+const ownTradeTagCount=tradeTags.length;
 /* Include every valid position, including small collateral and distant levels. */
 const visibleSingles=cl.singles.filter(p=>(p.amount||0)>0);for(const p of visibleSingles){const st=p.long?LINE_STYLE.otherLong:LINE_STYLE.otherShort;strokeLine(p.entry,st);const q=pnlOf(p);tradeTags.push([p.entry,st,`${p.long?'L':'S'} ${levLabel(p.lev)}× ${cashLabel(p.amount)}${p.pair===300&&pair===0?' D':''}`,q[0],q[1],q[2]]);}
 for(const g of cl.groups){const st=g.long?LINE_STYLE.aggLong:LINE_STYLE.aggShort;strokeLine(g.entry,st);tradeTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ×${g.count} ${cashLabel(g.amount)}`,null,true,null]);}
 for(const p of others.filter(p=>(p.amount||0)>0)){const liq=publicLiq(p);if(liq>0){strokeLine(liq,LINE_STYLE.otherLiq);tradeTags.push([liq,LINE_STYLE.otherLiq,`${p.long?'L':'S'} LIQ${Number.isFinite(p.liq)&&p.liq>0?'':' EST'} ${levLabel(p.lev)}× ${cashLabel(p.amount)}${p.pair===300&&pair===0?' D':''} · ${money(liq)}`,null,true,null]);}}
-if($('avgOverlay').checked&&$('overlay').checked){marketAverages();for(const g of [...averageCache.sides.filter(g=>g.count),...averageCache.bands]){const st=g.long?LINE_STYLE.avgLong:LINE_STYLE.avgShort;strokeLine(g.entry,st);tradeTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${g.count}`,null,true,null]);if(g.chartLiq>0){const ls=g.long?LINE_STYLE.avgLiqLong:LINE_STYLE.avgLiqShort;strokeLine(g.chartLiq,ls);tradeTags.push([g.chartLiq,ls,`AVG LIQ${g.estimatedCount?' EST':''} ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${money(g.chartLiq)}`,null,true,null]);}}}
+if($('avgOverlay').checked&&$('overlay').checked){marketAverages();for(const g of [...averageCache.sides.filter(g=>g.count),...averageCache.bands]){const st=g.long?LINE_STYLE.avgLong:LINE_STYLE.avgShort;strokeLine(g.entry,st);averageTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${g.count}`,null,true,null]);if(g.chartLiq>0){const ls=g.long?LINE_STYLE.avgLiqLong:LINE_STYLE.avgLiqShort;strokeLine(g.chartLiq,ls);averageTags.push([g.chartLiq,ls,`AVG LIQ${g.estimatedCount?' EST':''} ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${money(g.chartLiq)}`,null,true,null]);}}}
 /* My average position line (notional-weighted entry of my open trades here). */
+tradeTags.splice(ownTradeTagCount,0,...averageTags);
 const avgLn=myAvgEntry();if(avgLn>0){strokeLine(avgLn,LINE_STYLE.myAvg);const mt=myTotalNet(pair);tradeTags.splice(mine.length?Math.min(2,tradeTags.length):0,0,[avgLn,LINE_STYLE.myAvg,`MY AVG ${money(avgLn)}`,mt?fmtPnl(mt.total):null,mt?mt.total>=0:true,null]);}
 /* Thin green price line behind the bars. */
 const pv=pvScale;if(pv>0)strokeLine(pv,LINE_STYLE.price);
