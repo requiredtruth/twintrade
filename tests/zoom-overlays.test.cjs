@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
-const stored={},nodes={},texts=[],strokes=[],events={};
-const ctx=new Proxy({fillText:s=>texts.push(s),moveTo:(x,y)=>strokes.push({x,y}),measureText:s=>({width:s.length*5})},{get:(o,k)=>o[k]||(()=>{})});
+const stored={},nodes={},texts=[],boxes=[],strokes=[],events={};
+const ctx=new Proxy({fillText:s=>texts.push(s),strokeRect:(x,y,w,h)=>boxes.push({x,y,w,h}),moveTo:(x,y)=>strokes.push({x,y}),measureText:s=>({width:s.length*5})},{get:(o,k)=>o[k]||(()=>{})});
 const node=id=>nodes[id]??={value:({amount:'10',lev:'100'})[id]||'',checked:true,hidden:true,textContent:'',innerHTML:'',getBoundingClientRect:()=>({width:393,height:400}),getContext:()=>ctx,addEventListener(){},setAttribute(){}};
 function boot(){const env={console,document:{hidden:false,getElementById:node,querySelector:()=>node('dismiss'),querySelectorAll:()=>[],addEventListener:(e,f)=>events[e]=f},localStorage:{getItem:k=>stored[k]||null,setItem:(k,v)=>stored[k]=v},setTimeout:()=>0,clearTimeout(){},setInterval(){},devicePixelRatio:1,confirm:()=>false,addEventListener(){},WebSocket:class{constructor(){this.readyState=1}close(){this.readyState=3}},ethers:{providers:{JsonRpcProvider:class{}},Contract:class{}},AbortController,fetch:async()=>{throw Error('offline')},GABI:[]};env.window=env;Object.assign(env,{URL,clearInterval:()=>{}});vm.createContext(env);for(const f of ['config.js','engine.js','trade-state.js','market-data.js','routing.js','app.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../app/src/main/assets',f),'utf8'),env);return {env,run:c=>vm.runInContext(c,env)}}
 (async()=>{const {env,run}=boot();await new Promise(r=>setImmediate(r));
@@ -10,9 +10,9 @@ assert(texts.some(s=>s.startsWith('L 500× $20 D')));assert(texts.some(s=>s.star
 // Every level is submitted, including distant positions, dust and >60 trades.
 const originalTrades=run('publicTrades');run("publicTrades=Array.from({length:80},(_,i)=>({id:'far'+i,pair:i%2?300:0,isOpen:true,long:!!(i%2),lev:500,amount:i===79?.005:100+i,entry:110+i*.001,liq:110.01+i*.001,kind:'public'}));clusterOn=false;view.yOff=0;renderPublic()");texts.length=0;strokes.length=0;run('draw()');assert.equal(run('publicTrades.length'),80);assert(strokes.filter(p=>p.x===0&&(p.y<20||p.y>375)).length>=160,'offscreen entries and LIQs are stroked, not pruned');assert(!texts.some(s=>s.startsWith('L LIQ 500× $100')),'offscreen text stays hidden');
 // Pan to those same retained levels without another feed update.
-run('view.yOff=1.8');texts.length=0;run('draw()');assert(texts.some(s=>s.startsWith('S 500× $100')));assert(texts.some(s=>s.startsWith('S LIQ 500× $100')));assert(texts.some(s=>s.startsWith('L 500× $0 D')),'sub-cent position entry also retained');assert.equal(run('publicTrades.length'),80);
+run('view.yOff=1.8');texts.length=0;run('draw()');assert(texts.some(s=>s.startsWith('S 500× $100')));assert(texts.some(s=>/^\+\d+ levels$/.test(s)),'crowded public labels report overflow');assert.equal(run('publicTrades.length'),80);
 // Same-count updates invalidate the cached level geometry.
-run('clusterOn=true;publicTrades[0].entry=110.2;renderPublic()');texts.length=0;run('draw()');assert(texts.some(s=>s.startsWith('S 500× $100')));env.originalTrades=originalTrades;run('publicTrades=originalTrades;view.yOff=0;renderPublic()');
+run('clusterOn=true;publicTrades=publicTrades.slice(0,1);publicTrades[0].entry=110.2;renderPublic()');texts.length=0;run('draw()');assert(texts.some(s=>s.startsWith('S 500× $100')));env.originalTrades=originalTrades;run('publicTrades=originalTrades;view.yOff=0;renderPublic()');
 run('pair=1;renderPublic()');assert(!node('publicTrades').innerHTML.includes('BTCDEGEN'));
 run('setChartSpan(1)');assert.equal(run('view.span'),10);run('setChartSpan(999999)');assert.equal(run('view.span'),10080);
 const T=require('../app/src/main/assets/trade-state.js'),E=require('../app/src/main/assets/engine.js'),t=Date.UTC(2026,9,3);const bars=Array.from({length:1440},(_,i)=>({t:t+i*60000,o:i+1,h:i+3,l:i+.5,c:i+2,source:'gains-history'}));const hour=T.aggregateCandles(bars,60);assert.equal(hour.length,24);assert.equal(hour[0].o,1);assert.equal(hour[0].c,61);assert.equal(hour[0].h,62);assert.equal(hour[0].l,.5);assert.equal(E.mergeCandles([],bars,t+1440*60000).length,1440);
@@ -27,8 +27,13 @@ for(const label of ['↑ TP L D · $130.00','SL L D · $99.00','TRAIL L D · $99
 assert(!texts.some(s=>s.includes('$777.00')));
 run(`mode='live';livePositions=[{id:'l',index:7,pair:0,kind:'live',long:false,entry:100,liq:102,lev:100,amount:10,raw:{tp:99e10,sl:101e10}}];
  liveExitRules.set('l',{trail:2,best:98,atr:3,chandelier:100});`);
-texts.length=0;run('draw()');
+texts.length=0;boxes.length=0;run('draw()');
 for(const label of ['TP S · $99.00','SL S · $101.00','TRAIL S · $99.96','CHAN S · $100.00'])assert(texts.includes(label),label);
+assert.equal(boxes.length,5,'four exits plus the price pill');
+const left=run('chartPlot(393).left');
+assert(boxes.every(box=>box.x===boxes[0].x&&box.x+box.w<left),'all boxes are left-aligned and outside the candle plot');
+const sortedBoxes=[...boxes].sort((a,b)=>a.y-b.y);
+assert(sortedBoxes.every((box,i)=>i===0||sortedBoxes[i-1].y+sortedBoxes[i-1].h<box.y),'price and exit boxes never overlap');
 texts.length=0;run("book.positions=[];liveExitRules.get('l').best=97;liveExitRules.get('l').chandelier=0;draw();renderLegend()");
 assert(texts.includes('TRAIL S · $98.94'));
 assert(!texts.some(s=>s.startsWith('CHAN')));

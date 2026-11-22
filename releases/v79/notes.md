@@ -1,0 +1,1 @@
+The live price, take-profit, stop-loss, trailing-stop, Chandelier, and position labels now share a left-hand gutter. The chart reserves a row for the live price and stacks nearby labels clear of the candles. When the gutter fills, it shows an overflow count while the price-level lines stay visible.

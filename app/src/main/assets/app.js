@@ -53,7 +53,7 @@ function refreshDeviceTimeZone(){
 }
 function localDate(t,options){return new Date(t).toLocaleString([], {...options,timeZone:deviceTimeZone});}
 function chartDate(t){return localDate(t,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});}
-function chartPlot(width){const right=width-70,left=34,gap=Math.min(80,Math.max(40,(right-left)*.15));return {left,right,candleRight:right-gap,candleWidth:Math.max(1,right-gap-left)};}
+function chartPlot(width){const right=width-70,left=Math.min(236,Math.floor(Math.max(0,right)*.52)),gap=Math.min(80,Math.max(40,(right-left)*.15));return {left,right,candleRight:right-gap,candleWidth:Math.max(1,right-gap-left)};}
 function chartTimeTicks(bars,left,right){
  if(!bars.length||right<=left)return [];
  const width=right-left,step=width/bars.length,ticks=[];
@@ -609,39 +609,69 @@ function chartExitLevels(positions){
  });
  return levels;
 }
-function drawExitLabels(ctx,levels,Y,right,top,bottom){
- const spacing=19,first=top+9,last=bottom-9;
- const limit=Math.floor((last-first)/spacing)+1;
- if(limit<1||!levels.length)return;
- const rows=levels.map(level=>({...level,y:Y(level.price)})).sort((a,b)=>a.y-b.y);
- const hidden=Math.max(0,rows.length-limit);
- const shown=hidden?rows.slice(0,limit-1):rows;
- if(hidden)shown.push({y:last,overflow:rows.length-shown.length});
- let previous=first-spacing;
- shown.forEach((row,i)=>{
-  const anchor=Math.max(first,Math.min(last,row.y));
-  const y=Math.min(last-(shown.length-i-1)*spacing,Math.max(previous+spacing,anchor));
-  previous=y;
-  const edge=row.y<top?'↑ ':row.y>bottom?'↓ ':'';
-  const label=row.overflow?'+'+row.overflow+' exit levels':edge+row.style.label+' '+row.side+' · $'+row.price.toFixed(row.price<1?6:2);
-  ctx.font='bold 10px monospace';
-  const width=ctx.measureText(label).width+17,x=Math.max(3,right-width-4);
-  const color=row.style?.color||'#aab9cc';
-  ctx.strokeStyle=color;
-  ctx.lineWidth=1;
-  if(!row.overflow&&y!==row.y){
+// Keep labels in the left gutter and give the market price first choice of row.
+function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
+ const spacing=18,first=top+9,last=bottom-9;
+ const x=3,maxWidth=left-x-10;
+ if(last<first||maxWidth<24)return;
+ const clamp=y=>Math.max(first,Math.min(last,y));
+ const priceY=price>0?clamp(Y(price)):null;
+ const slots=[];
+ const start=priceY===null?first:first+(priceY-first)%spacing;
+ for(let y=start;y<=last;y+=spacing){
+  if(priceY===null||Math.abs(y-priceY)>1)slots.push(y);
+ }
+ const tradeRows=trades.map(([value,style,label,pnl,up,pct])=>({
+  anchor:Y(value),style,label,detail:[pnl,pct].filter(Boolean).join(' '),up
+ })).filter(row=>row.anchor>=top-16&&row.anchor<=bottom+16);
+ const rows=exits.map(({price,style,side})=>{
+  const anchor=Y(price),edge=anchor<top?'↑ ':anchor>bottom?'↓ ':'';
+  return {anchor,style,label:edge+style.label+' '+side+' · $'+price.toFixed(price<1?6:2),boxed:true};
+ }).concat(tradeRows);
+ if(rows.length>slots.length&&slots.length){
+  const visible=slots.length-1;
+  const hidden=rows.length-visible;
+  rows.splice(visible,hidden,{anchor:bottom,style:{color:'#aab9cc'},label:'+'+hidden+' levels',summary:true});
+ }
+ const drawLabel=(row,y)=>{
+  const {style,label,detail,boxed}=row;
+  ctx.font=boxed?'bold 10px monospace':'10px monospace';
+  const labelWidth=ctx.measureText(label).width;
+  const detailWidth=detail?ctx.measureText(detail).width+5:0;
+  const width=Math.min(maxWidth,labelWidth+detailWidth+12);
+  if(!row.summary){
+   ctx.strokeStyle=style.color;
+   ctx.lineWidth=1;
    ctx.beginPath();
-   ctx.moveTo(x-12,anchor);
-   ctx.lineTo(x,y);
+   ctx.moveTo(x+width,y);
+   ctx.lineTo(left,clamp(row.anchor));
    ctx.stroke();
   }
   ctx.fillStyle='#0b1623';
   ctx.fillRect(x,y-8,width,16);
-  ctx.strokeRect(x+.5,y-7.5,width-1,15);
-  ctx.fillStyle=color;
-  ctx.fillRect(x,y-8,3,16);
-  ctx.fillText(label,x+8,y+3);
- });
+  if(boxed){
+   ctx.strokeStyle=style.color;
+   ctx.lineWidth=1;
+   ctx.strokeRect(x+.5,y-7.5,width-1,15);
+  }
+  const scale=Math.min(1,(width-12)/(labelWidth+detailWidth));
+  ctx.fillStyle=row.mark?'#fff':style.color;
+  ctx.fillText(label,x+6,y+3,labelWidth*scale);
+  if(detail){
+   ctx.fillStyle=row.up?'#10d49b':'#ff5979';
+   ctx.fillText(detail,x+6+(labelWidth+5)*scale,y+3,(detailWidth-5)*scale);
+  }
+ };
+ if(priceY!==null)drawLabel({anchor:Y(price),style:LINE_STYLE.price,label:money(price),boxed:true,mark:true},priceY);
+ for(const row of rows){
+  if(!slots.length)break;
+  const target=clamp(row.anchor);
+  let nearest=0;
+  for(let i=1;i<slots.length;i++){
+   if(Math.abs(slots[i]-target)<Math.abs(slots[nearest]-target))nearest=i;
+  }
+  drawLabel(row,slots.splice(nearest,1)[0]);
+ }
 }
 const LINE_STYLE={myLong:{color:'#ffe144',dash:[],width:2},myShort:{color:'#b373ff',dash:[],width:2},otherLong:{color:'#ff9f1a',dash:[2,3],width:1.5},otherShort:{color:'#9d7bff',dash:[6,3],width:1.5},aggLong:{color:'#00e5ff',dash:[10,4],width:3},aggShort:{color:'#ff7ad9',dash:[10,4],width:3},myLiq:{color:'#ff2450',dash:[4,4],width:1.5},myAvg:{color:'#ffffff',dash:[],width:2},otherLiq:{color:'#ff69bd',dash:[4,4],width:1.2},price:{color:'#20e08c',dash:[],width:1},avgLong:{color:'#ffe144',width:3.5,dash:[]},avgShort:{color:'#b373ff',width:3.5,dash:[]},avgLiqLong:{color:'#ff668f',width:3,dash:[8,3]},avgLiqShort:{color:'#ff9bdc',width:3,dash:[8,3]}};
 function renderLegend(){
@@ -663,8 +693,6 @@ let pad=Math.max((hi-lo)*.15,hi*.0003);lo-=pad;hi+=pad;const scaleSpan=hi-lo;lo+
 const plot=chartPlot(w),right=plot.right,top=20,bottom=h-40,headPad=plot.left,Y=v=>top+(hi-v)/(hi-lo)*(bottom-top);ctx.font='10px monospace';for(let i=0;i<=6;i++){let v=lo+(hi-lo)*i/6,y=Y(v);ctx.strokeStyle='#202938';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillStyle='#8290a5';ctx.fillText(v.toFixed(2),right+5,y+3)}
 let step=plot.candleWidth/Math.max(1,a.length);
 const strokeLine=(v,style)=>{if(!(v>0))return Y(v);let y=Y(v);if(!Number.isFinite(y))return y;ctx.strokeStyle=style.color;ctx.lineWidth=style.width||1.5;ctx.setLineDash(style.dash||[]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(right,y);ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=1;return y;};
-const tagLine=(v,style,label)=>{if(!(v>0)||!label)return;let y=Y(v);ctx.font='10px monospace';let tw=12;try{tw=ctx.measureText(label).width;}catch{}ctx.fillStyle='#101721e8';ctx.fillRect(Math.max(1,right-tw-7),y-14,tw+7,13);ctx.fillStyle=style.color;ctx.fillText(label,Math.max(3,right-tw-4),y-4)};
-const tagLine2=(v,style,main,pnl,pnlUp,pct,yy)=>{if(!(v>0)||!main)return;let y=(yy==null?Y(v):yy);ctx.font='10px monospace';let w1=12,w2=0,w3=0;try{w1=ctx.measureText(main).width;if(pnl)w2=ctx.measureText(pnl).width;if(pct)w3=ctx.measureText(pct).width;}catch{}const tw=w1+(pnl?w2+5:0)+(pct?w3+4:0);ctx.fillStyle='#101721e8';ctx.fillRect(3,y-14,tw+9,13);let x=7;ctx.fillStyle=style.color;ctx.fillText(main,x,y-4);x+=w1+5;if(pnl){ctx.fillStyle=pnlUp?'#10d49b':'#ff5979';ctx.fillText(pnl,x,y-4);x+=w2+4;}if(pct){ctx.fillStyle=pnlUp?'#10d49b':'#ff5979';ctx.fillText(pct,x,y-4)}};
 /* Retain and stroke every market level, including offscreen coordinates.
  * The canvas clips only pixels; panning reveals levels without reloading. */
 ctx.save();ctx.beginPath();ctx.rect(0,top,right,bottom-top);ctx.clip();
@@ -678,7 +706,7 @@ for(const g of cl.groups){const st=g.long?LINE_STYLE.aggLong:LINE_STYLE.aggShort
 for(const p of others.filter(p=>(p.amount||0)>0)){const liq=publicLiq(p);if(liq>0){strokeLine(liq,LINE_STYLE.otherLiq);tradeTags.push([liq,LINE_STYLE.otherLiq,`${p.long?'L':'S'} LIQ${Number.isFinite(p.liq)&&p.liq>0?'':' EST'} ${levLabel(p.lev)}× ${cashLabel(p.amount)}${p.pair===300&&pair===0?' D':''} · ${money(liq)}`,null,true,null]);}}
 if($('avgOverlay').checked&&$('overlay').checked){marketAverages();for(const g of [...averageCache.sides.filter(g=>g.count),...averageCache.bands]){const st=g.long?LINE_STYLE.avgLong:LINE_STYLE.avgShort;strokeLine(g.entry,st);tradeTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${g.count}`,null,true,null]);if(g.chartLiq>0){const ls=g.long?LINE_STYLE.avgLiqLong:LINE_STYLE.avgLiqShort;strokeLine(g.chartLiq,ls);tradeTags.push([g.chartLiq,ls,`AVG LIQ${g.estimatedCount?' EST':''} ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${money(g.chartLiq)}`,null,true,null]);}}}
 /* My average position line (notional-weighted entry of my open trades here). */
-const avgLn=myAvgEntry();if(avgLn>0){strokeLine(avgLn,LINE_STYLE.myAvg);const mt=myTotalNet(pair);tradeTags.push([avgLn,LINE_STYLE.myAvg,`MY AVG ${money(avgLn)}`,mt?fmtPnl(mt.total):null,mt?mt.total>=0:true,null]);}
+const avgLn=myAvgEntry();if(avgLn>0){strokeLine(avgLn,LINE_STYLE.myAvg);const mt=myTotalNet(pair);tradeTags.unshift([avgLn,LINE_STYLE.myAvg,`MY AVG ${money(avgLn)}`,mt?fmtPnl(mt.total):null,mt?mt.total>=0:true,null]);}
 /* Thin green price line behind the bars. */
 const pv=pvScale;if(pv>0)strokeLine(pv,LINE_STYLE.price);
 for(const {price,style} of exitLevels){
@@ -688,18 +716,8 @@ for(const {price,style} of exitLevels){
  strokeLine(price,style);
 }
 ctx.restore();
-/* Stack labels so none cover each other; candles cover lines, never text.
- * Tags whose line sits off-chart are dropped (no floating text for lines
- * you can't see); the rest clamp inside the chart. */
-const stackTags=tradeTags.map(t=>({t,y:Y(t[0])})).filter(o=>Number.isFinite(o.y)&&o.y>=top-16&&o.y<=bottom+16).sort((a,b)=>a.y-b.y);
-let lastY=-1e9;for(const o of stackTags){if(o.y<lastY+13)o.y=lastY+13;lastY=o.y;if(o.y>bottom+12)o.y=bottom+12;}
-for(const o of stackTags)tagLine2(o.t[0],o.t[1],o.t[2],o.t[3],o.t[4],o.t[5],o.y);
-/* Price bars ALWAYS above everything else: candles drawn after all lines. */
 a.forEach((c,i)=>{let x=headPad+(i+.5)*step;ctx.strokeStyle=ctx.fillStyle=c.source==='gap-fill'?'#e8b44c':c.c>=c.o?'#09c78f':'#ff4969';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,Y(c.h));ctx.lineTo(x,Y(c.l));ctx.stroke();ctx.fillRect(x-Math.max(.5,Math.min(6,step*.65))/2,Y(Math.max(c.o,c.c)),Math.max(.5,Math.min(6,step*.65)),Math.max(1,Math.abs(Y(c.o)-Y(c.c))))});
-drawExitLabels(ctx,exitLevels,Y,right,top,bottom);
-/* Price pill stays last and on top. */
-if(pv>0){
-ctx.font='bold 11px monospace';let ptw=12;try{ptw=ctx.measureText(money(pv)).width;}catch{}const py=Y(pv);ctx.fillStyle='#0a1420';ctx.fillRect(3,py-15,ptw+9,14);ctx.strokeStyle=LINE_STYLE.price.color;ctx.lineWidth=1.5;ctx.strokeRect(3,py-15,ptw+9,14);ctx.fillStyle='#ffffff';ctx.fillText(money(pv),7,py-4);}
+drawChartLabels(ctx,pv,exitLevels,tradeTags,Y,headPad,top,bottom);
 ctx.font='10px monospace';ctx.textAlign='center';
 for(const tick of chartTimeTicks(a,headPad,plot.candleRight)){ctx.strokeStyle='#303b4c';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tick.x,bottom);ctx.lineTo(tick.x,bottom+4);ctx.stroke();ctx.fillStyle='#b6c5da';ctx.fillText(tick.time,tick.x,h-21);ctx.fillStyle='#8190a5';ctx.fillText(tick.date,tick.x,h-7);}ctx.textAlign='left';}
 function safeLiq(p){if(p.kind==='live'||p.kind==='public')return publicLiq(p);try{return Engine.liquidation(p)}catch{return NaN}}
