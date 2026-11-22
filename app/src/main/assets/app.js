@@ -630,11 +630,7 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
  for(let y=start;y<=last;y+=spacing){
   if(priceY===null||Math.abs(y-priceY)>1)slots.push(y);
  }
- if(rows.length>slots.length&&slots.length>2){
-  const visible=slots.length-1;
-  const hidden=rows.length-visible;
-  rows.splice(visible,hidden,{anchor:bottom,style:{color:'#aab9cc'},label:'+'+hidden+' levels',summary:true});
- }
+ const hidden=Math.max(0,rows.length-slots.length);
  const drawLabel=(row,y)=>{
   const {style,label,details=[],boxed}=row;
   ctx.font=(boxed?'bold ':'')+(compact?'9px':'10px')+' monospace';
@@ -642,14 +638,12 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
   const detailWidths=details.map(detail=>ctx.measureText(detail).width);
   const detailWidth=detailWidths.reduce((total,width)=>total+width+5,0);
   const width=Math.min(maxWidth,labelWidth+detailWidth+12);
-  if(!row.summary){
-   ctx.strokeStyle=style.color;
-   ctx.lineWidth=1;
-   ctx.beginPath();
-   ctx.moveTo(x+width,y);
-   ctx.lineTo(left,Math.max(top,Math.min(bottom,row.anchor)));
-   ctx.stroke();
-  }
+  ctx.strokeStyle=style.color;
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(x+width,y);
+  ctx.lineTo(left,Math.max(top,Math.min(bottom,row.anchor)));
+  ctx.stroke();
   ctx.fillStyle='#0b1623';
   ctx.fillRect(x,y-halfHeight,width,2*halfHeight);
   if(boxed){
@@ -676,6 +670,11 @@ function drawChartLabels(ctx,price,exits,trades,Y,left,top,bottom){
    if(Math.abs(slots[i]-target)<Math.abs(slots[nearest]-target))nearest=i;
   }
   drawLabel(row,slots.splice(nearest,1)[0]);
+ }
+ if(hidden){
+  ctx.font='10px monospace';
+  ctx.fillStyle='#aab9cc';
+  ctx.fillText('+'+hidden+' levels',x+6,bottom+19,Math.max(1,maxWidth-16));
  }
 }
 const LINE_STYLE={myLong:{color:'#ffe144',dash:[],width:2},myShort:{color:'#b373ff',dash:[],width:2},otherLong:{color:'#ff9f1a',dash:[2,3],width:1.5},otherShort:{color:'#9d7bff',dash:[6,3],width:1.5},aggLong:{color:'#00e5ff',dash:[10,4],width:3},aggShort:{color:'#ff7ad9',dash:[10,4],width:3},myLiq:{color:'#ff2450',dash:[4,4],width:1.5},myAvg:{color:'#ffffff',dash:[],width:2},otherLiq:{color:'#ff69bd',dash:[4,4],width:1.2},price:{color:'#20e08c',dash:[],width:1},avgLong:{color:'#ffe144',width:3.5,dash:[]},avgShort:{color:'#b373ff',width:3.5,dash:[]},avgLiqLong:{color:'#ff668f',width:3,dash:[8,3]},avgLiqShort:{color:'#ff9bdc',width:3,dash:[8,3]}};
@@ -709,7 +708,7 @@ for(const p of mine.slice().reverse()){strokeLine(p.entry,p.long?LINE_STYLE.myLo
 const visibleSingles=cl.singles.filter(p=>(p.amount||0)>0);for(const p of visibleSingles){const st=p.long?LINE_STYLE.otherLong:LINE_STYLE.otherShort;strokeLine(p.entry,st);const q=pnlOf(p);tradeTags.push([p.entry,st,`${p.long?'L':'S'} ${levLabel(p.lev)}× ${cashLabel(p.amount)}${p.pair===300&&pair===0?' D':''}`,q[0],q[1],q[2]]);}
 for(const g of cl.groups){const st=g.long?LINE_STYLE.aggLong:LINE_STYLE.aggShort;strokeLine(g.entry,st);tradeTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ×${g.count} ${cashLabel(g.amount)}`,null,true,null]);}
 for(const p of others.filter(p=>(p.amount||0)>0)){const liq=publicLiq(p);if(liq>0){strokeLine(liq,LINE_STYLE.otherLiq);tradeTags.push([liq,LINE_STYLE.otherLiq,`${p.long?'L':'S'} LIQ${Number.isFinite(p.liq)&&p.liq>0?'':' EST'} ${levLabel(p.lev)}× ${cashLabel(p.amount)}${p.pair===300&&pair===0?' D':''} · ${money(liq)}`,null,true,null]);}}
-if($('avgOverlay').checked&&$('overlay').checked){marketAverages();for(const g of [...averageCache.sides.filter(g=>g.count),...averageCache.bands]){const st=g.long?LINE_STYLE.avgLong:LINE_STYLE.avgShort;strokeLine(g.entry,st);tradeTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${g.count}`,null,true,null]);if(g.chartLiq>0){const ls=g.long?LINE_STYLE.avgLiqLong:LINE_STYLE.avgLiqShort;strokeLine(g.chartLiq,ls);tradeTags.push([g.chartLiq,ls,`AVG LIQ${g.estimatedCount?' EST':''} ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${money(g.chartLiq)}`,null,true,null]);}}}
+if($('avgOverlay').checked&&$('overlay').checked){const averageTags=[],averageLiqTags=[];marketAverages();for(const g of [...averageCache.sides.filter(g=>g.count),...averageCache.bands]){const st=g.long?LINE_STYLE.avgLong:LINE_STYLE.avgShort;strokeLine(g.entry,st);averageTags.push([g.entry,st,`AVG ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${g.count}`,null,true,null]);if(g.chartLiq>0){const ls=g.long?LINE_STYLE.avgLiqLong:LINE_STYLE.avgLiqShort;strokeLine(g.chartLiq,ls);averageLiqTags.push([g.chartLiq,ls,`AVG LIQ${g.estimatedCount?' EST':''} ${g.long?'L':'S'} ${g.band===undefined?'ALL':g.band+'×'} · ${money(g.chartLiq)}`,null,true,null]);}}tradeTags.splice(2,0,...averageLiqTags,...averageTags);}
 /* My average position line (notional-weighted entry of my open trades here). */
 const avgLn=myAvgEntry();if(avgLn>0){strokeLine(avgLn,LINE_STYLE.myAvg);const mt=myTotalNet(pair);tradeTags.splice(mine.length?Math.min(2,tradeTags.length):0,0,[avgLn,LINE_STYLE.myAvg,`MY AVG ${money(avgLn)}`,mt?fmtPnl(mt.total):null,mt?mt.total>=0:true,null]);}
 /* Thin green price line behind the bars. */
